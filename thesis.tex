@@ -1,0 +1,259 @@
+% This is a template for Ph.D. dissertations in the UCI format.
+
+% All fonts, including those for sub- and superscripts, must be 10 points or larger.
+% Recommended sizes are 14-point for chapter headings, 12-point for the main body of text
+% and figure/table titles, and 10-point for footnotes, sub- and super-scripts, and text in
+% figures and tables.
+\documentclass[12pt,fleqn]{ucithesis}
+
+\usepackage{amsmath}
+\usepackage{array}
+\usepackage{bm}
+\usepackage{boxedminipage}
+\usepackage{graphicx}
+\usepackage{natbib}
+\usepackage{path}
+\usepackage{psfrag}
+\usepackage{relsize}
+\usepackage{subfigure}
+
+% plainpages=false fixes the "duplicate ignored" error with page counters
+% Set pdfborder to 0 0 0 to disable colored borders around PDF hyperlinks
+\usepackage[plainpages=false,pdfborder={0 0 0}]{hyperref}
+
+% Uncomment the following line to enable Unicode support. This will allow you
+% to enter non-ASCII characters (such as accented characters) directly without
+% having to use LaTeX's awkward escape syntax (e.g., \'{e})
+% NOTE: You may have to install the ucs.sty package for this to work. See:
+% http://www.unruh.de/DniQ/latex/unicode/
+% \usepackage[utf8x]{inputenc}
+
+\begin{document}
+
+\thesistitle
+{
+	Title Line1\\
+	Line2
+}
+
+\degreename{Doctor of Philosophy}
+
+% Use the wording given in the official list of degrees awarded by UCI:
+% http://www.rgs.uci.edu/grad/academic/degrees_offered.htm
+\degreefield{Electrical and Computer Engineering}
+
+% Your name as it appears on official UCI records.
+\authorname{My Name}
+
+% Use the full name of each committee member.
+\committeechair{Professor First Last}
+\othercommitteemembers
+{
+	Professor First Last\\
+	Professor First Last
+}
+
+\degreeyear{Year}
+
+\copyrightdeclaration
+{
+	{\copyright} {\Degreeyear} \Authorname
+}
+
+% If you have previously published parts of your manuscript, you must list the
+% copyright holders; see Section 3.2 of the UCI Thesis and Dissertation Manual.
+% Otherwise, this section may be omitted.
+% \prepublishedcopyrightdeclaration
+% {
+% 	Chapter 4 {\copyright} 2003 Springer-Verlag \\
+% 	Portion of Chapter 5 {\copyright} 1999 John Wiley \& Sons, Inc. \\
+% 	All other materials {\copyright} {\Degreeyear} \Authorname
+% }
+
+% The dedication page is optional.
+\dedications
+{
+	To my parents...
+}
+
+\acknowledgments
+{
+	I would like to thank...
+
+	You must acknowledge grants and other funding assistance. 
+
+	You may also acknowledge the contributions of professors and friends. 
+	
+	You also need to acknowledge any publishers of your previous work who have given you permission to incorporate that work into your dissertation. See Section 3.2 of the UCI Thesis and Dissertation Manual.
+}
+
+% Include, at minimum, a listing of your degrees and educational achievements with dates and the school where the degrees were earned. Also include the degree currently being attained.
+\curriculumvitae
+{
+	% The following is a sample CV to get you started. Feel free to change it however you wish; there are no specific requirements regarding the formatting of your CV.
+
+	\textbf{EDUCATION}
+
+	\begin{tabular*}{1\textwidth}{@{\extracolsep{\fill}}lr}
+		\textbf{Doctor of Philosophy in Computer Engineering} & \textbf{2008} \\
+		\vspace{6pt}
+		University of California, Irvine & \emph{Irvine, California} \\
+		\textbf{Master of Science in Computer Engineering} & \textbf{2005} \\
+		\vspace{6pt}
+		University of California, Irvine & \emph{Irvine, California} \\
+		\textbf{Bachelor of Science in Computer Engineering} & \textbf{1998} \\
+		\vspace{6pt}
+		Washington University & \emph{Saint Louis, Missouri} \\
+		\textbf{Associate of Arts in Liberal Arts} & \textbf{1995} \\
+		Johnson County Community College & \emph{Overland Park, Kansas} \\
+	\end{tabular*}
+
+	\vspace{12pt}
+	\textbf{RESEARCH EXPERIENCE}
+
+	\begin{tabular*}{1\textwidth}{@{\extracolsep{\fill}}lr}
+		\textbf{Graduate Research Assistant} & \textbf{2003--2005} \\
+		\vspace{6pt}
+		University of California, Irvine & \emph{Irvine, California} \\
+		\textbf{Research Assistant} & \textbf{1998--1999} \\
+		Institute for Biomedical Computing & \emph{Saint Louis, Missouri} \\
+	\end{tabular*}
+
+	\vspace{12pt}
+	\textbf{TEACHING EXPERIENCE}
+
+	\begin{tabular*}{1\textwidth}{@{\extracolsep{\fill}}lr}
+		\textbf{Teacher Trainee} & \textbf{2005--2006} \\
+		\vspace{6pt}
+		California Community College Internship Program & \emph{Santa Ana, California} \\
+		\textbf{English Teacher} & \textbf{2001--2002} \\
+		\vspace{6pt}
+		Nova Group & \emph{Tarumi, Japan} \\
+		\textbf{Math and Physics Teacher} & \textbf{1999--2001} \\
+		Peace Corps & \emph{Tumu, Ghana} \\
+	\end{tabular*}
+
+	\vspace{12pt}
+	\textbf{SELECTED HONORS AND AWARDS}
+
+	\begin{tabular*}{1\textwidth}{@{\extracolsep{\fill}}lr}
+		\textbf{Graduate Research Fellowship} & \textbf{2005--2008} \\
+		\vspace{6pt}
+		National Science Foundation & \\
+		\textbf{Engineers' Class of 1991 Scholarship} & \textbf{1995--1998} \\
+		\vspace{6pt}
+		Washington University & \\
+	\end{tabular*}
+
+	\pagebreak
+
+	\textbf{REFEREED JOURNAL PUBLICATIONS}
+
+	\begin{tabular*}{1\textwidth}{@{\extracolsep{\fill}}p{4.5in}r}
+		\textbf{Design, implementation, and test of a wireless peer-to-peer network for roadway incident exchange} & \textbf{2007} \\
+		\multicolumn{2}{@{\extracolsep{\fill}}l}{International Journal of Vehicle Information and Communication Systems} \\
+	\end{tabular*}
+
+	\vspace{12pt}
+	\textbf{REFEREED CONFERENCE PUBLICATIONS}
+
+	\begin{tabular*}{1\textwidth}{@{\extracolsep{\fill}}p{4.75in}r}
+		\textbf{Interactive Back-annotation of Worst-case Execution Time Analysis for Java Microprocessors} & \textbf{Aug. 2007} \\
+		\multicolumn{2}{@{\extracolsep{\fill}}l}{Embedded and Real-Time Computing Systems and Applications} \vspace{6pt} \\
+		\textbf{Identification and Removal of Program Slice Criteria for Code Size Reduction in Embedded Systems} & \textbf{May 2007} \\
+		\multicolumn{2}{@{\extracolsep{\fill}}l}{International Embedded Systems Symposium} \vspace{6pt} \\
+		\textbf{Toward a Unified Standard for Worst-Case Execution Time Annotations in Real-Time Java} & \textbf{Mar 2007} \\
+		\multicolumn{2}{@{\extracolsep{\fill}}l}{Parallel and Distributed Real-Time Systems} \vspace{6pt} \\
+		\textbf{A Survey of Worst-Case Execution Time Analysis for Real-Time Java} & \textbf{Mar 2007} \\
+		\multicolumn{2}{@{\extracolsep{\fill}}l}{Java and Components for Parallelism, Distribution and Concurrency} \vspace{6pt} \\
+		\textbf{Automatic Performance Visualization of Distributed Real-Time Systems} & \textbf{Apr. 2006} \\
+		\multicolumn{2}{@{\extracolsep{\fill}}l}{Object-Oriented Real-Time Distributed Computing} \vspace{6pt} \\
+		\textbf{RTZen: Highly Predictable, Real-time Java Middleware for Distributed and Embedded Systems} & \textbf{Nov. 2005} \\
+		\multicolumn{2}{@{\extracolsep{\fill}}l}{Middleware} \vspace{6pt} \\
+		\textbf{VADRE: A Visual Approach to Performance Analysis of Distributed, Real-time Systems} & \textbf{Jun. 2005} \\
+		\multicolumn{2}{@{\extracolsep{\fill}}l}{Modeling, Simulation and Visualization Methods} \vspace{6pt} \\
+		\textbf{Late Demarshalling: A Technique for Efficient Multi-language Middleware for Embedded Systems} & \textbf{Oct. 2004} \\
+		\multicolumn{2}{@{\extracolsep{\fill}}l}{Distributed Objects and Applications} \vspace{6pt} \\
+		\textbf{Adaptive Techniques for Minimizing Middleware Memory Footprint for Distributed, Real-Time, Embedded Systems} & \textbf{Oct. 2003} \\
+		\multicolumn{2}{@{\extracolsep{\fill}}l}{Computer Communications} \\
+	\end{tabular*}
+
+	\vspace{12pt}
+	\textbf{BOOKS}
+
+	\begin{tabular*}{1\textwidth}{@{\extracolsep{\fill}}p{4.5in}r}
+		\textbf{Web Developer's Guide To Visual J++ And ActiveX} & \textbf{1996} \\
+		\multicolumn{2}{@{\extracolsep{\fill}}l}{Coriolis Group Books} \\
+	\end{tabular*}
+
+	\vspace{12pt}
+	\textbf{SELECTED TECHNICAL PUBLICATIONS}
+
+	\begin{tabular*}{1\textwidth}{@{\extracolsep{\fill}}p{4.75in}r}
+		\textbf{CORBA is dead! Long live CORBA!} & \textbf{Mar. 2004} \\
+		\multicolumn{2}{@{\extracolsep{\fill}}l}{Linux Magazine} \vspace{6pt} \\
+		\textbf{Portability and the ARM Processor} & \textbf{Sep. 2003} \\
+		\multicolumn{2}{@{\extracolsep{\fill}}l}{Dr. Dobb's Journal} \vspace{6pt} \\
+		\textbf{Linux and the iPAQ, Arm in Arm} & \textbf{May 2003} \\
+		\multicolumn{2}{@{\extracolsep{\fill}}l}{The C/C++ Users Journal} \\
+	\end{tabular*}
+
+	\vspace{12pt}
+	\textbf{SOFTWARE}
+
+	\begin{tabular*}{1\textwidth}{@{\extracolsep{\fill}}lr}
+		\textbf{Volta} & \url{volta.sourceforge.net} \\
+		\multicolumn{2}{@{\extracolsep{\fill}}l}{\emph{Development tools for distributed, hard real-time Java software}} \vspace{6pt} \\
+		\textbf{Propelant} & \url{propelant.sourceforge.net} \\
+		\multicolumn{2}{@{\extracolsep{\fill}}l}{\emph{Build automation of Linux for embedded systems}} \vspace{6pt} \\
+		\textbf{HR-XSL} & \url{hr-xsl.sourceforge.net} \\
+		\multicolumn{2}{@{\extracolsep{\fill}}l}{\emph{XML transformations for a curriculum vitae or résumé}} \\
+	\end{tabular*}
+
+	\vspace{12pt}
+	\textbf{INVITED TALKS}
+
+	\begin{tabular*}{1\textwidth}{@{\extracolsep{\fill}}lr}
+		\textbf{Real-time Java} & \textbf{Feb. 2007} \\
+		\vspace{6pt}
+		Orange County Embedded Java Users' Group & \emph{Huntington Beach, California} \\
+		\textbf{Static Timing Analysis for Multi-Robot Systems} & \textbf{Nov. 2006} \\
+		Space and Naval Warfare Systems Center & \emph{San Diego, California} \\
+	\end{tabular*}
+
+	\vspace{12pt}
+	\textbf{PROFESSIONAL MEMBERSHIPS}
+
+	Institute of Electrical and Electronics Engineers (IEEE)
+}
+
+\thesisabstract
+{
+	The text of the abstract begins here. The text may contain a maximum of 350 words. Include a short statement of the 
+problem you studied, a brief exposition of the methods and procedures employed in gathering the data, and a summary of your 
+findings. No graphs, charts, or tables may be included.
+}
+
+\preliminarypages
+
+\chapter{Introduction}
+This is an example citation \cite{Harmon2007}.
+\chapter{Related Work}
+\chapter{Contribution A}
+\chapter{Contribution B}
+\chapter{Contribution C}
+\chapter{Future Work}
+\chapter{Conclusion}
+
+% These commands fix an odd problem in which the bibliography line
+% of the Table of Contents shows the wrong page number.
+\clearpage
+\phantomsection
+
+\bibliographystyle{abbrv}
+\bibliography{thesis}
+
+\appendix
+\section{Appendix A}
+
+\end{document}
