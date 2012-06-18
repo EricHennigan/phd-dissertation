@@ -1,0 +1,82 @@
+
+\chapter{Motivation}
+
+Many industrial and commercial institutions employ dynamically typed languages in systems which process sensitive information.
+Programmers often find the high-level nature of these languages convenient for rapidly developing prototypes that meet the business need for quick deployment.
+However, the choice of language is heavily influence by common practices.
+For example, Web applications have de facto standardized on JavaScript for client-side logic, which includes secure authentication.
+Unfortunately, the semantics of dynamically typed languages, such as JavaScript, also makes them resistant to static analysis techniques which could be used to verify application security~\cite{static-typing}.
+
+In today's architecture, the web server delivers HTML and JavaScript to the client as an untyped string.
+Web~2.0 applications contain server-side processing that injects user generated content and syndicated advertisements into pages assembled on demand.
+Popular code frameworks which perform this composition are not themselves statically typed (as in the case of PHP, Ruby on Rails, Django).
+The practice of including foreign content as an unsafe string provides attackers the opportunity to inject malicious code into a web page, in an attack known as Cross-Site Scripting (XSS).
+The prevalence, persistence, scope, and danger~\cite{whitehat, mitre} of such attacks has given XSS the infamous moniker: ``buffer overflow of the web.''
+
+\section{The Threat of Code Injection}
+
+The most pernicious type of XSS attack allows the injected script to persist between browsing sessions, by residing in a server-side data store.
+The canonical example of such an attack involves a message board or web forum that allows the posting of user-generated content.
+The site stores this content in a server-side database, so that it may be retrieved for viewing by other visitors.
+If a malicious user is able to bypass textual filters and inject JavaScript into a forum posting, then the script is saved by the site and inserted into all pages that contain the post.
+To become a victim, an innocent user needs only to view a page with the malicious post.
+
+Consider that many of the victims are simultaneously logged into other more sensitive services (such as email, shopping, banking or brokerage accounts), and the potential for harvesting of sensitive user credentials becomes a serious threat.
+I would also like to remind the reader that your web browser probably knows more about your habits, interests, and other personally identifying information than any other single application.
+In addition, your web browser probably also conveniently stores login credentials to banking sites, webmail services, and many shopping sites, as well as form information containing your real name, address, phone number, and credit card numbers.
+
+\section{Filtering User Input is Too Difficult}
+
+Currently, the promoted mechanism for preventing script injection attacks is to filter out html and JavaScript code from user input.
+Though user input filtering is the first line of security defense of any website, not every malicious script can be deterministically identified.
+The difficulties underlying filtration are readily apparent after reading examples from RSnake's XSS Cheat Sheet~\cite{xsscheatsheet}\footnote{The XSS Cheat Sheet also provides a handy reference of malicious scripts that can be used to test user input filters}.
+JavaScript syntax provides several different mechanisms for accessing an object's properties, hampering the recognition of malicious JavaScript.
+For example, the following three lines each create a dialog box with the contents of a page's cookie:
+
+\begin{alltt}
+alert(document.cookie)
+alert(document['cookie'])
+with(document) alert(cookie)
+\end{alltt}
+
+This multiplicity interferes with routines that attempt to identify malicious code when filtering user input.
+To provide a clear demonstration of problems that are encountered with input filtering, Hasegawa~\cite{xssfilters} has manufactured the following JavaScript snippet that calls \texttt{alert(1)}, yet contains no alphanumeric characters:
+
+\begin{alltt}
+($=[$=[]][(__=!$+$)[_=-~-~-~$]+({}+$)[_/_]+($$=($_=!''+$)
+[_/_]+$_[+$])])()[__[_/_]+__[_+~$]+$_[_]+$$](_/_)
+\end{alltt}
+
+\todo{cite some recent cases where filtering wasn't adequate}
+
+\subsection{Preventing Malicious Action}
+
+
+The persistent XSS attack just given illustrates two fundamental principals of web security: (1) user generated content cannot be trusted, and (2) data stored on your own servers should not necessarily be trusted.
+
+The second principal is most concerning, and the one we wish to combat.
+
+
+Though dated, these examples are notable not only for setting records, but also for demonstrating the relative ease with which a clever user can control the actions taken by millions of other browsers.
+
+
+
+
+
+
+
+\todo{categorize XSS?}
+
+\begin{itemize}
+    \item say that js handles sensitive info
+    \item delineate injection
+    \item categorize xss
+    \item pound-include problem
+    \item scare-monger prevalence as `buffer overflow'
+    \item sandbox + same origin policy
+    \item have to setup an attacker model?
+\end{itemize}
+
+Within the browser, the execution semantics of JavaScript, 
+
+Seth Just Information flow analysis for JS has a good discussion about control flow structures.
