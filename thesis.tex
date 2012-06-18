@@ -16,6 +16,8 @@
 \usepackage{psfrag}
 \usepackage{relsize}
 \usepackage{subfigure}
+\usepackage{todonotes}
+\usepackage{alltt}
 
 % plainpages=false fixes the "duplicate ignored" error with page counters
 % Set pdfborder to 0 0 0 to disable colored borders around PDF hyperlinks
@@ -28,22 +30,24 @@
 % http://www.unruh.de/DniQ/latex/unicode/
 % \usepackage[utf8x]{inputenc}
 
+\newcommand{\term}{\emph}
+
 \begin{document}
 
 \thesistitle
 {
-	Title Line1\\
-	Line2
+	Information Flow for Dynamically Typed Languages:\\
+	A Case Study of JavaScript
 }
 
 \degreename{Doctor of Philosophy}
 
 % Use the wording given in the official list of degrees awarded by UCI:
 % http://www.rgs.uci.edu/grad/academic/degrees_offered.htm
-\degreefield{Electrical and Computer Engineering}
+\degreefield{Information and Computer Science}
 
 % Your name as it appears on official UCI records.
-\authorname{My Name}
+\authorname{Eric Hennigan}
 
 % Use the full name of each committee member.
 \committeechair{Professor First Last}
@@ -53,7 +57,7 @@
 	Professor First Last
 }
 
-\degreeyear{Year}
+\degreeyear{2013}
 
 \copyrightdeclaration
 {
@@ -239,10 +243,32 @@ findings. No graphs, charts, or tables may be included.
 \chapter{Introduction}
 This is an example citation \cite{Harmon2007}.
 \chapter{Related Work}
-\chapter{Contribution A}
-\chapter{Contribution B}
-\chapter{Contribution C}
-\chapter{Future Work}
+\todo{There are two outstanding problems: 1. label creep, 2. can't track passive indirect flows.}
+\chapter{Flow Terminology}
+\chapter{System Design Considerations}
+  - impact on different parts
+    have the plots that show gradual performance degradation
+  - applys across browsers (both moz fire, and webkit)
+Why it's harder in dyn lang (JS) vs static (Java)
+ - vs rewriting?
+ - have to argue that, in the end, the VM is best approach
+\chapter{Label Propagation}
+ - design of the cf-stack
+\chapter{Bytecodes}
+\chapter{JavaScript Feature Catalog}
+ - what to do with arrays, or does this fit better in design considerations?
+   : Can coalesce labels on arrays?
+   : label bounds checking? 
+ - obj literals
+   how they interact with obj poisoning attack
+ - retrieval
+   indexing syntax [] vs .
+   prototype chain
+\chapter{Policies}
+  matrx of trade-offs, issues
+  outline chart
+  real-world frequency of occurance
+  - no-sensitive upgrade vs others
 \chapter{Conclusion}
 
 % These commands fix an odd problem in which the bibliography line
