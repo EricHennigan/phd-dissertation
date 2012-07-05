@@ -1,0 +1,9 @@
+
+\chapter{System Design Considerations}
+
+Designing the labeling system supporting information flow tracking took special consideration.
+Two possible implementations of security types (see Section~\ref{sec:implementation}): extending of the tagged pointer representation and introducing a security wrapper object.
+We examine how each option affects the labeling of primitive values and interned objects, and how the labeling mechanism will impact memory requirements and the garbage collector (see Section~\ref{sec:analysis}).
+We corroborate this analysis with a report on our experience during implementation (see Section~\ref{sec:experience}).
+Finally, we discuss how our work compares with that of others (see Section~\ref{sec:related-work}), and finish with a recommendation that an extension of the tagged pointer representation meets the requirements of a dynamic information flow security type system and has the least implementation effort (see Section~\ref{sec:conclusion}).
+

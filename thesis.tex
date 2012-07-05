@@ -251,16 +251,9 @@ findings. No graphs, charts, or tables may be included.
 
 \chapter{Related Work}
 \todo{There are two outstanding problems: 1. label creep, 2. can't track passive indirect flows.}
-\chapter{Flow Terminology}
-\chapter{System Design Considerations}
-  - impact on different parts
-    have the plots that show gradual performance degradation
-  - applys across browsers (both moz fire, and webkit)
-Why it's harder in dyn lang (JS) vs static (Java)
- - vs rewriting?
- - have to argue that, in the end, the VM is best approach
+\include{terminology}
+\include{system-design}
 \chapter{Label Propagation}
- - design of the cf-stack
 \chapter{Bytecodes}
 \chapter{JavaScript Feature Catalog}
  - what to do with arrays, or does this fit better in design considerations?
@@ -271,6 +264,7 @@ Why it's harder in dyn lang (JS) vs static (Java)
  - retrieval
    indexing syntax [] vs .
    prototype chain
+ - Seth Just Information flow analysis for JS has a good discussion about control flow structures.
 \chapter{Policies}
   matrx of trade-offs, issues
   outline chart
