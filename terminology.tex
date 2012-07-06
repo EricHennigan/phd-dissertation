@@ -8,7 +8,7 @@
 \toprule
 Category & Descriptor & Example & Flow & Required Analysis \\
 \midrule[\heavyrulewidth]
-\multirow{3}{*}{Explicit} & Direct & 
+\multirow{3}{*}{Explicit} & Direct &
 \begin{lstlisting}
 b = a
 \end{lstlisting} & a $\rightarrow$ b & Dataflow\\
@@ -19,7 +19,7 @@ c = bar(_, b, _)
 \end{lstlisting}
 & a $\rightarrow$ c & Dataflow (transitive) \\
 \hline
-\multirow{7}{*}{Implicit} & Active & 
+\multirow{7}{*}{Implicit} & Active &
 \begin{lstlisting}
 a = true
 b = 0
@@ -29,7 +29,7 @@ else
    ...
 \end{lstlisting}
 & a $\rightarrow$ b & Control Flow (dynamic)\\
-\cmidrule(r){2-5} & Passive & 
+\cmidrule(r){2-5} & Passive &
 \begin{lstlisting}
 a = true
 c = 0
@@ -45,19 +45,19 @@ else
 \label{table:terminology}
 \end{table*}
 
-Work first presenting information flow~\cite{denning-cert} introduced terminology lacking in precision with regard  to implicit information flows.
-More recent work~\cite{empirical-study} attempting to make clear the analysis capabilities of their system introduced terminology that overloads vocabulary established by Denning and Denning~\cite{denning-cert}.
+Work first presenting information flow~\cite{denning-cert} introduced terminology lacking in precision with regard to implicit information flows.
+More recent work~\cite{empirical-study} attempting to clarify the analysis capabilities of their system proposes terminology that overloads vocabulary established by Denning and Denning~\cite{denning-cert}.
 Before introducing FlowCore, this work presents more precise and descriptive designations that extend established terminology in the most compatible manner possible.
 These designations clarify both the language mechanisms responsible for information flows and the program analysis required to identify them.
-Table~\ref{table:terminology} summarizes new information flow designations and associated analysis in 
+Table~\ref{table:terminology} summarizes new information flow designations and associated analysis discussed in this chapter.
 
 \subsection{Explicit Information Flow}
 Explicit information flows occur as a result of data flow dependence.
 This dependence can be either \emph{direct} or \emph{indirect}.
 Direct flows occur when a value acquires a label as a result of assignment, and can be identified with a simple intraprocedural dataflow analysis.
 Indirect flows occur when a value acquires a label as a result of the transitive closure of direct flows.
-Identification of indirect flows requires interpretation of a sequence of statements, with even more precision gained via interprocedural dataflow analysis.
-Most information flow systems achieve this precision at runtime by tagging all values, including those values passed to and returned from function calls.
+Identification of indirect flows requires interpretation of a sequence of statements.
+FlowCore tracks transitive dataflow by tagging all values at runtime, including those values passed to and returned from function calls.
 
 \subsection{Implicit Information Flow}
 Implicit information flows occur as a result of control flow dependence.
@@ -65,11 +65,12 @@ This dependence can be either \term{active} or \term{passive}.
 
 Active control flow dependencies occur when a value acquires a label during execution that depends on a previously taken control flow branch.
 Identification of this dependence requires a labeled program counter and a recorded history of control flow branches taken during program execution.
-Information flow systems that track active flows do so by maintaining a runtime stack of program counter labels.
+FlowCore tracks active flows by maintaining a runtime stack of program counter labels.
 
 Passive control flow dependencies occur when a value \emph{does not} acquire a label because its assignment depends on a control flow branch \emph{not taken} during program execution.
 These dependencies can only be detected via a static analysis carried out prior to program execution.
 Implicit passive information flows are the most difficult to analyze in a dynamically typed language such as JavaScript.
 The ability to load additional code at runtime and execute computed strings via \code{eval} prohibits identification of what values might have been influenced in all alternative control flow branches.
 Previous work attempts to secure active information flows using through staged analysis~\cite{staged-javascript} and lightweight static analysis~\cite{XSS-tainting}.
+FlowCore focuses on active flows, and makes no attempt to track influence via passive control flow.
 
