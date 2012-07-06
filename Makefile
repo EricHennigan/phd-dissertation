@@ -1,7 +1,6 @@
 PROJ = thesis
 
-SRC	= $(PROJ).tex
-DEP	= *.tex
+DEP	= thesis.tex
 
 OUT = output
 
@@ -11,12 +10,17 @@ LATEX = pdflatex -output-directory=$(OUT)
 
 PDFVIEWER = open
 
+.PHONY	: tex bib clean $(PDF)
+
 $(PDF) : $(DEP)
 	make tex
 
 tex	:
 	mkdir -p $(OUT)
-	$(LATEX) $(SRC)
+	touch $(OUT)/$(PROJ).log
+	while ($(LATEX) $(PROJ).tex ; \
+		grep -q "Rerun to get cross" $(OUT)/$(PROJ).log ) do true ; \
+		done
 
 all :
 	make tex
@@ -25,7 +29,8 @@ all :
 	make tex    # Run LaTeX again to make sure all references are correct
 
 bib	:
-	bibtex $(OUT)/$(PROJ)
+	cp $(PROJ).bib $(OUT)
+	cd $(OUT); bibtex $(PROJ); cd ..
 
 show	: $(PDF)
 	$(PDFVIEWER) "$(PDF)"
