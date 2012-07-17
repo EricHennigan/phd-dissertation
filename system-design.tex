@@ -1,9 +1,222 @@
 
-\chapter{System Design Considerations}
+\chapter{Label System Design Considerations}
 
 Designing the labeling system supporting information flow tracking took special consideration.
-Two possible implementations of security types (see Section~\ref{sec:implementation}): extending of the tagged pointer representation and introducing a security wrapper object.
-We examine how each option affects the labeling of primitive values and interned objects, and how the labeling mechanism will impact memory requirements and the garbage collector (see Section~\ref{sec:analysis}).
-We corroborate this analysis with a report on our experience during implementation (see Section~\ref{sec:experience}).
-Finally, we discuss how our work compares with that of others (see Section~\ref{sec:related-work}), and finish with a recommendation that an extension of the tagged pointer representation meets the requirements of a dynamic information flow security type system and has the least implementation effort (see Section~\ref{sec:conclusion}).
+FlowCore could have been written using one of two possible implementations of security types (Section~\ref{sec:implementation}): (1) extending of the tagged pointer representation and (2) introducing a security wrapper object.
+Before choosing one implementation over the other, we first examine how each option affects the labeling of primitive values and interned objects and how the labeling mechanism will impact memory requirements and the garbage collector (Section~\ref{sec:analysis}).
+We corroborate this analysis with a report on our experience during implementation (Section~\ref{sec:experience}).
+Finally, I show how this work compares with that of others (Section~\ref{sec:related-work}), and finish with a recommendation that an extension of the tagged pointer representation meets the requirements of a dynamic information flow security type system and has the least implementation effort (Section~\ref{sec:conclusion}).
 
+\section{Possible Implementations}
+\label{sec:implementation}
+
+Before discussing the details of the two possible implementations of dynamic security types, I first give a review of the existing dynamic type system that WebKit's JavaScriptCore VM employs.
+
+\subsection{Existing Type System}
+
+Many implementations of dynamically typed languages follow a common approach of using a tagged union to represent each possible primitive or object reference type~\cite{gudeman1993representing}.
+In JavaScriptCore, this union takes the form of a 64-bit word, within the class \code{JSValue}.
+Figure~\ref{fig:base-encoding} illustrates the union's fields as ordered on a big-endian\footnote{On a little-endian machine the order of the \code{tag} and \code{payload} fields are swapped.}, 64-bit machine.
+
+Within a \code{JSValue}, a leading value of \texttt{0xFFFF} distinguishes 32-bit JavaScript integers.
+Doubles are offset (under bitwise integer interpretation) by the value $2^{48}$ to ensure that all values have at least a leading value of \texttt{0x0001}.
+JavaScriptCore maintains a garbage collected heap which stores JavaScript objects with 64-bit alignment.
+Pointers to garbage collected JavaScript objects all begin with a leading \texttt{0x0000}, which nominally reduces the address space to 48 bits\footnote{Modern 64-bit processors only supply 48 bits of addressable space, so JavaScriptCore's chosen pointer encoding does not reduce the actual usable space.}
+The special JavaScript values \code{null}, \code{false}, \code{true}, and \code{undefined} each have bit 1 set, to distinguish them from properly aligned pointer values.
+JavaScriptCore also encodes two additional values, again at invalid pointer addresses, which are not defined within the JavaScript language: \code{empty}, which represents array holes and uninitialized \code{JSValue}s, and \code{deleted}, which is used in hash table code.
+
+\begin{comment}
+   1  2   3      4
+ 0123456789abcdef
+ 0xffff ffff ffff ffff
+    16   32        64
+
+ signal nan:
+ 0x7ff0 0000 0000 0001 to
+ 0x7ff7 ffff ffff ffff
+ or
+ 0xfff0 0000 0000 0001
+ 0xfff7 ffff ffff ffff
+
+ quiet nan:
+ 0x7ff8 0000 0000 0001
+ 0x7fff ffff ffff ffff
+ or
+ 0xfff8 0000 0000 0001
+ 0xffff ffff ffff ffff
+
+ 1 111 1 111 1 111 1---
+ F     F     F     >8 
+
+ E = 15 - 1 = 14 = 8 + 4 + 2
+                   0111
+                    - 1 // convert to actual double
+                   0110 = 13
+                   6
+
+                   jsNan = 7ff8 0000 0000 0000
+                           ffff                  tag type number
+                           ----
+                           true
+
+                    jsNan -> asDouble
+                    7ff8 0000 0000 0000
+                -      1 0000 0000 0000       double encode offset
+                   ---------------------
+                    7ff7 0000 0000 0000       // now a signaling nan
+
+\end{comment}
+
+\begin{figure}[h]
+    \centering
+\begin{tabular}{cc}
+    \begin{minipage}[h]{.5\textwidth}
+        \vfill
+\begin{tikzpicture}[scale=.12]
+ \draw[anchor=center] (32,2.5) node {\code{JSValue}};
+ \draw (0,0) -- (0,-25) -- (64,-25) -- (64,0) -- cycle;
+ \draw[anchor=center] (32,-2.5) node {\code{int64\_t asInt64}};
+ \draw[anchor=center] (32,-7.5) node {\code{double asDouble}};
+ \draw[anchor=center] (32,-12.5) node {\code{JSCell* ptr}};
+ \draw (0,-15) -- (64,-15);
+ \draw[anchor=center] (32,-17.5) node {\code{struct asBits}};
+ \draw [dotted] (0,-20) -- (64,-20);
+ \draw (32,-20) -- (32,-27.5);
+ \draw[anchor=center] (16,-22.5) node {\code{int32\_t tag}};
+ \draw[anchor=center] (48,-22.5) node {\code{int32\_t payload}};
+ \draw (0,-25) -- (0,-27.5);
+ \draw (64,-25) -- (64,-27.5);
+ \node at (62.5,-27.5) {0};
+ \node at (34.5,-27.5) {31};
+ \node at (29.5,-27.5) {32};
+ \node at (2.5,-27.5) {63};
+\end{tikzpicture}
+        \vfill
+\end{minipage}
+&
+\begin{tabular}{c|l}
+    bit values & type  \\
+\hline
+    \texttt{0000 0000 0000 0000} & \texttt{empty} \\
+    \texttt{0000 0000 0000 0004} & \texttt{deleted} \\
+    \texttt{0000 0000 0000 0002} & \texttt{null} \\
+    \texttt{0000 0000 0000 0006} & \texttt{false} \\
+    \texttt{0000 0000 0000 0007} & \texttt{true} \\
+    \texttt{0000 0000 0000 000a} & \texttt{undefined} \\
+    \texttt{0000 pppp pppp pppp} & \texttt{pointer} \\
+    \texttt{0001 dddd dddd dddd} & \tikzmark{2nd} \multirow{3}{*}{\texttt{  double}} \\
+    \texttt{\vdots} & \\
+    \texttt{FFFE dddd dddd dddd} & \tikzmark{4th} \\
+    \texttt{FFFF 0000 iiii iiii} & {integer}
+\end{tabular}
+\begin{tikzpicture}[overlay, remember picture]
+    \draw [decoration={brace,amplitude=.5em}, decorate]
+    ($(2nd)+(0,1ex)$) -- ($(4th)+(0,1ex)$);
+\end{tikzpicture}
+
+\end{tabular}
+\caption{
+    \label{fig:base-encoding}
+    Representation of the internal \code{JSValue} class and the dynamic type encoding used in Webkit's JavaScriptCore VM.}
+\end{figure}
+
+\todo{null, false, true, undefined all distinguished from pointers in that they have bit 1 set.}
+\todo{array hole (invalid jsval), and deleted values are caught by the GC for having improper alignment.}
+
+\begin{comment}
+         *     False:     0x06 =     4 + 2
+         *     True:      0x07 =     4 + 2 + 1
+         *     Undefined: 0x0a = 8     + 2
+         *     Null:      0x02 =         2
+
+         * These values have the following properties:
+         * - Bit 1 (TagBitTypeOther) is set for all four values, allowing real pointers to be
+         *   quickly distinguished from all immediate values, including these invalid pointers.
+         * - With bit 3 is masked out (TagBitUndefined) Undefined and Null share the
+         *   same value, allowing null & undefined to be quickly detected.
+         *
+         *     Deleted:   0x0
+         *     Empty:   0x4
+         * No valid JSValue will have the bit pattern 0x0, this is used to represent array
+         * holes, and as a C++ 'no value' result (e.g. JSValue() has an internal value of 0).
+        // These special values are never visible to JavaScript code; Empty is used to represent
+        // Array holes, and for uninitialized JSValues. Deleted is used in hash table code.
+        // These values would map to cell types in the JSValue encoding, but not valid GC cell
+        // pointer should have either of these values (Empty is null, deleted is at an invalid
+        // alignment for a GC cell, and in the zero page).
+         */
+\end{comment}
+
+\subsection{Fat Value Technique}\label{sec:fat-values}
+We can achieve dynamic information flow security by attaching, onto each runtime value, additional bits which encode a pointer, handle, or taint value representing the security type.
+We term this technique the \emph{fat value} approach, and extend the existing \code{JSValue} representation with an additional 64-bit word to hold the security type.
+As shown in Figure~\ref{fig:fat-encoding}, each value within the interpreter then becomes 128-bits, and contains both the originally encoded value and its security tag.
+
+\begin{figure}[h]
+\begin{minipage}[h]{.7\textwidth}
+\begin{tikzpicture}[scale=.12]
+ \begin{scope}[shift={(0,0)}]
+ \draw (0,-5) rectangle (128,-20);
+ \draw[anchor=center] (64,-2.5) node {\code{JSValue}};
+ \draw (64,-5) -- (64,-20);
+ \draw[anchor=center] (32,-7.5) node {\code{int64\_t asInt64}};
+ \draw[anchor=center] (32,-12.5) node {\code{double asDouble}};
+ \draw[anchor=center] (32,-17.5) node {\code{JSCell* ptr}};
+ \end{scope}
+
+ \begin{scope}[shift={(0,-20)}]
+ \draw (0,0) rectangle (128,-10);
+ \draw[dotted] (0,-5) -- (128,-5);
+ \draw (64,-5) -- (64,-10);
+ \draw[anchor=center] (64,-2.5) node {\code{struct encodedValue}};
+ \draw[anchor=center] (32,-7.5) node {\code{void* value}};
+ \draw[anchor=center] (96,-7.5) node {\code{u\_int64\_t label}};
+ \end{scope}
+
+ \begin{scope}[shift={(0,-30)}]
+ \draw (0,0) rectangle (128,-10);
+ \draw[anchor=center] (64,-2.5) node {\code{struct asBits}};
+ \draw[dotted] (0,-5) -- (128,-5);
+ \draw[anchor=center] (16,-7.5) node {\code{int32\_t tag}};
+ \draw[anchor=center] (48,-7.5) node {\code{int32\_t payload}};
+ \draw[anchor=center] (96,-7.5) node {\code{u\_int64\_t label}};
+ \draw (32,-5) -- (32,-10);
+ \draw (64,-5) -- (64,-10);
+ \end{scope}
+
+ \begin{scope}[shift={(0,-40)}]
+ \draw (0,0) -- (0,-2.5);
+ \node at (2.5,-2.5) {127};
+ \node at (29.5,-2.5) {96};
+ \draw (32,0) -- (32,-2.5);
+ \node at (34.5,-2.5) {95};
+ \node at (61.5,-2.5) {64};
+ \draw (64,0) -- (64,-2.5);
+ \node at (64+2.5,-2.5) {63};
+ \node at (126.5,-2.5) {0};
+ \draw (128,0) -- (128,-2.5);
+ \end{scope}
+\end{tikzpicture}
+\end{minipage}
+ \caption{Fat value encoding scheme.}
+ \label{fig:fat-encoding}
+\end{figure}\hfill
+
+The fat value technique requires modifying the core representation of all values within the VM.
+While performing this modification on an arbitrary dynamic language VM is not necessarily a trivial undertaking, the designers of JavaScriptCore have conveniently encapsulation the type inspection and conversion methods in the \code{JSValue} class.
+This practice makes the modification easier than on other JavaScript VM's such as SpiderMonkey.
+However, appropriately tagging each value with a security label still requires manual inspection of all code sites which create new values.
+Additionally, doubling the size of the core datatype also doubles the memory space requirements of any running program: the VM allocates twice as much space for the same number of core values.
+
+
+\section{Analysis}
+\label{sec:analysis}
+
+\section{Implementation Experience}
+\label{sec:experience}
+
+\section{Related Implementations}
+\label{sec:related-work}
+
+\section{Chosen Implementation for FlowCore}
+\label{sec:conclusion}
