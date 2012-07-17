@@ -6,7 +6,7 @@ OUT = output
 
 PDF	= $(OUT)/$(PROJ).pdf
 
-LATEX = pdflatex -output-directory=$(OUT)
+LATEX = pdflatex -output-directory=$(OUT) -file-line-error
 
 PDFVIEWER = open
 
