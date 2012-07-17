@@ -1,5 +1,21 @@
 
+[ ] are these worth citing?
+    [ ] Caisson: A Hardware Description Language for Secure Information Flow
+    [ ] Glift 2009
+    [ ] Tracking Information Flow at the Gate-Level for Secure Architectures
+    [ ] Execution Leases: A Hardware-Supported Mechanism for Enforcing Strong Non-Interference 
+    [ ] An Architectural Approach to Preventing Code Injection Attacks
+        is there a language transport format that would prevent code injection?
+        a non-injectable object description language?
+    [ ] Romer et. Structure Interp 1995
+
+[ ] JIT only lets you win on the dispatch, not on the label overhead
+[ ] inherent difficulties/slowdowns:
+    staged, sparse, stat/dyn analysis, jit
+
+
 [x] commit thesis template
 [ ] make an outline
 [ ] put actual names in the committee listing
+
 [ ] make sure that 'web browser' 'web page' 'web server' are all consistent
