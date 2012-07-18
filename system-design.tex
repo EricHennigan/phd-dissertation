@@ -257,8 +257,53 @@ js> if (x) { print("x is true"); }
 x is true
 \end{lstlisting}
 
-\section{Analysis}
+\section{Impacts on the Virtual Machine}
 \label{sec:analysis}
+
+Now that we have introduced two viable techniques for implementing information flow security, we analyze how each performs when labeling primitives, how each handles interned objects, and what impacts each has on the garbage collector.
+
+\subsection{Labeling Primitives}\label{sec:primitives}
+
+%Although the tagged pointer encoding is an implementation detail, this decision has had side effects which have leaked into the JavaScript specification.
+%The foundational JavaScript VM, SpiderMonkey, initially implemented a tagged pointer encoding scheme for the 32-bit machines of that era.
+%For example, SpiderMonkey's original 32-bit implementation used 1 bit for the integer type tag, and 31 bits for integer values.
+%This design forced the language specification~\cite{ecma} to provide a coercion of any integer which cannot be represented by 31-bits to the \texttt{double} type.
+
+The existing core datatype in JavaScriptCore uses a NaN encoding scheme that enables the value and type tag to coexist in the same memory structure.
+The tagged pointer technique has the benefit of allowing the VM to perform operations on primitives quickly and directly.
+Unfortunately, many common operators, such as \texttt{+}, behave differently depending on the types of the arguments.
+Not only must the VM first inspect the type of the core values involved before dispatching the operation, but it then also unpacks the payload of the arguments from their encoding.
+
+Using the fat value approach requires modifying the core value representation, extending it with additional bits to hold the security type.
+This modification impacts the mechanisms used to encode and decode primitive values, as well as the type inspection routines.
+JavaScriptCore uses an Object-Oriented design that encapsulates the type inspection logic, preventing it from dispersing across the VM implementation.
+However, we must still manually audit each site at which the VM creates \code{JSValue}s so that the appropriate security label can be set.
+
+Alternatively, the cloak approach requires the creation of a wrapper object for each labeled primitive.
+Although the cloak easily holds both the core value representation of the primitive as well as the security type, the presence of a cloak object negatively impacts the runtime type inspection logic.
+Where before the VM would previously inspect a primitive, it now dispatches inspection logic on a cloak object.
+This extra layer of indirection severely degrades the performance of the very operations for which primitives are optimized.
+
+The WebKit developers have designed JavaScriptCore as an embeddable interpreter.
+Systems external to the JavaScript engine, such as the DOM framework of the WebKit browser, reflect their own classes into the JavaScriptCore engine.
+This reflection occurs via a layer of interface classes\footnote{The WebKit build system automatically generates the interface classes.}, which each inherit a JavaScriptCore class such as \code{JSNonFinalObject}.
+Should an external system expect certain fields to contain raw primitives (such as integers), it will fail when receiving a cloaked value.
+When implementing the cloak scheme, we must either prohibit cloaks from escaping the JavascriptCore VM or modify the interface layer to automatically uncloak.
+Both of these solutions leave the browser's external systems open as an information side channel.
+
+To avoid observable semantic changes that could be exploited by an attacker, cloaks must also remain completely invisible to the JavaScript programmer.
+For example, even though we implement cloaks as a native \code{JSObject} within the VM, we cannot allow a JavaScript program to set a property on a cloaked primitive.
+Additionally, some JavaScript operators, such as \code{typeof}, require introducing an additional special case.
+For example, a cloaked integer reports the type of the cloaked value, ``\code{number}'', rather than the type of the cloak, ``\code{object}''.
+Should the VM use this operator internally for a type dispatch, it would then pass the value into a native routine expecting a raw primitive value.
+To reduce the amount of implementation effort, we seek to avoid hunting down all the type dispatch sites and introducing these special cases.
+
+When we compare the fat value approach to the cloak approach, an interesting semantic difference arises:
+In the fat value approach, we attach the security type to the primitive value or object reference, as part of the tagged pointer encoding.
+In the cloak approach, each object receives an internal field in store its security label while primitives are cloaked with an extra layer of indirection.
+
+\todo{I haven’t fully explored the difference between having a labeled reference vs having a labeled object, but I think the difference is analogous to having an Access Control Listing by columns vs Object Capabilities by rows, as discussed in Capability Myths Demolished.}
+% At this point I am in favor of the fat value approach, because I’m liking the reference semantics, and the transparency with which primitives can be labeled. I’m also willing to accept the cost of having fatter values.
 
 \section{Implementation Experience}
 \label{sec:experience}
