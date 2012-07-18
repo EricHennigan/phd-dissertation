@@ -120,9 +120,6 @@ JavaScriptCore also encodes two additional values, again at invalid pointer addr
     Representation of the internal \code{JSValue} class and the dynamic type encoding used in Webkit's JavaScriptCore VM.}
 \end{figure}
 
-\todo{null, false, true, undefined all distinguished from pointers in that they have bit 1 set.}
-\todo{array hole (invalid jsval), and deleted values are caught by the GC for having improper alignment.}
-
 \begin{comment}
          *     False:     0x06 =     4 + 2
          *     True:      0x07 =     4 + 2 + 1
