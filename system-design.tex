@@ -5,12 +5,12 @@ Designing the labeling system supporting information flow tracking took special 
 FlowCore could have been written using one of two possible implementations of security types (Section~\ref{sec:implementation}): (1) extending of the tagged pointer representation and (2) introducing a security wrapper object.
 Before choosing one implementation over the other, we first examine how each option affects the labeling of primitive values and interned objects and how the labeling mechanism will impact memory requirements and the garbage collector (Section~\ref{sec:analysis}).
 We corroborate this analysis with a report on our experience during implementation (Section~\ref{sec:experience}).
-Finally, I show how this work compares with that of others (Section~\ref{sec:related-work}), and finish with a recommendation that an extension of the tagged pointer representation meets the requirements of a dynamic information flow security type system and has the least implementation effort (Section~\ref{sec:conclusion}).
+Finally, we show how this work compares with that of others (Section~\ref{sec:related-work}), and finish with a recommendation that an extension of the tagged pointer representation meets the requirements of a dynamic information flow security type system and has the least implementation effort (Section~\ref{sec:conclusion}).
 
 \section{Possible Implementations}
 \label{sec:implementation}
 
-Before discussing the details of the two possible implementations of dynamic security types, I first give a review of the existing dynamic type system that WebKit's JavaScriptCore VM employs.
+Before discussing the details of the two possible implementations of dynamic security types, we first give a review of the existing dynamic type system that WebKit's JavaScriptCore VM employs.
 
 \subsection{Existing Type System}
 
