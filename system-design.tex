@@ -205,6 +205,57 @@ This practice makes the modification easier than on other JavaScript VM's such a
 However, appropriately tagging each value with a security label still requires manual inspection of all code sites which create new values.
 Additionally, doubling the size of the core datatype also doubles the memory space requirements of any running program: the VM allocates twice as much space for the same number of core values.
 
+\subsection{Security Wrapper Technique}\label{sec:cloaks}
+
+Another mechanism, known as the security wrapper technique, can also achieve the goal of attaching a security label to each value.
+In this mechanism, the VM labels JavaScript objects by extending them with an additional internal field.
+We introduce an internal security wrapper object which stores a primitive together with its label.
+Throughout our analysis, we shall refer to this wrapper object as a \term{cloak} and any value held within the wrapper as a \term{cloaked} value.
+Figure~\ref{fig:security-wrapper} provides a visualization of the cloak mechanism.
+
+\begin{figure}[h]
+ \centering
+\begin{tikzpicture}[scale=.12]
+    \node[anchor=center] at (12.5,2.5+2.5) {Object Reference};
+    \node[anchor=center] at (12.5,2.5/2) {\tiny \texttt{0x0000 pppp pppp pppp}};
+    \draw (0,0) rectangle (25,2.5);
+
+    \coordinate (Obj) at (40,5);
+    \node[anchor=center] at ($(Obj)+(15,2.5)$) {Cloak Object};
+    \draw (Obj) rectangle ($(Obj)+(30,-15)$);
+    \node[anchor=center] at ($(Obj)+(15,-2.5)$) {\vdots};
+    \draw ($(Obj)-(0,5)$) -- ($(Obj)+(30,-5)$);
+    \node[anchor=center] at ($(Obj)+(15,-5-2.5)$) {security label};
+    \draw ($(Obj)-(0,10)$) -- ($(Obj)+(30,-10)$);
+    \node[anchor=center] at ($(Obj)+(15,-10-2.5)$) {primitive value};
+
+    \draw[-latex] (25,2.5/2) .. controls (25+15/2,2.5) and (25+15/2,5) ..  (Obj);
+
+\end{tikzpicture}
+\caption{Security wrapper scheme.}
+\label{fig:security-wrapper}
+\end{figure}
+
+Internally, JavaScriptCore already supports wrapper classes for Strings and Dates, as well as automatic objection promotion for Numbers and Booleans.
+Given this information, we might expect fewer modifications to be made to the underlying VM, as this change only requires the introduction of a new subclass of the existing \code{JSWrapperObject}.
+
+However, implementing the wrapper class is not exactly trivial, even with the help of an existing framework.
+From the perspective of the JavaScript program, a cloak object must mimic, in every circumstance, the same behavior as the primitive it cloaks.
+Under no circumstances should the presence (or absence) of a security wrapper ever become evident to a JavaScript program, otherwise attacker provided code could exploit the difference in behavior.
+%We make an exception to this guideline for policy violations, which have the side effect of halting the VM.
+The wrapper must remain distinguishable to the VM, however, so that it can enforce information flow security.
+
+Meeting this restriction is not presently possible using the existing wrapper framework.
+The primary goals of the existing wrapper class is to collect those datatypes (Date, String, Number, and Boolean) which can be stored within the space of a \code{JSValue}.
+As a result, the treatment of wrapped objects within the interpreter does not sufficiently take into account the behavioral differences between objects and primitives.
+For example, in Listing~\ref{list:boolean}, a Boolean object wrapping the primitive value \code{false} behaves according to the rules governing objects rather than those of the primitive boolean value.
+Consequently, the existing framework poses an imperfect fit for implementing information flow security, because it does not guarantee perfect transparency (from the perspective of a JavaScript program) when used to wrap primitives.
+
+\begin{lstlisting}[caption={JavaScript considers objects as `truthy' values.},label={list:boolean}]
+js> var x = new Boolean(false)
+js> if (x) { print("x is true"); }
+x is true
+\end{lstlisting}
 
 \section{Analysis}
 \label{sec:analysis}

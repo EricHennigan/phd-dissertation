@@ -23,12 +23,51 @@
 \usepackage{comment}
 \usepackage{booktabs}
 \usepackage{multirow}
-\usepackage{listings}
 \usepackage{multicol}
 
 \usepackage{tikz}
-\usetikzlibrary{decorations.pathreplacing,calc}
+\usetikzlibrary{decorations.pathreplacing,calc,shapes,positioning,arrows}
 \newcommand{\tikzmark}[1]{\tikz[overlay,remember picture] \coordinate (#1);}
+
+\usepackage{listings}
+\lstdefinelanguage{JavaScript}{
+  keywords={typeof, new, true, false, catch, function, return, null, catch, switch, var, if, in, while, do, else, case, break, subsumes, join, labelof},
+  keywordstyle=\color{black}\bfseries,
+  ndkeywords={class, export, boolean, throw, implements, import, this},
+  ndkeywordstyle=\color{black}\bfseries,
+  identifierstyle=\color{black},
+  sensitive=false,
+  comment=[l]{//},
+  morecomment=[l]{  >}
+  morecomment=[s]{/*}{*/},
+  commentstyle=\color{black}\ttfamily,
+  stringstyle=\color{black}\ttfamily,
+  morestring=[b]',
+  morestring=[b]",
+}
+\lstset{
+language=JavaScript,                             % Code langugage
+basicstyle=\small\ttfamily,                   % Code font, Examples: \footnotesize, \ttfamily
+%keywordstyle=\color{OliveGreen},        % Keywords font ('*' = uppercase)
+commentstyle=\color{gray},              % Comments font
+numbers=left,                           % Line nums position
+numberstyle=\tiny,                      % Line-numbers fonts
+stepnumber=1,                           % Step between two line-numbers
+numbersep=2pt,                          % How far are line-numbers from code
+%backgroundcolor=\color{lightlightgray}, % Choose background color
+frame=tb,                             % A frame around the code
+tabsize=2,                              % Default tab size
+captionpos=b,                           % Caption-position = bottom
+breaklines=false,                        % Automatic line breaking?
+breakatwhitespace=false,                % Automatic breaks only at whitespace?
+showspaces=false,                       % Dont make spaces visible
+showtabs=false,                         % Dont make tabls visible
+columns=fixed,                       % Column format
+escapechar=\%,
+emph=TODO,
+emphstyle=\color{red},
+aboveskip=10pt
+}
 
 % plainpages=false fixes the "duplicate ignored" error with page counters
 % Set pdfborder to 0 0 0 to disable colored borders around PDF hyperlinks
