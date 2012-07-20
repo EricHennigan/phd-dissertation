@@ -311,6 +311,89 @@ In the cloak approach, each object receives an internal field in store its secur
 \todo{I haven’t fully explored the difference between having a labeled reference vs having a labeled object, but I think the difference is analogous to having an Access Control Listing by columns vs Object Capabilities by rows, as discussed in Capability Myths Demolished.}
 % At this point I am in favor of the fat value approach, because I’m liking the reference semantics, and the transparency with which primitives can be labeled. I’m also willing to accept the cost of having fatter values.
 
+\subsection{Interned Objects}\label{sec:interned-objects}
+
+
+The JavaScriptCore VM employs optimizations pioneered by earlier dynamically typed languages, such as Lisp and Scheme.
+To achieve better runtime performance and reduce memory footprint, the VM interns contents of type \code{string}.
+Figure~\ref{list:intern} clarifies the terminology we use to differentiate the storage aspects of JavaScriptCore's interning optimization.
+Semantically, JavaScriptCore separates primitive strings from string objects.
+In order to permit the storage of properties, JavaScriptCore separately instantiates each string object, regardless of its contents.
+To enable fast comparison, equality, and identity operations, the VM implements string primitives as pointers to internal \code{JSString} objects which hold the string contents.
+
+\begin{figure}[h]
+\begin{lstlisting}
+js> var strValue = "mystring";
+mystring
+js> typeof strValue
+string
+js> var strObject = new String("mystring");
+mystring
+js> typeof strObject
+object
+\end{lstlisting}
+% To insert the annotation
+\begin{tikzpicture}[overlay, remember picture]
+%\draw (coordA) -- (coordB);
+\end{tikzpicture}
+\caption{Terminology used to describe interning.}
+\label{list:intern}
+\end{figure}
+
+Within an information flow framework, we need to record both the security context of creation as well as the contents of new objects and values.
+Because the interning optimization allows two string primitives to reference the same interned string contents we must be careful about our placement of the information flow security labels.
+Specifically, we seek to prevent the sharing of a label across two string primitives which happen to reference the same interned contents.
+
+%As a side effect of interning, references to strings containing the same contents all point to the same string value.
+In one possible scheme, we could place the security label on the interned string content.
+This placement causes the label to be shared among all references.
+Under this scheme, an attacker could manufacture a JavaScript function that returns a string primitive carrying an incorrect label (see Listing~\ref{list:interned-string}).
+
+\begin{figure}[h]
+\begin{lstlisting}
+function foo(x) {
+  var a = "mystring"    // This variable is interned with the
+                        // same security label as the code for
+                        // the function "foo".
+
+  if (x) {              // The label of "b" needs to reflect
+    var b = "mystring"  // a dependence on "x". It should not
+  }                     // affect the label attached to "a".
+
+  return a
+}
+\end{lstlisting}
+  \caption{A function returning the value ``\code{String}'' which can carry one of two different security labels depending on runtime control flow.}
+  \label{list:interned-string}
+\end{figure}
+
+One solution to this dilemma is to automatically upgrade the label attached to the interned string value.
+However, this solution causes unnecessary upgrades, as each occurrence of the string will upgrade the attached security label, even when such occurrences are completely independent.
+With each successive use of the interned string, the upgraded label propagates throughout the system, becoming a source of label creep.
+This strategy propagates a false information flow dependence when completely separate and non-interfering code routines reference the same string contents purely as a side effect interning.
+We observe from this approach that placing the security label on the \emph{referent} will not allow the information flow framework to distinguish the code paths and security contexts on which the \emph{reference} depends.
+
+The cloak approach permits another solution, as it stores the label on the cloak object wrapping the primitive string.
+We prefer this approach over the previous one, because it places the security label on the reference, allowing the information flow framework to differentiate primitives and objects from interned contents.
+From the perspective of a JavaScript program, the semantics of cloaked primitive strings are now seen to obey the same rules as that of directly labeled references.
+
+Interestingly, the fat value approach already provides such semantics.
+No additional provisions need be made for the special case of interned objects, as all object references also carry a security label, by virtue of extending the tagged pointer representation.
+Indeed, the fat value approach even saves computation access costs by avoiding the layer of indirection incurred by introducing cloak objects.
+
+%\needspace{4\baselineskip}
+%To summarize:
+%\begin{description}
+% \item[Fat Values:]~\\
+% \begin{description}
+%  \item[Pro] provide labeled reference semantics.
+% \end{description}
+% \item[Cloaks:]~\\
+% \begin{description}
+%  \item[Con] provide labeled object semantics.
+% \end{description}
+%\end{description}
+
 \section{Implementation Experience}
 \label{sec:experience}
 
