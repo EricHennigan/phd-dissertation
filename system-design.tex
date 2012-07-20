@@ -252,11 +252,16 @@ As a result, the treatment of wrapped objects within the interpreter does not su
 For example, in Listing~\ref{list:boolean}, a Boolean object wrapping the primitive value \code{false} behaves according to the rules governing objects rather than those of the primitive boolean value.
 Consequently, the existing framework poses an imperfect fit for implementing information flow security, because it does not guarantee perfect transparency (from the perspective of a JavaScript program) when used to wrap primitives.
 
-\begin{lstlisting}[caption={JavaScript considers objects as `truthy' values.},label={list:boolean}]
+\begin{figure}[h]
+\begin{lstlisting}
 js> var x = new Boolean(false)
 js> if (x) { print("x is true"); }
 x is true
 \end{lstlisting}
+  \caption{JavaScript considers objects as `truthy' values.}
+  \label{list:boolean}
+\end{figure}
+\todo{apply better formatting to listings.}
 
 \section{Impacts on the Virtual Machine}
 \label{sec:analysis}
