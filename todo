@@ -13,6 +13,9 @@
 [ ] inherent difficulties/slowdowns:
     staged, sparse, stat/dyn analysis, jit
 
+* Dependencies
+  [ ] have to mention the label creep problem before it's used (system-design.interned-objects)
+  [ ] have to mention label upgrading + propagation rules before use (system-design.analysis)
 
 [x] commit thesis template
 [ ] make an outline
