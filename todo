@@ -17,8 +17,11 @@
   [ ] have to mention the label creep problem before it's used (system-design.interned-objects)
   [ ] have to mention label upgrading + propagation rules before use (system-design.analysis)
 
+* Spelling
+  [ ] make sure that 'web browser' 'web page' 'web server' are all consistent
+  [ ] make sure that 'runtime' and 'compile time' are all consistent
+
 [x] commit thesis template
 [ ] make an outline
 [ ] put actual names in the committee listing
 
-[ ] make sure that 'web browser' 'web page' 'web server' are all consistent
