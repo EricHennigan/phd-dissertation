@@ -401,7 +401,7 @@ memory overhead, cloak approach:
   1 cloak object per primitive = sizeof(jscloak) == jsfinalobject
   what about extending each object with an internal label field ? (can jsobject stay at 32 bytes?)
   [ putting a void* in jsobject: JSObject=8*5=40, JSFinalObject=8*9=72, JSNonFinalObject=8*7=56 ]
-  [ does this change packing in the gc? ]
+  [ does this change packing in the gc? it does affect compile asserts on storage size vptrs (JSGlobalData) ]
   
 memory overhead, fat-value approach:
   2x number of JSValues in system
