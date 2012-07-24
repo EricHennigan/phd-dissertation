@@ -3,7 +3,7 @@
 
 Designing the labeling system supporting information flow tracking took special consideration.
 FlowCore could have been written using one of two possible implementations of security types (Section~\ref{sec:implementation}): (1) extending of the tagged pointer representation and (2) introducing a security wrapper object.
-Before choosing one implementation over the other, we first examine how each option affects the labeling of primitive values and interned objects and how the labeling mechanism will impact memory requirements and the garbage collector (Section~\ref{sec:analysis}).
+Before choosing one implementation over the other, we first examine how each option affects the labeling of primitive values and interned objects and how the labeling mechanism will impact memory requirements (Section~\ref{sec:analysis}).
 We corroborate this analysis with a report on our experience during implementation (Section~\ref{sec:experience}).
 Finally, we show how this work compares with that of others (Section~\ref{sec:related-work}), and finish with a recommendation that an extension of the tagged pointer representation meets the requirements of a dynamic information flow security type system and has the least implementation effort (Section~\ref{sec:conclusion}).
 
@@ -266,7 +266,7 @@ x is true
 \section{Impacts on the Virtual Machine}
 \label{sec:analysis}
 
-Now that we have introduced two viable techniques for implementing information flow security, we analyze how each performs when labeling primitives, how each handles interned objects, and what impacts each has on the garbage collector.
+Now that we have introduced two viable techniques for implementing information flow security, we analyze how each performs when labeling primitives, how each handles interned objects, and what impacts each has on memory requirements.
 
 \subsection{Labeling Primitives}\label{sec:primitives}
 
