@@ -313,7 +313,6 @@ In the cloak approach, each object receives an internal field in store its secur
 
 \subsection{Interned Objects}\label{sec:interned-objects}
 
-
 The JavaScriptCore VM employs optimizations pioneered by earlier dynamically typed languages, such as Lisp and Scheme.
 To achieve better runtime performance and reduce memory footprint, the VM interns contents of type \code{string}.
 Figure~\ref{list:intern} clarifies the terminology we use to differentiate the storage aspects of JavaScriptCore's interning optimization.
@@ -381,18 +380,53 @@ Interestingly, the fat value approach already provides such semantics.
 No additional provisions need be made for the special case of interned objects, as all object references also carry a security label, by virtue of extending the tagged pointer representation.
 Indeed, the fat value approach even saves computation access costs by avoiding the layer of indirection incurred by introducing cloak objects.
 
-%\needspace{4\baselineskip}
-%To summarize:
-%\begin{description}
-% \item[Fat Values:]~\\
-% \begin{description}
-%  \item[Pro] provide labeled reference semantics.
-% \end{description}
-% \item[Cloaks:]~\\
-% \begin{description}
-%  \item[Con] provide labeled object semantics.
-% \end{description}
-%\end{description}
+\subsection{Systemic Memory Impacts}\label{sec:garbage-collection}
+
+Both the fat value and cloak approaches require supporting data structures, such as a runtime lattice of security labels, which add to the memory requirements of the system.
+This memory overhead is the same for both approaches, so we do not consider it as part of the following analysis.
+
+The cloak approach creates an entire object for each primitive value that requires labeling.
+Creating these wrappers can drastically lower the performance of the overall system, stressing the garbage collector.
+As a side-effect of label creep, cloaked values become more common than not.
+Creating an object for each of these labeled values forces the garbage collector to spend much more time in both the mark and sweep phases.
+The additional memory allocation calls required when creating cloak objects impacts most exactly that feature of JavaScript designed to be performant: primitives.
+
+The fat value approach avoids these problems with the garbage collector by extending the representation of primitives and object references with additional bits to hold a security label.
+However, this extension doubles the overall memory requirements of the system.
+Both values placed in the function call stack and property fields within an object increase by the amount of space necessary for the attached label.
+However, the memory overhead required by the security labels remains far less than the additional storage required when creating a cloak object.
+
+\begin{comment}
+memory overhead, cloak approach:
+  1 cloak object per primitive = sizeof(jscloak) == jsfinalobject
+  what about extending each object with an internal label field ? (can jsobject stay at 32 bytes?)
+  [ putting a void* in jsobject: JSObject=8*5=40, JSFinalObject=8*9=72, JSNonFinalObject=8*7=56 ]
+  [ does this change packing in the gc? ]
+  
+memory overhead, fat-value approach:
+  2x number of JSValues in system
+
+without jsflow (base):
+COMPILE_ASSERT(sizeof(char) == 1, invalid_sizeof_char);
+COMPILE_ASSERT(sizeof(void*) == 8, invalid_sizeof_void_ptr);
+COMPILE_ASSERT(sizeof(JSObject) == 32, invalid_sizeof_jsobject);
+COMPILE_ASSERT(sizeof(JSCell) == 16, invalid_sizeof_jscell);
+COMPILE_ASSERT(sizeof(JSValue) == 8, invalid_sizeof_jsvalue);
+COMPILE_ASSERT(sizeof(JSFinalObject) == 8*8, invalid_sizeof_jsfinalobject);
+COMPILE_ASSERT(sizeof(JSNonFinalObject) == 8*6, invalid_sizeof_jsnonfinalobject);
+
+with jsflow (fat-value):
+COMPILE_ASSERT(sizeof(char) == 1, invalid_sizeof_char);
+COMPILE_ASSERT(sizeof(void*) == 8, invalid_sizeof_void_ptr);
+COMPILE_ASSERT(sizeof(JSObject) == 32, invalid_sizeof_jsobject);
+COMPILE_ASSERT(sizeof(JSCell) == 16, invalid_sizeof_jscell);
+COMPILE_ASSERT(sizeof(JSValue) == 16, invalid_sizeof_jsvalue);
+COMPILE_ASSERT(sizeof(JSFinalObject) == 8*12, invalid_sizeof_jsfinalobject_12);
+COMPILE_ASSERT(sizeof(JSNonFinalObject) == 8*8, invalid_sizeof_jsnonfinalobject);
+
+#define JSNonFinalObject_inlineStorageCapacity 2
+#define JSFinalObject_inlineStorageCapacity 4
+\end{comment}
 
 \section{Implementation Experience}
 \label{sec:experience}
