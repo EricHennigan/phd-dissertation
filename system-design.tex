@@ -486,6 +486,52 @@ VM Type-Dispatch & Unaffected & Dispatched chained after VM \\
 \end{figure}
 \medskip
 
+\subsection{Impacts on the Runtime System}
+
+Both the cloak and fat value techniques increase the memory size of running programs.
+We focus our analysis only on the memory requirements which differ between these two techniques, and ignore memory increases, such as objects representing a label hierarchy or a runtime stack of security labels, which are common to both techniques.
+
+By extending the core representation of all values, the fat value technique doubles the size of the core datatype, \code{JSValue}.
+This increase extends to any \code{JSValue}s internally held by JavaScript classes such as \code{JSArray} and internal classes such as \code{RegisterFile}
+The increase also extends to all dynamically assigned properties on JavaScript objects, roughly doubling the memory requirements of the entire VM.
+In contrast, the cloak approach requires a single field be added to all objects, which the VM uses for security tagging, increasing memory requirements 20\% for each JavaScript object\footnote{On a 64-bit system, the unmodified \code{JSObject} base class requires 32 bytes. Introducing the label field requires 8 bytes, a 20\% increase. Other classes inheriting \code{JSObject} have a smaller percentage increase. For example, \code{JSNonFinalObject}, which abstracts most of JavaScript's built-in prototype objects, requires 48 bytes.}.
+Additionally, the cloak class itself increases the memory requirements 600\% for each primitive\footnote{On a 64 bit system, primitive \code{JSValue}s are 8 bytes, while the \code{JSCloak} class requires 48 bytes, a 6x increase.}.
+
+Technical difficulties of the JavaScriptCore design prevented implementation of sparse labeling~\cite{sparse-labeling-flannagan} and forced conservative cloaking of primitive values.
+Because of label creep, many primitives quickly require labeling, leading to the allocation of cloak objects.
+The cloak technique only uses less memory than the fat value technique in situations where very few primitive values require labeling.
+In our experience, this situation does not normally arise, because the VM labels values in many common operations, such as function returns and binary operations with at least one labeled argument.
+
+Even worse, the allocation of a cloak object for each labeled primitive leads to much larger heap sizes, negatively affecting the performance of the garbage collector.
+The fat value technique avoids this cost.
+However, if the security implementation requires labels objects (pointed to by the label field of a fat value) then it needs a mechanism to indicate when a label object can be freed.
+Because a label object remains alive only when it's pointed at by a live value, the garbage collector can be re-used to provide this feature\footnote{The VM could also use simple reference counting, as the label lattice contains no cycles.}.
+
+Finally, the cloaking approach negatively impacts runtime performance more than the fat value technique, because cloaking places the label on an indirect path.
+Each time the VM performs an operation, it typically labels the resulting value with the join of the labels of all arguments.
+Keeping these labels directly accessible prevents an otherwise severe runtime overhead.
+Additionally, JavaScript programmers expect operations on primitives to remain performant, so the extra dispatch needed to obtain the underlying primitive from a cloak negatively impacts performance in the least desirable manner.
+
+\medskip
+\begin{figure}[h]
+\centering
+\resizebox{\columnwidth}{!}{
+\begin{tabular}{l|l|l}
+\toprule
+\multicolumn{3}{c}{Impacts on the Runtime System} \\
+\midrule
+\multicolumn{1}{c}{Concern} & \multicolumn{1}{|c|}{Fat Values} & \multicolumn{1}{c}{Cloaks} \\
+\midrule
+Memory Requirements & All core values double in size & Add internal label field to all objects \\
+Object Allocation   & None, every core value carries a label & Only labeled primitives require a cloak object \\
+Garbage Collection  & None, labels implemented as references  & Cloaked primitives require wrapper objects \\
+Label Storage       & Optionally use GC to keep labels alive & Optionally use GC to keep labels alive \\
+Runtime Speed       & All primitives stay on fast path & Cloaked primitives move to slow path \\
+\bottomrule
+\end{tabular}
+}
+\end{figure}
+\medskip
 
 \section{Related Implementations}
 \label{sec:related-work}
