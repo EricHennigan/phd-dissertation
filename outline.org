@@ -1,0 +1,54 @@
+
+* Motivation
+    [x] say that js handles sensitive info
+    [x] delineate injection
+        [x] difficulties filtering
+    [x] scare-monger prevalence as `buffer overflow'
+        [x] give examples of xss
+    [no] categorize xss
+    [ ] introduce information flow security approach
+    [ ] explains why more difficult in dyn lang (vs static, Java)
+
+* JavaScript Security Semantics
+    [ ] pound-include problem
+    [ ] sandbox + same origin policy
+
+* Related Work
+
+* Flow Terminology
+
+* System Design Considerations
+    - impact on different parts
+      have the plots that show gradual performance degradation
+    [x] applys across browsers (both moz fire, and webkit)
+      Why it's harder in dyn lang (JS) vs static (Java)
+    - vs rewriting?
+    - have to argue that, in the end, the VM is best approach
+
+* Label Propagation
+    - security type system is orthogonal to value types
+    - design of the cf-stack
+
+* JavaScript Feature Catalog
+    - how to secure each language feature
+    - what to do with arrays, or does this fit better in design considerations?
+    : Can coalesce labels on arrays?, label bounds checking? 
+    - obj literals
+    how they interact with obj poisoning attack
+    - retrieval
+    indexing syntax [] vs .
+    prototype chain
+    - functions:
+      label within a function, on args of function, on function itself
+
+* Example Attacks ??
+    - maybe for each language feature?
+
+* Policies
+    matrx of trade-offs, issues
+    outline chart
+    real-world frequency of occurance
+    - no-sensitive upgrade vs others
+
+* Conclusion
+
