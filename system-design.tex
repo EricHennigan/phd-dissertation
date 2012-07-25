@@ -4,7 +4,7 @@
 Designing the labeling system supporting information flow tracking took special consideration.
 FlowCore could have been written using one of two possible implementations of security types (Section~\ref{sec:implementation}): (1) extending of the tagged pointer representation and (2) introducing a security wrapper object.
 Before choosing one implementation over the other, we first examine how each option affects the labeling of primitive values and interned objects and how the labeling mechanism will impact memory requirements (Section~\ref{sec:analysis}).
-We corroborate this analysis with a report on our experience during implementation (Section~\ref{sec:experience}).
+%We corroborate this analysis with a report on our experience during implementation (Section~\ref{sec:experience}).
 Finally, we show how this work compares with that of others (Section~\ref{sec:related-work}), and finish with a recommendation that an extension of the tagged pointer representation meets the requirements of a dynamic information flow security type system and has the least implementation effort (Section~\ref{sec:conclusion}).
 
 \section{Possible Implementations}
@@ -428,8 +428,23 @@ COMPILE_ASSERT(sizeof(JSNonFinalObject) == 8*8, invalid_sizeof_jsnonfinalobject)
 #define JSFinalObject_inlineStorageCapacity 4
 \end{comment}
 
-\section{Implementation Experience}
-\label{sec:experience}
+%\section{Implementation Experience}\label{sec:experience}
+
+\begin{comment}
+Previous outline:
+
+* could only talk about cloaks implementation
+- discovered primitives leaking to other systems (Alexa)
+- had to explicitly label, couldn't optimize (operand stack and scope)
+- abstract interpreter (correctness)
+
+I don't have an implementation of the cloaks, only of fat-values.
+For the fat-values only, I can generate precise timing measurements for each aspect of the system.
+There isn't a big problem interfacing with other systems, as they get the jsvalue layout through header file, and ignore the label part.
+Everything is explicitly labeled, no opportunity for memory optimization.
+Have abstract interpreter for stack label alignment [probably want to mention in later section]
+\end{comment}
+
 
 \section{Related Implementations}
 \label{sec:related-work}
