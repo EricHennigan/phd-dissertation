@@ -23,7 +23,7 @@
 \ProvidesClass{ucithesis}[2007/12/06 UCI Thesis class]
 
 \LoadClassWithOptions{report}
-\RequirePackage[hmargin={1.5in,1in},vmargin={1in,1in}]{geometry}
+\RequirePackage[hmargin={1in,1in},vmargin={1in,1in}]{geometry}
 \RequirePackage{setspace}
 
 \newcommand{\thesistitle}[1]{\newcommand\Thesistitle{#1}}
