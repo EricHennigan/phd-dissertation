@@ -452,6 +452,40 @@ Given our analysis (Section~\ref{sec:analysis}), we can now achieve a high-level
 Each technique features design trade-offs concerning development effort, runtime costs, and security enforcement.
 %We discuss these trade-offs in the context of our implementation experience (Section~\ref{sec:experience}) with the SpiderMonkey JavaScript interpreter.
 
+\subsection{Impacts on Implementation}
+The fat value technique extends the tagged pointer representation of the core value type of the interpreter.
+By embedding the security label into the core representation, the VM has fast and convenient access to the label on each piece of data involved in a computation.
+In contrast, the cloak approach introduces a wrapper object which holds both the primitive value and the security label, requiring an additional step when accessing either the value or label.
+Because the VM manipulates labels in many of the underlying opcodes and JavaScript programmers expect primitives to be performant, access to both the label and value should be kept as direct as possible.
+
+The security labels constitute their own security type system, orthogonal to the existing JavaScript value types.
+The fat value approach modifies the representation of the interpreter's core datatype to add labels.
+The well-factored design of JavaScriptCore allows this modification to be made easily, without spending effort to manually inspect existing type-dispatch sites.
+
+Although the cloak approach avoids changing the core datatype, it creates a wrapper object around primitive values that introduces an additional layer of indirection during type-dispatch operations.
+Security constraints require cloak objects to override operators such as \code{typeof} so as to maintain invisibility from the perspective of a JavaScript program.
+When operating on a cloaked primitive, the VM encounters and dispatches on the cloak object, which in turn inspects its contents and performs the operation on the wrapped primitive value.
+This two-level dispatch puts cloaked primitives on a slow execution path during performance critical type-dispatch operations.
+
+\medskip
+\begin{figure}[h]
+\centering
+\resizebox{\columnwidth}{!}{
+\begin{tabular}{l|l|l}
+\toprule
+\multicolumn{3}{c}{Impacts on Implementation} \\
+\midrule
+\multicolumn{1}{c}{Concern} & \multicolumn{1}{|c|}{Fat Values} & \multicolumn{1}{c}{Cloaks} \\
+\midrule
+Integration      & Modifies core datatype representation & Introduces new cloak object \\
+Label access     & Direct & Indirect \\
+VM Type-Dispatch & Unaffected & Dispatched chained after VM \\
+\bottomrule
+\end{tabular}
+}
+\end{figure}
+\medskip
+
 
 \section{Related Implementations}
 \label{sec:related-work}
