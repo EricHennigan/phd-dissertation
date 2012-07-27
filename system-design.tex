@@ -307,7 +307,7 @@ To reduce the amount of implementation effort, we seek to avoid hunting down all
 
 When we compare the fat value approach to the cloak approach, an interesting semantic difference arises:
 In the fat value approach, we attach the security type to the primitive value or object reference, as part of the tagged pointer encoding.
-In the cloak approach, each object receives an internal field in store its security label while primitives are cloaked with an extra layer of indirection.
+In the cloak approach, each object receives an internal field to store its security label, while primitives are cloaked with an extra layer of indirection.
 
 \todo{I haven’t fully explored the difference between having a labeled reference vs having a labeled object, but I think the difference is analogous to having an Access Control Listing by columns vs Object Capabilities by rows, as discussed in Capability Myths Demolished.}
 % At this point I am in favor of the fat value approach, because I’m liking the reference semantics, and the transparency with which primitives can be labeled. I’m also willing to accept the cost of having fatter values.
@@ -322,22 +322,9 @@ In order to permit the storage of properties, JavaScriptCore separately instanti
 To enable fast comparison, equality, and identity operations, the VM implements string primitives as pointers to internal \code{JSString} objects which hold the string contents.
 
 \begin{figure}[h]
-\begin{lstlisting}
-js> var strValue = "mystring";
-mystring
-js> typeof strValue
-string
-js> var strObject = new String("mystring");
-mystring
-js> typeof strObject
-object
-\end{lstlisting}
-% To insert the annotation
-\begin{tikzpicture}[overlay, remember picture]
-%\draw (coordA) -- (coordB);
-\end{tikzpicture}
-\caption{Terminology used to describe interning.}
-\label{list:intern}
+  \centerline{\includegraphics[keepaspectratio=true]{images/InternedTerminology.pdf}}
+  \caption{Terminology used to describe interning.}
+  \label{list:intern}
 \end{figure}
 
 Within an information flow framework, we need to record both the security context of creation as well as the contents of new objects and values.
