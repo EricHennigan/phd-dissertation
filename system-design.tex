@@ -486,7 +486,7 @@ The increase also extends to all dynamically assigned properties on JavaScript o
 In contrast, the cloak approach requires a single field be added to all objects, which the VM uses for security tagging, increasing memory requirements 20\% for each JavaScript object\footnote{On a 64-bit system, the unmodified \code{JSObject} base class requires 32 bytes. Introducing the label field requires 8 bytes, a 20\% increase. Other classes inheriting \code{JSObject} have a smaller percentage increase. For example, \code{JSNonFinalObject}, which abstracts most of JavaScript's built-in prototype objects, requires 48 bytes.}.
 Additionally, the cloak class itself increases the memory requirements 600\% for each primitive\footnote{On a 64 bit system, primitive \code{JSValue}s are 8 bytes, while the \code{JSCloak} class requires 48 bytes, a 6x increase.}.
 
-Technical difficulties of the JavaScriptCore design prevented implementation of sparse labeling~\cite{sparse-labeling-flannagan} and forced conservative cloaking of primitive values.
+Technical difficulties of the JavaScriptCore design prevented implementation of sparse labeling~\cite{sparse-labeling} and forced conservative cloaking of primitive values.
 Because of label creep, many primitives quickly require labeling, leading to the allocation of cloak objects.
 The cloak technique only uses less memory than the fat value technique in situations where very few primitive values require labeling.
 In our experience, this situation does not normally arise, because the VM labels values in many common operations, such as function returns and binary operations with at least one labeled argument.
