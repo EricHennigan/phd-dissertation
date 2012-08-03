@@ -18,13 +18,6 @@ Many implementations of dynamically typed languages follow a common approach of 
 In JavaScriptCore, this union takes the form of a 64-bit word, within the class \code{JSValue}.
 Figure~\ref{fig:base-encoding} illustrates the union's fields as ordered on a big-endian\footnote{On a little-endian machine the order of the \code{tag} and \code{payload} fields are swapped.}, 64-bit machine.
 
-Within a \code{JSValue}, a leading value of \texttt{0xFFFF} distinguishes 32-bit JavaScript integers.
-Doubles are offset (under bitwise integer interpretation) by the value $2^{48}$ to ensure that all values have at least a leading value of \texttt{0x0001}.
-JavaScriptCore maintains a garbage collected heap which stores JavaScript objects with 64-bit alignment.
-Pointers to garbage collected JavaScript objects all begin with a leading \texttt{0x0000}, which nominally reduces the address space to 48 bits\footnote{Modern 64-bit processors only supply 48 bits of addressable space, so JavaScriptCore's chosen pointer encoding does not reduce the actual usable space.}.
-The special JavaScript values \code{null}, \code{false}, \code{true}, and \code{undefined} each have bit 1 set, to distinguish them from properly aligned pointer values.
-JavaScriptCore also encodes two additional values, again at invalid pointer addresses, which are not defined within the JavaScript language: \code{empty}, which represents array holes and uninitialized \code{JSValue}s, and \code{deleted}, which is used in hash table code.
-
 \begin{comment}
    1  2   3      4
  0123456789abcdef
@@ -67,7 +60,7 @@ JavaScriptCore also encodes two additional values, again at invalid pointer addr
 
 \end{comment}
 
-\begin{figure}[h]
+\begin{figure}[h!]
     \centering
 \begin{tabular}{cc}
     \begin{minipage}[h]{.5\textwidth}
@@ -143,6 +136,15 @@ JavaScriptCore also encodes two additional values, again at invalid pointer addr
         // alignment for a GC cell, and in the zero page).
          */
 \end{comment}
+
+
+Within a \code{JSValue}, a leading value of \texttt{0xFFFF} distinguishes 32-bit JavaScript integers.
+Doubles are offset (under bitwise integer interpretation) by the value $2^{48}$ to ensure that all values have at least a leading value of \texttt{0x0001}.
+JavaScriptCore maintains a garbage collected heap which stores JavaScript objects with 64-bit alignment.
+Pointers to garbage collected JavaScript objects all begin with a leading \texttt{0x0000}, which nominally reduces the address space to 48 bits\footnote{Modern 64-bit processors only supply 48 bits of addressable space, so JavaScriptCore's chosen pointer encoding does not reduce the actual usable space.}.
+The special JavaScript values \code{null}, \code{false}, \code{true}, and \code{undefined} each have bit 1 set, to distinguish them from properly aligned pointer values.
+JavaScriptCore also encodes two additional values, again at invalid pointer addresses, which are not defined within the JavaScript language: \code{empty}, which represents array holes and uninitialized \code{JSValue}s, and \code{deleted}, which is used in hash table code.
+
 
 \subsection{Fat Value Technique}\label{sec:fat-values}
 We can achieve dynamic information flow security by attaching, onto each runtime value, additional bits which encode a pointer, handle, or taint value representing the security type.
