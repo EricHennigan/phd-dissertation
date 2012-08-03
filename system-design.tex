@@ -562,5 +562,28 @@ Security Semantics  & Labeled reference & Labeled value \\
 \todo{rewriting approach of Jang}
 \todo{DO: DOM interaction + channels}
 
-\section{Chosen Implementation for FlowCore}
-\label{sec:conclusion}
+\section{Chosen Implementation for FlowCore}\label{sec:conclusion}
+
+Although both the fat value and cloak approaches can assist information flow security by adding runtime security types to all values within an existing dynamically typed language, this work uses the fat value approach, because it
+(1) provides a reference semantics that works with interned objects,
+(2) does not stress the garbage collector with unnecessary object creation,
+and (3) easily labels every primitive and object reference.
+Achieving these gains comes at the cost of:
+(1) changing the representation of a core data type within the VM,
+(2) auditing sites where type inspection occurs to ensure compliance with the new security system,
+(3) extending all stack slots and object fields by the amount needed to store the security labels (a factor of 2).
+These costs are worth the associated benefits, because the cloak approach:
+(1) stresses the garbage collector adding runtime overhead unrelated to security enforcement,
+(2) reduces performance by adding an additional layer of indirection,
+(3) does not provide a conceptually uniform treatment of objects and primitives,
+and (4) is more difficult to ensure invisibility from the perspective of the JavaScript programmer.
+
+Interestingly, the performance optimizations, such as interning \code{string} objects, can have an adverse affect on security.
+In particular, the interned object optimization confuses the issues of object identity and equality, in order to reduce the number of allocated objects and provide quick results for the string comparison operators.
+In information flow security, the fact that two immutable objects might carry the same value implies nothing about their point of origin or the security actors which have influenced the object.
+The labeled reference semantics provided by the fat value technique usefully allows distinguishing the security label of an object from the value of that object.
+Fortunately, this semantics means that it is possible to keep the interned object optimization, even during implementing dynamic labeling for information flow security.
+
+Given the difficulty and work involved during my implementation experience I wholeheartedly corroborate the statement: ``security is not a separable concern''\cite{miller2005structure}.
+
+
