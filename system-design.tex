@@ -522,6 +522,41 @@ Runtime Speed       & All primitives stay on fast path & Cloaked primitives move
 \end{figure}
 \medskip
 
+\subsection{Impacts on Security Semantics}
+
+As an embeddable language, JavaScript allows the host environment to expose functionality to the client programs.
+For example, within the WebKit browser the DOM subsystem reflects native C++ objects into the JavaScriptCore VM.
+Although it requires a re-compilation of the host's interface code, the fat value technique allows the host environment the freedom to ignore the label extension on core values.
+In contrast, the cloak technique exports labeled primitives as cloak objects, leaking the security abstraction into the host environment.
+Host interface code which expects a primitive value may fault when encountering a cloak object instead.
+%We experienced exactly this problem when implementing cloaks in Firefox's JavaScript interpreter, SpiderMonkey.
+
+The implementation differences between the cloak and fat value approaches extends beyond interaction with the host environment and imply different security semantics.
+Not only is the label in a fat value optionally ignorable, but the direct attachment of a label to the core value creates a labeled reference semantics.
+This semantics allows the VM to treat differently separate references to the same object, avoiding the confusion of identity that can result from having interned objects.
+By attaching labels only to objects, the cloak approach provides a labeled object semantics.
+Unfortunately, becasue of this attachment, the label of an object becomes shared among all references to that object.
+As the object is used in different contexts, the attached label monotonically escalates, becoming a source of label creep.
+
+\medskip
+\begin{figure}[h]
+\centering
+\resizebox{\columnwidth}{!}{
+\begin{tabular}{l|l|l}
+\toprule
+\multicolumn{3}{c}{Impacts on Security Semantics} \\
+\midrule
+\multicolumn{1}{c}{Concern} & \multicolumn{1}{|c|}{Fat Values} & \multicolumn{1}{c}{Cloaks} \\
+\midrule
+VM Abstraction Cost & VM can ignore security tag bits & Cloaks handled as special case \\
+Host Abstraction Cost & Host can ignore security tag bits & VM must prevent leaking cloak objects \\
+Security Semantics  & Labeled reference & Labeled value \\
+\bottomrule
+\end{tabular}
+}
+\end{figure}
+\medskip
+
 \section{Related Implementations}
 \label{sec:related-work}
 
