@@ -25,8 +25,11 @@
 \usepackage{multirow}
 \usepackage{multicol}
 
+\newtheorem{theorem}{Theorem}
+\newtheorem{definition}{Definition}
+
 \usepackage{tikz}
-\usetikzlibrary{decorations.pathreplacing,calc,shapes,positioning,arrows}
+\usetikzlibrary{arrows,backgrounds,calc,chains,decorations.markings,decorations.pathmorphing,decorations.pathreplacing,fit,positioning,shapes,shapes.multipart,shapes.symbols}
 \newcommand{\tikzmark}[1]{\tikz[overlay,remember picture] \coordinate (#1);}
 %\newcommand{\tikzmark}[1]{\tikz[overlay,remember picture] \node (#1) {};}
 
@@ -302,7 +305,7 @@ findings. No graphs, charts, or tables may be included.
 \todo{There are two outstanding problems: 1. label creep, 2. can't track passive indirect flows.}
 \include{terminology}
 \include{system-design}
-\chapter{Label Propagation}
+\include{label-propagation}
 \chapter{Bytecodes}
 \chapter{JavaScript Feature Catalog}
  - what to do with arrays, or does this fit better in design considerations?
