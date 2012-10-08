@@ -1,27 +1,104 @@
 
-[ ] are these worth citing?
+[ ] put actual names in the committee listing
+
+* thesis
+  [ ] :spelling: make sure that 'web browser' 'web page' 'web server' are all consistent
+  [ ] :spelling: make sure that 'runtime' and 'compile time' are all consistent
+  [ ] :citations:
     [ ] Caisson: A Hardware Description Language for Secure Information Flow
     [ ] Glift 2009
     [ ] Tracking Information Flow at the Gate-Level for Secure Architectures
     [ ] Execution Leases: A Hardware-Supported Mechanism for Enforcing Strong Non-Interference 
+    [ ] Aiken: Secure Information Flow as a Safety Problem
+
     [ ] An Architectural Approach to Preventing Code Injection Attacks
         is there a language transport format that would prevent code injection?
         a non-injectable object description language?
     [ ] Romer et. Structure Interp 1995
 
-[ ] JIT only lets you win on the dispatch, not on the label overhead
-[ ] inherent difficulties/slowdowns:
-    staged, sparse, stat/dyn analysis, jit
+* Motivation
+    [x] say that js handles sensitive info
+    [x] delineate injection
+        [x] difficulties filtering
+    [x] scare-monger prevalence as `buffer overflow'
+        [x] give examples of xss
+    [no] categorize xss
+    [ ] introduce information flow security approach
+    [ ] JavaScript Security Semantics
+        [ ] pound-include problem
+        [ ] sandbox + same origin policy
+   [ ] explain why more difficult in dyn lang (vs static, Java)
+** The Threat of Code Injection
+** Difficulties of Filtering User Input
+*** HTML Identification
+*** Script Identification
+** The Last Line of Defence
+*** Preventing Malicious Action
 
-* Dependencies
-  [ ] have to mention the label creep problem before it's used (system-design.interned-objects)
-  [ ] have to mention label upgrading + propagation rules before use (system-design.analysis)
+* Related Work
 
-* Spelling
-  [ ] make sure that 'web browser' 'web page' 'web server' are all consistent
-  [ ] make sure that 'runtime' and 'compile time' are all consistent
+* Terminology
+  [ ] make a section on classic problems: label creep
+** Explicit Information Flow
+** Implicit Information Flow
 
-[x] commit thesis template
-[ ] make an outline
-[ ] put actual names in the committee listing
+* System Design Considerations
+  :dependency: first use of label creep in interned-objects, would be nice to intro issue before this
+  :dependency: first use of label upgrading + propagation issues rules
+  [ ] JIT only lets you win on the dispatch, not on the label overhead
+  [ ] inherent difficulties/slowdowns: staged, sparse, stat/dyn analysis, jit
+   -  impact on different parts
+  [ ] have the plots that show gradual performance degradation as each part is added
+  [x] design is browser-agnostic
+      Why it's harder in dyn lang (JS) vs static (Java)
+     -  vs rewriting?
+    [ ] have to argue that, in the end, the VM is best approach
+** Possible Implementations
+*** Existing Type System
+*** Fat Value Technique
+*** Security Wrapper Technique
+** Impacts on the Virtual Machine
+*** Labeling Primitives
+*** Interned Objects
+*** Systemic Memory Impacts
+** :absent: Implementation Experience
+** Summary
+*** Impacts on Implementation
+*** Impacts on the Runtime System
+*** Impacts on Security Semantics
+** Related Implementations
+** Chosen Implementation for FlowCore
+
+* Label Propagation
+  [ ] security type system is orthogonal to value types
+  [x] design of the cf-stack
+** Label Lattice
+** Label Operations
+** Control Flow Stack
+*** Monotonicity of Control Flow Stack
+** Label Creep
+
+* JavaScript Feature Catalog
+    - how to secure each language feature
+    - what to do with arrays, or does this fit better in design considerations?
+    : Can coalesce labels on arrays?, label bounds checking?
+    - obj literals
+    how they interact with obj poisoning attack
+    - retrieval
+    indexing syntax [] vs .
+    prototype chain
+    - functions:
+      label within a function, on args of function, on function itself
+
+* Example Attacks ??
+    - maybe for each language feature?
+
+* Policies
+    matrx of trade-offs, issues
+    outline chart
+    real-world frequency of occurance
+    - no-sensitive upgrade vs others
+
+* Conclusion
+
 
