@@ -1,0 +1,23 @@
+
+The differences between ocap and IFlow
+
+    demonstrate a revocation in IFLow
+        verify with libiflow
+    demonstrate (or prove failure) a reversal/cancellation of revocation
+
+    discuss differences between ACL and IFlow and OCap
+
+    IFlow: data _derived_ from the revocation is also revoked
+    OCap:  entities _delegated_ from the cap are also revoked
+
+    Confused Deputy:
+        IFlow tags the data
+        OCap 'tags' the caps
+        is the importance emphasis to lie on the behavior of the deputy
+                                       or on the abilities of the deputy
+    
+        the behavior is influenced by tagging the data
+        the abilities are influenced by naming the caps
+
+    What about end-to-end
+         issues of naming, etc.
