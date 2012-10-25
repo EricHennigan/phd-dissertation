@@ -9,35 +9,35 @@
 Category & Descriptor & Example & Flow & Required Analysis \\
 \midrule[\heavyrulewidth]
 \multirow{3}{*}{Explicit} & Direct &
-\begin{lstlisting}
+\begin{js-embed}
 b = a
-\end{lstlisting} & a $\rightarrow$ b & Dataflow\\
+\end{js-embed} & a $\rightarrow$ b & Dataflow\\
 \cmidrule(r){2-5} & Indirect &
-\begin{lstlisting}
+\begin{js-embed}
 b = foo(_, a, _)
 c = bar(_, b, _) 
-\end{lstlisting}
+\end{js-embed}
 & a $\rightarrow$ c & Dataflow (transitive) \\
 \hline
 \multirow{7}{*}{Implicit} & Active &
-\begin{lstlisting}
+\begin{js-embed}
 a = true
 b = 0
 if (a)
    b = 1
 else
    ...
-\end{lstlisting}
+\end{js-embed}
 & a $\rightarrow$ b & Control Flow (dynamic)\\
 \cmidrule(r){2-5} & Passive &
-\begin{lstlisting}
+\begin{js-embed}
 a = true
 c = 0
 if (a)
    ...
 else
    c = 1
-\end{lstlisting}
+\end{js-embed}
 & a $\rightarrow$ c & Control Flow (static)\\
 \bottomrule
 \end{tabular}

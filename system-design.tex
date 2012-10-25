@@ -254,16 +254,13 @@ As a result, the treatment of wrapped objects within the interpreter does not su
 For example, in Listing~\ref{list:boolean}, a Boolean object wrapping the primitive value \code{false} behaves according to the rules governing objects rather than those of the primitive boolean value.
 Consequently, the existing framework poses an imperfect fit for implementing information flow security, because it does not guarantee perfect transparency (from the perspective of a JavaScript program) when used to wrap primitives.
 
-\begin{figure}[h]
-\begin{lstlisting}
+\lstset{caption={JavaScript considers objects as `truthy' values.},
+        label={list:boolean}}
+\begin{jscode}
 js> var x = new Boolean(false)
 js> if (x) { print("x is true"); }
-x is true
-\end{lstlisting}
-  \caption{JavaScript considers objects as `truthy' values.}
-  \label{list:boolean}
-\end{figure}
-\todo{apply better formatting to listings.}
+    x is true
+\end{jscode}
 
 \section{Impacts on the Virtual Machine}
 \label{sec:analysis}
@@ -338,8 +335,9 @@ In one possible scheme, we could place the security label on the interned string
 This placement causes the label to be shared among all references.
 Under this scheme, an attacker could manufacture a JavaScript function that returns a string primitive carrying an incorrect label (see Listing~\ref{list:interned-string}).
 
-\begin{figure}[h]
-\begin{lstlisting}
+\lstset{caption={A function returning the value ``\code{String}'' which can carry one of two different security labels depending on runtime control flow.},
+        label=list:interned-string}
+\begin{jscode}
 function foo(x) {
   var a = "mystring"    // This variable is interned with the
                         // same security label as the code for
@@ -351,10 +349,7 @@ function foo(x) {
 
   return a
 }
-\end{lstlisting}
-  \caption{A function returning the value ``\code{String}'' which can carry one of two different security labels depending on runtime control flow.}
-  \label{list:interned-string}
-\end{figure}
+\end{jscode}
 
 One solution to this dilemma is to automatically upgrade the label attached to the interned string value.
 However, this solution causes unnecessary upgrades, as each occurrence of the string will upgrade the attached security label, even when such occurrences are completely independent.
