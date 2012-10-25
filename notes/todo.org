@@ -78,6 +78,15 @@
 *** Monotonicity of Control Flow Stack
 ** Label Creep
 
+* New Security Bytecodes
+  [ ] mention Security Stack Verifier (abstract interpreter)
+  [ ] measure growth of instruction stream (use alexa, sign into gmail, fb)
+** Why new instructions are necessary
+** DUP_CFLABEL
+** JOIN_CFLABEL
+** POPJ_CFLABEL
+** LABEL_OF
+
 * JavaScript Feature Catalog
     - how to secure each language feature
     - what to do with arrays, or does this fit better in design considerations?
