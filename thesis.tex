@@ -6,6 +6,7 @@
 % figures and tables.
 \documentclass[12pt,fleqn]{ucithesis}
 
+\usepackage{adjustbox}
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{amsthm}
@@ -23,6 +24,9 @@
 \usepackage{relsize}
 \usepackage{subfigure}
 
+\usepackage{python}   % have to pre-process the jsc bytecode dump
+\usepackage{courier}  % need a bfseries ttfamily
+
 \usepackage{url} 
 \usepackage{todonotes}
 \usepackage{alltt}
@@ -34,9 +38,25 @@
 \newtheorem{theorem}{Theorem}
 \newtheorem{definition}{Definition}
 
+\newcommand{\superscript}[1]{\ensuremath{^{\textrm{#1}}}}
+\newcommand{\subscript}[1]{\ensuremath{_{\textrm{#1}}}}
+
 \usepackage{tikz}
-\usetikzlibrary{arrows,backgrounds,calc,chains,decorations.markings,decorations.pathmorphing,decorations.pathreplacing,fit,positioning,shapes,shapes.multipart,shapes.symbols}
-\newcommand{\tikzmark}[1]{\tikz[overlay,remember picture] \coordinate (#1);}
+\usetikzlibrary{arrows}
+\usetikzlibrary{backgrounds}
+\usetikzlibrary{calc}
+\usetikzlibrary{chains}
+\usetikzlibrary{decorations.markings}
+\usetikzlibrary{decorations.pathmorphing}
+\usetikzlibrary{decorations.pathreplacing}
+\usetikzlibrary{fit}
+\usetikzlibrary{matrix}
+\usetikzlibrary{positioning}
+\usetikzlibrary{shapes}
+\usetikzlibrary{shapes.multipart}
+\usetikzlibrary{shapes.symbols}
+
+\newcommand{\tikzmark}[1]{\tikz[overlay,remember picture] \coordinate (#1) at (0,0);}
 %\newcommand{\tikzmark}[1]{\tikz[overlay,remember picture] \node (#1) {};}
 
 \usepackage{listings}
@@ -54,6 +74,12 @@
   stringstyle=\color{black}\ttfamily,
   morestring=[b]',
   morestring=[b]",
+}
+
+\lstdefinelanguage{JSCBytecode}{
+  otherkeywords={dup\_cflabel, join\_cflabel, popj\_cflabel},
+  keywordstyle=\color{black}\bfseries,
+  morecomment=[s][\color{gray}\ttfamily]{[\ }{]},
 }
 
 \lstnewenvironment{js-embed} {\lstset{
@@ -81,6 +107,21 @@
   aboveskip={1.5\baselineskip},
   float=h,
 }}{}
+
+\lstnewenvironment{jscbytecode} {\lstset{
+  language=JSCBytecode,
+  basicstyle=\small\ttfamily,
+  tabsize=2,
+  showspaces=false,
+  showtabs=false,
+  tabsize=2,
+  frame=tb,
+  captionpos=b,
+  aboveskip={1.5\baselineskip},
+  float=h,
+  escapeinside=||,
+}}{}
+
 
 % plainpages=false fixes the "duplicate ignored" error with page counters
 % Set pdfborder to 0 0 0 to disable colored borders around PDF hyperlinks
@@ -315,7 +356,7 @@ findings. No graphs, charts, or tables may be included.
 \include{terminology}
 \include{system-design}
 \include{label-propagation}
-\chapter{Bytecodes}
+\include{bytecodes}
 \chapter{JavaScript Feature Catalog}
  - what to do with arrays, or does this fit better in design considerations?
    : Can coalesce labels on arrays?
