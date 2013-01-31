@@ -1,0 +1,343 @@
+
+\chapter{JavaScript Feature Catalog}
+ - what to do with arrays, or does this fit better in design considerations?
+   : Can coalesce labels on arrays?
+   : label bounds checking? 
+ - obj literals
+   how they interact with obj poisoning attack
+ - retrieval
+   indexing syntax [] vs .
+   prototype chain
+ - Seth Just Information flow analysis for JS has a good discussion about control flow structures.
+ - early returns (out of nested loops)
+ - break/continue (in nested loops)
+
+
+Although dynamically typed languages present many difficulties for ensuring information flow, we find that JavaScript uses structured control flow constructs.
+As a result, we can use a static analysis which calculates exactly at which points our security instructions should be inserted into the instruction stream.
+This modification allows our system to prevent implicit information flow leaks by tracking the security label of the program counter at runtime, using the control flow stack.
+%Because local variables cannot leak information, allowing them to automatically upgrade still complies with the intention of non-interference security~\cite{goguen1982security}.
+%Variables which can leak information are subject to the \textit{no sensitive upgrade} check (see Section~\ref{sec:sensitive-upgrade-check}), and are prevented from automatic upgrade.
+%Using these principles, we demonstrate the labeling strategy for several control flow structures defined in the JavaScript language~\cite{ecma}.
+
+\subsection{Conditional Branches}
+Conditional branches begin with a \texttt{DUP\_CFLABEL} instruction that marks the beginning of a secure code region by cloning the current pc-label.
+The conditional value itself may be the result of an arbitrary expression, which could include function calls and shortcut evaluation of logical operators.
+Consequently, its label is not predictable at compile time, so we emit a \texttt{JOIN\_CFLABEL} instruction immediately following the conditional evaluation.
+This instruction upgrades the top of the control flow stack using the label of the conditional value computed at runtime.
+When either side of the conditional branch finishes executing, a \texttt{POP\_CFLABEL} instruction at the control flow join restores the pc-label to its state before the branch was encountered.
+
+\subsection{Loops}
+
+Because of the implied backwards branch, loops require more care than conditional branches.
+Prior to entering the loop a \texttt{DUP\_CFLABEL} instruction clones the current pc-label.
+
+Again, because the condition is a runtime evaluated expression, only a dynamic analysis can identify the correct label to apply to the loop body.
+The possibility of an earlier iteration influencing a later iteration complicates the situation.
+Our implementation emits a \texttt{JOIN\_CFLABEL} instruction at the end of the conditional, despite the fact that this forces the current pc-label to be re-upgraded at each iteration.
+Upon exiting the loop, a \texttt{POPJ\_CFLABEL} instruction restores the pc-label to its state before the loop was encountered.
+
+One caveat of this solution is that it allows a monotonically increasing label on the loop body.
+It is unfortunately possible that later iterations may carry a higher pc-label than earlier iterations, even when these iterations do not influence each other.
+For example, an array might contain a sequence of completely unrelated values, each cloaked with a different security label.
+When looping over such a construction, our implementation does not downgrade the loop context, even if independence of iterations could be proven.
+
+\subsection{Break and Continue}
+\label{sec:break-and-continue}
+JavaScript allows the \texttt{break} and \texttt{continue} statements to specify which loop they apply to.
+This complicates the maintenance of a control flow stack, because such statements may jump out of an arbitrarily nested loop.
+Such jumps can bypass the normal exit criteria of nested loops, thereby causing the control flow stack to be out of alignment at the target location.
+To maintain correct runtime-behavior we must handle this issue by ensuring that the instruction emitter generates the correct number of control flow pops for any nested loops that are exited.
+A static analysis in the parser performs this computation and provides the resulting number as a parameter to the \texttt{POPJ\_CFLABEL} instruction.
+
+Loop index variables, which are commonly bound to the function scope\footnote{JavaScript binds variables declared with \texttt{var} to the function scope, and did not have a block level scope prior to the introduction of \texttt{let} in version~1.7.} can be used for an implicit information leak if they are not all upgraded to the current pc-label at the time a \texttt{break} or \texttt{continue} statement is encountered.
+Our system prevents potential implicit information leaks by emitting a \texttt{POPJ\_CFLABEL} instruction that not only pops the correct number of control flow labels, but also takes care to upgrade the control flow stack for the current function.
+Upgrading the control flow stack in this manner upgrades all the values present on the operand stack at the time the interruption in control flow occurred.
+Any later computations performed by the function are then considered to be influenced by the security context in effect at the time the \texttt{break} or \texttt{continue} statement was encountered.
+
+\subsection{Exceptions}
+\label{sec:exceptions}
+Exceptions represent a substantial challenge to information flow security, because a \texttt{throw} permits any called function to create an early return that crosses multiple function boundaries.
+To complicate security issues further, JavaScript supports the \texttt{try}, \texttt{catch}, \texttt{finally} triplet of keywords.
+
+The exception handling region of the \texttt{try}-block begins with a \texttt{DUP\_CFLABEL} instruction.
+As a conservative precaution, when the interpreter encounters a \texttt{throw} statement, it takes care to first cloak the exception object that is to be returned to the exception handler using the current pc-label.
+Once the interpreter finds the appropriate handler, it pops all activation frames within the call chain.
+Control flow then transfers to the corresponding \texttt{catch}-block where a \texttt{POPJ\_CFLABEL} instruction upgrades the entire control flow stack of the handling function using the label taken from the exception object.
+Taking this action prevents implicit information leaks that might occur due to exiting the \texttt{try}-block early.
+Such leaks are analogous to the \texttt{break} and \texttt{continue} (see Section~\ref{sec:break-and-continue}).
+
+The \texttt{finally}-block always executes using the current pc-label, which is provided either by finishing the \texttt{try}-block or from catching an exception and executing the \texttt{catch}-block.
+
+\subsection{Function calls}
+\label{sec:function-calls}
+We found it unnecessary to introduce additional instructions to handle function calls.
+Instead, we instrument the existing routine for a function call to lookup the label of a function at call time.
+When a function call occurs, our system first duplicates the top of control flow stack then joins it with the label of that function.
+This action makes all operations which occur within the body of that function safe.
+The location of this label breaks down into three cases:
+\begin{description}
+ \item [The function is provided by a script.]
+  When the host environment hands a script to the JavaScript VM, it has the option of labeling that script with a security principal.
+  In this case, the function lookup process is responsible for retrieving the label of the function.
+ \item [The function is an uncloaked first class value.]
+  The current program counter implicitly labels anonymous functions at the time of their creation.
+  As a result, the label of the function is always lower than that of the pc-label, and it is safe to call directly.
+ \item [The function is a cloaked first class value.]
+  If a sensitive control flow computation resulted in the return of a function, the return specification (see Section~\ref{sec:returns}) cloaks the function.
+  In this case, the VM retrieves label of the function from its wrapper before the call.
+\end{description}
+
+\subsection{Returns}
+\label{sec:returns}
+A returned value needs to carry information indicating the security context under which the value was produced.
+Our system achieves this by explicitly cloaking the return value with the current pc-label using \texttt{CLOAK} instruction.
+%\todo{more? if value is already cloaked...}
+
+\subsection{Eval}
+\label{sec:eval}
+Our system treats \texttt{eval} similar to other function calls.
+In this case, the parameter string passed into the \texttt{eval} provides the label for the new execution context.
+A call to \texttt{eval} first compiles this string into an instruction stream.
+As a result of passing through the parser, this stream contains all of the security instructions as would a normal script.
+
+%The \texttt{eval} frame performs variable access using dynamic lookup.
+%The bytecodes emitted for these lookups are the same as the bytecodes emitted for a parent lexical scope (equiv. to global) accesses.
+%Our system already mediates the modification of such variables using the \textit{no sensitive upgrade} check (see Section~\ref{sec:sensitive-upgrade-check}), so no extra precautions are necessary for securing the \texttt{eval} construct.
+
+%===============================================================================
+
+\section{Evaluation}
+\label{sec:evaluation}
+
+%
+%To evaluate our claims we modified SpiderMonkey, the JavaScript VM used in the Mozilla Firefox browser.
+%We examine the bytecode overhead introduced by the inclusion of the secure bytecodes, as well as its affect on usability.
+%Based on our results from browsing real websites, we give some insight into the architectural changes website authors might have to make to support information flow security.
+
+Our implementation focuses mainly on the creation of a fully functional and correct information flow tracking system.
+We would like to note that, to the best of our knowledge, no standard set of tests for information flow frameworks currently exists.
+Given this situation, we use the SunSpider~\cite{sunspider} benchmark suite to assess the overhead which our framework introduces.
+Despite the fact that it does not faithfully represent real-world JavaScript~\cite{jsmeter}, we choose this suite because its status as the standard benchmark suite for JavaScript makes it suitable for comparisons to other work.
+
+\subsection{Growth of Instruction Stream}
+%\begin{figure*}[ht]
+%  \centerline{\includegraphics[width=18cm,keepaspectratio=true]{graphics/evaluation_bytecodes.pdf}}
+%  \caption{Bytecodes emitted for SunSpider benchmark}
+%  \label{fig:eval_bytecodes}
+%\end{figure*}
+
+%Figure~\ref{fig:eval_bytecodes} shows the number of emitted bytecodes for each test in the SunSpider benchmark.
+
+To examine impact that introducing the new security instructions has on the memory requirements of SpiderMonkey's internal bytecode representation, we measure the change in size of the emitted instruction stream, for each test in the SunSpider~0.9.1 benchmark suite.
+Despite the fact that SunSpider runs only with only a single security principal, we find it useful for measuring the overhead incurred by introducing additional security instructions to well-known algorithms.
+
+% secure = [178, 15, 158, 25, 48, 38, 25, 8, 14, 3, 20, 29, 181, 71, 87, 140, 183, 18, 6, 28, 4, 36, 32, 129, 83, 32]
+% total = [ 2238, 173, 2446, 213, 334, 668, 164, 94, 81, 26, 167, 154, 2957, 1753, 930, 1313, 1556, 238, 195, 278, 144, 794, 325, 569, 592, 360]
+% data = zip(secure, total)
+% d = [ float(x[0]) / (x[1] - x[0]) for x in data ]
+% d[8], d[11], d[23], (sum(d)/len(d))
+We observe that tests such as \textit{string-tagcloud}, \textit{bitops-bit-in-byte} and \textit{controlflow-recursive}, which contain very ``branchy'' code with respect to their short length, incur the highest overhead; 29.3\%, 21.0\%, and 23.2\% respectively.
+Control flow constructs feature much less prominently in the other SunSpider tests, so the introduction of instructions which track branches and merges incur a much lower overhead.
+Inserting our security instructions into the instruction stream never causes it to grow by more than 30\%, and maintains an average overhead of 11.6\% growth.
+
+We therefore feel it important to note that many optimization opportunities for reducing the overhead of our techniques remain available for future work.
+For example, the overhead of introducing these instructions can likely be optimized away by using a runtime analysis to type-specialize over the labels on arguments and functions.
+%Such techniques are very common among interpreter-based virtual machines to optimize ordinary operations.
+%For the future however, we plan to follow the quickening approach so that our framework starts executing a bytecode-stream that includes the secure instructions and can jump to an unmodified bytecode-stream whenever possible.
+
+\subsection{Effect on Performance}
+\label{sec:evaluation-performance}
+
+We executed the SunSpider~0.9.1 benchmark suite on a Quad Core Intel Xeon~5140 running at 2.33~GHz with 32GiB~RAM running Linux kernel~2.6.3.2.
+To achieve a stable basis of comparison, we execute each test in the suite 100 times, and take the average over all runs.
+
+Our modified version of SpiderMonkey requires 140 seconds to execute the entire benchmark, while an unmodified version requires only 22.5 seconds.
+We compile both versions using the same flags.
+This test demonstrates an overhead of approximately 6x, primarily due to the introduction of explicitly cloaked values at return sites.
+
+Since each cloak is itself a JavaScript object, our system generates a much larger number of objects than an unmodified system, and thus spends more time doing object allocation and garbage collection.
+Currently, SpiderMonkey uses an unsophisticated mark-and-sweep garbage collector and does not employ generational collection.
+Recent improvements to the garbage collector~\cite{wagner2011} have already demonstrated a remarkable increase in collection speed, which will likely benefit our implementation.
+We also believe that we can reduce the number of cloak objects and improve our implementation by using techniques such as sparse labeling~\cite{1554353,1814220}.
+%Specifically, we expect to see a large performance improvement by placing objects into a labeled compartment within the garbage collector.
+
+%We also visited several websites, to evaluate this performance overhead as it would appear to a casual user.
+%When browsing the web with our system, we did not notice any slowdown for ordinary pages.
+%However, we did notice a slight response delay when interacting with JavaScript heavy applications (such as GMail).
+
+\subsection{Violations Issued when Browsing the Web}
+We implement enough of the security framework that we can compile and run the Firefox browser.
+Although we modify the SpiderMonkey interpreter to track information flow, we found that Firefox uses JavaScript internally for a large number of subsystems (including the user interface).
+Despite the potential for covert channels, we chose to whitelist the classes involved in these subsystems and consider them a portion of the trusted code base.
+
+
+We also used our modified version of Firefox to visit the top 10 sites in the \textit{Alexa's Top Sites}~\cite{alexa} listing.
+During this test, our system detects a large number of information flow violations.
+Figure~\ref{fig:eval_falsepositives} highlights the total number of unique violations issued for each of these pages.
+Manual investigation reveals that the vast majority of these sites load images and other resources from a separate server.
+Because sites request these resources from a domain different than the site itself, our system triggers an alarm due to the interaction of DOM objects having separate labels.
+For our approach to be adopted in a working environment, web site authors clearly need a policy specification framework (further discussed in Section~\ref{sec:policy_specification}), so that they can express their site's trust in a content distribution server.
+
+\todo[inline]{Figure of false positives}
+\begin{comment}
+\begin{figure}[htp]
+  \centerline{\includegraphics[width=12cm,keepaspectratio=true]{graphics/evaluation_falsepositives.pdf}}
+  \caption{Information flow alarms triggered when browsing Alexa's Top Sites in the United States~\cite{alexa}.}
+  \label{fig:eval_falsepositives}
+\end{figure}
+\end{comment}
+
+\subsection{Verification}
+
+In addition to the evaluations presented above, we also implement 173 private test cases to ensure that we generate the correct labels for each of the control flow structures mentioned in Section~\ref{sec:program-control-structures}.
+Our system is correctly able to identify both explicit and implicit information flows represented in this test suite, including the two examples presented in Figure~\ref{fig:threat_if} and Figure~\ref{fig:threat_for}.
+Although this effort does not substitute for a proof of correctness, it does give us confidence that our implementation faithfully follows the approach we have outlined.
+
+Our system also runs an abstract interpreter that verifies the control flow stack height at every instruction of a method.
+This analysis covers \emph{all} possible executions paths for every method parsed, and ensures that we never introduce security instructions that might cause a runtime misalignment of the control flow stack.
+We are able to run this verification over all of the more than 2,000 tests in the SpiderMonkey testing suite, which Mozilla uses to detect regressions for every code change.
+
+%\todo{address reviewer comment: Performance overhead is reasonable, some benchmarks using real-world applications would be useful to estimate the actual impact on a system}
+
+%===============================================================================
+
+\section{Related and Future Work}
+\label{sec:relatedwork}
+
+%\todo{no standard benchmarks, no standard evals, no standard info flow attacks to compare against}
+
+Over the past decades researchers have embraced the task of adding security enhancements to existing languages.
+In this section, we show how our work fits into the field of information flow security and highlight related research which will likely bolster current efforts.
+We remain optimistic that information flow can be brought from the world of static verification to the world of dynamically typed languages.
+
+\subsection{Static Analysis}
+
+In 1977, Denning and Denning~\cite{359712} gave a specification that ensures non-interference of Pascal programs using a static type checking analysis.
+Programs which contain implicit information flows fail certification by the compiler.
+This work builds on the lattice model~\cite{denning1976lattice} of secure information flow proposed in 1976.
+
+In 2001, Myers and Liskov~\cite{myers2001jif} introduced a programming language called Jif (Java Information Flow), which extends Java with static checking of information flow.
+Though the static analysis techniques developed in this work are not applicable to dynamic languages, we find the associated contribution of a decentralized label model~\cite{363526} presciently appropriate for dealing with the multitude of principals that require representation in an embedded language such as JavaScript.
+%We have incorporated much of this model into our own work which allows a full, general tracking of which labels are involved in influencing each object.
+
+Both of these works demonstrate static typing systems able to verify secure information flow.
+We incorporate these insights into our labeling mechanism, adjusting as necessary for a dynamically typed language.
+Our paper does not discuss many of these details in favor of keeping focus on the supporting data structures and implementation details.
+
+\subsection{Other Approaches}
+
+Other authors have implemented security mechanisms for JavaScript by employing source rewriting techniques.
+
+In 2010, Russo et al.~\cite{1813092} provide a mechanism for tracking information flow within the Document Object Model, a browser provided API for manipulating page layout.
+This work inlines dynamic information flow monitors at the time a code string evaluates.
+They demonstrate that the dreaded \texttt{eval} statement can be secured enough to satisfy the termination-insensitive non-interference property.
+The proposed technique prevents the DOM from being used as a covert channel.
+In contrast, our work does not address information flows present within host provided objects.
+
+Also in 2010, Jang et al.~\cite{1866339} proposed an information flow framework for JavaScript itself based on source rewriting.
+Their framework invokes a rewrite function on JavaScript code and encapsulates it into a monitored closure.
+Although rewriting the source can instrument policy enforcement mechanisms, their current implementation is not capable of detecting implicit information flows.
+Although they give no performance numbers, we reason that these closures incur a high memory and function call overhead, something that we seek to prevent by operating at the instruction level.
+
+\subsection{Security Stack}
+\label{sec:relatedwork-security-stack}
+
+We implement the control flow stack as a runtime shadow stack, which records the history of the labels attached to the program counter at each control flow branch.
+The use of a runtime shadow stack is a common technique for securing programs~\cite{abadi2009control, frantzen2001stackghost, prasad2003binary} and has been successfully used in other information flow research~\cite{lam2006general}.
+Our implementation extends this research by introducing \emph{explicit} instructions for manipulating the shadow stack.
+After extensive literature review, we could not find any publications that introduce instructions for maintaining a runtime shadow stack data structure.
+Indeed, we could find no authors which address these important details so vital to implementors.
+
+In 2007, Vogt et al.~\cite{Vogt_CrossSiteScripting_2007} modified an earlier version of SpiderMonkey to monitor the flow of sensitive information in the Mozilla web browser by using dynamic data tainting.
+Their system explicitly identified data sources and sinks within the Firefox browser, and tags data at each source.
+For each script, a static data flow analysis simulates the VM operations on an \emph{abstract stack}, to determine existence of information leaks.
+Their framework handles control structures such as \texttt{throw} and \texttt{try} conservatively, by statically marking all variables within that function as tainted.
+Although the tainting mechanisms in this work closely parallel our own, we incorporate a \emph{runtime} stack that allows for a more precise analysis about implicit flows which \emph{actually} occur.
+
+\subsection{Policy Specification}
+\label{sec:policy_specification}
+
+Although our implementation can trigger an alarm, complete with details about where and why an information flow violation occurred, we do not extend the Firefox browser with any mechanism for website authors to specify an information flow policy.
+
+In 2007, Browser-Enforced Embedded Policy (BEEP)~\cite{beep} introduced the idea of allowing a webpage to specify which scripts are trusted, using the browser itself to filter out entire scripts.
+Their framework hashes the source of each script and refers to a whitelist to determine the legitimacy of a script before executing it.
+A website author must place this whitelist in the \texttt{<head>} portion of a webpage, so that the browser can load it before executing any JavaScript that might change the list.
+Rather than focusing on whether a script itself is legitimate, we would rather preserve the flexibility of executing all scripts as long as they do not incur an information flow violation.
+
+Introduced in 2010, ConScript~\cite{5504806} is a client-side advice implementation for enforcing JavaScript security that allows the author of a webpage to express fine-grained application-specific security policies that are enforced by the user's browser.
+They show how a policy can be automatically generated via static analysis of server-side code or runtime analysis of client-side code.
+Although they define a policy specification framework that can refer to the browser objects exported to JavaScript runtime, it is not capable of specifying a non-interference policy, so it cannot detect implicit information flows.
+
+Although we achieve our objectives of implementing a framework that detects such violations without assistance from script authors,  we still feel that we will not be able to cut down on the number of false positives without some kind of author input.
+The difficulty of introducing information flow security into large bodies of existing code without developer assistance has been a long standing problem in the field~\cite{1159651}.
+Rather than address this issue in depth, we have focused our work on the implementation details of introducing information flow security into a mature VM.
+
+\subsection{Formalization}
+
+We currently do not have a formal proof that our framework can guarantee non-interference security.
+Although some researchers have worked toward providing a formalization of JavaScript semantics~\cite{yu2007javascript, herman2007status, maffeis2008operational, guha2010essence} on which such a proof could be based, we did not find any that were readily suitable for creating such a proof.
+These formalizations suffer from being incomplete with respect to all the features of JavaScript or are only available in paper form.
+Tackling such a drawback will require much future work to bring these efforts into a state where they can be easily used by implementors as a verification framework within an automated proof system.
+We eagerly await further research in this direction, so that we may identify and fix any bugs within our approach.
+
+%===============================================================================
+
+\section{Conclusion and Outlook}
+\label{sec:conclusion}
+
+We have presented a framework for tracking information flow within a JavaScript virtual machine with the goal of preventing information leaks.
+Achieving this objective required a hybrid analysis, combining a static analysis to insert security instructions at compile time and a dynamic analysis that actively checks for security violating commands at runtime.
+We demonstrated these techniques for some of the more difficult control-flow features of JavaScript.
+Furthermore, we have successfully demonstrated that our framework is able to cope with control-flow found on real world sites, and inform the host environment of information flow violations.
+
+To the best of our knowledge, no other research explicitly presents a collection of security instructions which are (1) orthogonal to existing instructions within the VM, (2) general enough to be incorporated in other language runtimes, (3) handle tricky control-flow structures common among dynamically typed programming languages, and (4) capable of providing instruction level information flow security.
+We successfully add these instructions to an existing, heavily used, real-world implementation of a popular language, i.e. the JavaScript interpreter, SpiderMonkey.
+We also justify that introducing such instructions is necessary (see Section~\ref{sec:bytecodes-are-necessary}) and observe that no other research has discusses such details (see Section~\ref{sec:relatedwork-security-stack}).
+
+We discovered that introducing security instructions causes a moderate increase in the size of the instruction stream, and that cloaking increases the number of objects.
+Both of these measures incur a substantial performance decrease, mostly because of the overhead from allocating cloak objects.
+However, we remain optimistic that a combination of sparse labeling to reduce the number of security wrapper objects together with improvements to the garbage collector can reduce this overhead to a manageable level (see Section~\ref{sec:evaluation-performance}).
+
+Adopting our framework will require some effort on the part of web developers.
+Current web site organization, such as the use of separate content distribution servers, causes our system to raise false positives.
+Before our approach can be adopted, script authors will need a policy specification language for expressing allowed information flows (see Section~\ref{sec:policy_specification}).
+
+\begin{comment}
+\begin{jscbytecode}
+|\tikzmark{mylabelStart1}|[   0] enter|\tikzmark{mylabelEnd1}|
+|\tikzmark{mylabelStart2}|[   0] enter|\tikzmark{mylabelEnd2}|
+|\tikzmark{mylabelStart3}|[   0] enter|\tikzmark{mylabelEnd3}|
+|\tikzmark{mylabelStart4}|[   0] enter|\tikzmark{mylabelEnd4}|
+|\tikzmark{mylabelStart5}|[   0] enter|\tikzmark{mylabelEnd5}|
+\end{jscbytecode}
+
+\begin{tikz}[overlay, remember picture] {
+  \draw[->, thick] ($(mylabelStart1)$) -- ($(mylabelEnd5)$);
+}
+\end{tikz}
+\end{comment}
+
+
+In keeping with our goal of not exposing the labeling system to the JavaScript programmer, we modify the semantics of the JavaScript language to provide secrecy, but do not introduce a language-level declassification mechanism.
+We remain optimistic that introducing such a mechanism may not be necessary to prevent label creep introduced by the monotonicity of the control flow stack (see Section~\ref{sec:monotonicity})
+Instead, we suggesting that this phenomenon can be successfully combatted with a combination of detailed information about the violation provided to the host environment and policies capable of expressing fine-grained flows.
+
+%\appendix
+%\section{Appendix Title}
+%This is the text of the appendix, if you need one.
+
+%\acks
+\section*{Acknowledgments}\label{acks}
+
+Parts of this effort have been sponsored by the National Science Foundation (NSF) under grant CNS-0905684.
+The U.S. Government is authorized to reproduce and distribute reprints for Governmental purposes notwithstanding any copyright annotation thereon.
+Any opinions, findings, and conclusions or recommendations expressed here are those of the authors and should not be interpreted as necessarily representing the official views, policies, or endorsements, either expressed or implied, of NSF, or any other agency of the U.S. Government.
+
+
+
+
+\todo[inline]{pull citations from acsac-tr}
+
+\todo[inline]{remove the word 'bytecode' and 'opcode', replace with instruction}
+\todo[inline]{remove security instruction, replace with control flow instruction}
