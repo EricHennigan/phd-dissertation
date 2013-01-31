@@ -127,7 +127,7 @@ FlowCore places this instruction before every control flow branch.
 In many cases, this instruction pairs with a \join instruction which then upgrades the top of the control flow stack after evaluating the boolean condition of the branch.
 In all cases, a corresponding \popj instruction later delineates the end of the secure region.
 
-As shown in Figure~\ref{fig:steal-pin-bytecode}, the loop header of the code in listing~\ref{list:steal-pin}, occurs after the loop body.
+As shown in Figure~\ref{fig:steal-pin-bytecode}, the loop header occurs after the loop body.
 A \dup instruction at offset~\code{01} occurs prior to evaluation of the loop initialization code.
 The presence of this instruction prepares the control flow stack for the secure region delineated by the loop.
 A corresponding \popj instruction at offset~\code{41} occurs on a fallthrough out of the loop restoring the control flow stack height.
@@ -206,7 +206,7 @@ As shown in Figure~\ref{fig:steal-pin-bytecode}, prior to exiting the loop due t
 The \code{for}-loop then exits and the interpreter pops one label from the control stack (offset \code{41}), leaving only the label for the function scope left on the stack.
 
 As noted previously, the inner \code{if}-statement does not directly influence the label attached to the loop index variable,~\code{i}.
-Without upgrading this label, the \code{return} at offset~\code{44} of Figure~\ref{fig:steal-pin-bytecode} leaks the information of the secret variable \code{pin}.
+Without upgrading this label, the \code{return} at line~\code{5} of Listing~\ref{list:steal-pin-bytecode} leaks the information of the secret variable \code{pin}.
 However, the \popj instruction at offset~\code{22} upgrades the entire function context.
 So any operations taking place after the occurrence of the \code{break} statement execute under a label at least as secure as the scope in which the \code{break} resides.
 In particular, the \code{ret} instruction at offset~\code{44} executes under the upgraded label.
