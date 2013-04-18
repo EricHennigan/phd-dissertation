@@ -1,0 +1,104 @@
+% This file was created with JabRef 2.7b.
+% Encoding: UTF-8
+
+@INPROCEEDINGS{Austin.Flanagan+12,
+  author = {Thomas H. Austin and Cormac Flanagan},
+  title = {Multiple facets for dynamic information flow},
+  year = {2012},
+  pages = {165--178},
+  crossref = {popl'12},
+  doi = {http://dx.doi.org/10.1145/2103656.2103677},
+  file = {:./refs/austin.flanagan+12.pdf:PDF},
+  review = {:quote: we use faceted values to simultaneously and efficiently simulate
+	multiple executions for different security levels, thus providing
+	non-interference with minimal overhead, and without the reliance
+	on the stuck executions of prior dynamic approaches.
+	
+	
+	:quote: The central insight of this paper is that the correct value
+	for y after this assignment depends on the authority of the observer.
+	
+	
+	:quote: non-intereference is a 2-safety property: can only be refuted
+	by observing two executions.
+	
+	
+	:cite: no-sensitive-upgrade and permissive-upgrade semantics satisify
+	termination-insensitive non-interference.
+	
+	
+	may require up to 2^n processes, one for each principal in the lattice
+	
+	
+	:example:
+	
+	  if (x)
+	
+	    y = true
+	
+	
+	Faceted values nest to form trees, I think the nesting implies more
+	than just 2^n processes (have a Projection Theorem stating otherwise).
+	Also can do compression by arranging tree from root (low) to leaf
+	(high).
+	
+	Control flow splits program evaluation, but only for duration of a
+	conditional expression. But what if that split occurs early? Do I
+	have to wait for exhaustion of both branches?
+	
+	
+	:example:
+	
+	  y = true
+	
+	  z = true
+	
+	  if (x)
+	
+	    y = false
+	
+	  if (y)
+	
+	    z = false
+	
+	  return z
+	
+	
+	Naive => fails to ensure TINI, since the output leaks the contents
+	of private input
+	
+	No-Sensitive-Upgrade => guarantees TINI, but at expense of getting
+	stuck on some implicit flows
+	
+	Permissive-Upgrade => still gets stuck, but a bit later than no-sensitive-upgrade
+	
+	Faceted => correct behavior from perspective of all principals
+	
+	
+	Shows how to perform robust declassification :cite: (check that control
+	path to the declassify has not been influenced by attacker, avoids
+	confused deputy attack) Puts faceted values even into the DOM, browser
+	renders only one facet though.
+	
+	
+	Related work goldmine.}
+}
+
+@PROCEEDINGS{popl'12,
+  title = popl12,
+  year = {2012},
+  editor = {John Field and Michael Hicks},
+  volume = {47},
+  number = {1},
+  publisher = acm,
+  booktitle = popl12
+}
+
+@comment{jabref-meta: selector_publisher:}
+
+@comment{jabref-meta: selector_author:}
+
+@comment{jabref-meta: selector_journal:}
+
+@comment{jabref-meta: selector_keywords:}
+
