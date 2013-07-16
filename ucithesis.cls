@@ -25,6 +25,7 @@
 \LoadClassWithOptions{report}
 \RequirePackage[hmargin={1in,1in},vmargin={1in,1in}]{geometry}
 \RequirePackage{setspace}
+\RequirePackage{listings}
 
 \newcommand{\thesistitle}[1]{\newcommand\Thesistitle{#1}}
 \newcommand{\degreename}[1]{\newcommand\Degreename{#1}}
@@ -182,11 +183,13 @@
 \renewcommand{\contentsname}{\protect\centering\protect\Large TABLE OF CONTENTS}
 \renewcommand{\listfigurename}{\protect\centering\protect\Large LIST OF FIGURES}
 \renewcommand{\listtablename}{\protect\centering\protect\Large LIST OF TABLES}
+\renewcommand{\lstlistlistingname}{\protect\centering\protect\Large LIST OF LISTINGS}
 
 % Add "Page" as column title to Table of Contents, List of Figures, and List of Tables
 \addtocontents{toc}{\protect\raggedleft Page\\}
 \addtocontents{lof}{\protect\raggedleft Page\\}
 \addtocontents{lot}{\protect\raggedleft Page\\}
+\addtocontents{lol}{\protect\raggedleft Page\\}
 
 \newcommand{\preliminarypages}
 {
@@ -212,6 +215,10 @@
 	\phantomsection
 	\addcontentsline{toc}{chapter}{LIST OF TABLES}
 	\listoftables
+	\clearpage
+	\phantomsection
+	\addcontentsline{toc}{chapter}{LIST OF LISTINGS}
+	\lstlistoflistings
 	\clearpage
 	\phantomsection
 	\addcontentsline{toc}{chapter}{ACKNOWLEDGMENTS}
