@@ -122,9 +122,9 @@ The architectural problems underlying these attacks have not been solved.
 
 Rather than rely entirely on filtration that attempts to identify and reject attacker supplied code, this work allows the malicious code to execute under new semantics which track the information dependence of runtime values.
 We assume that without generating external signals (network traffic) the execution of code within the browser sandbox results in no harm.
-This work implements FlowCore, interpreter-level information flow framework written for WebKit's JavaScriptCore virtual machine.
+This work implements \FlowCore, interpreter-level information flow framework written for WebKit's JavaScriptCore virtual machine.
 
-FlowCore introduces a general set of information flow bytecodes (Section~\ref{sec:bytecodes}) applicable to any interpreter for a dynamically typed language.
+\FlowCore\ introduces a general set of information flow bytecodes (Section~\ref{sec:bytecodes}) applicable to any interpreter for a dynamically typed language.
 The bytecodes provide runtime instructions for manipulating information flow data structures (Section~\ref{sec:f-stack}) for each of the control flow structures (Section~\ref{sec:control-flow}) in the JavaScript language.
 Additionally, the VM tags every JavaScript value with a label (Section~\ref{sec:tagging}) that records the principals which have influenced the value.
 A network monitor within the web browser prevents malicious program behavior at runtime by enforcing a policy shipped with the web page (Section~\ref{sec:policy}).
