@@ -5,13 +5,13 @@
 Many industrial and commercial institutions employ dynamically typed languages in systems which process sensitive information.
 Programmers often find the high-level nature of these languages convenient for rapidly developing prototypes that meet the business need for quick deployment.
 For example, Web applications have de facto standardized on JavaScript for client-side logic, which includes secure authentication.
-In spite of the increasing demand for secure processing and communications, the semantics of dynamically typed languages, such as JavaScript, interferes static analysis techniques which could be used to verify application security~\cite{static-typing}.
+In spite of the increasing demand for secure processing and communications, the semantics of dynamically typed languages, such as JavaScript, interferes static analysis techniques which could be used to verify application security~\cite{robertson.vigna+09}.
 
 In today's architecture, the web server delivers HTML and JavaScript to the client as an untyped string.
 Web~2.0 applications contain server-side processing that injects user generated content and syndicated advertisements into pages assembled on demand.
 Popular code frameworks which perform this composition are not themselves statically typed (as in the case of PHP, Ruby on Rails, Django).
 The practice of including foreign content as an unsafe string provides attackers the opportunity to inject malicious code into a web page, in an attack known as Cross-Site Scripting (XSS).
-The prevalence, persistence, scope, and danger~\cite{whitehat, mitre} of such attacks has given XSS the infamous moniker: ``buffer overflow of the web.''
+The prevalence, persistence, scope, and danger~\cite{whitehat, cwe} of such attacks has given XSS the infamous moniker: ``buffer overflow of the web.''
 
 \section{The Threat of Code Injection}
 
@@ -55,14 +55,14 @@ The acceptance of tags formatted in unconventional manners further contributes t
  Hex Encoding           & \texttt{\&\#x3c;} & \texttt{\&\#x03c;} & \texttt{\&\#X3c} & \texttt{\ldots} \\
  Unicode                & \texttt{\textbackslash u003c} &&&\\
 \end{tabular}
-\caption{Examples of Character Encoding~\cite{secubat}.}
+\caption{Examples of Character Encoding~\cite{kals.etal+06}.}
 \label{tab:html-encoding}
 \end{table}
 
 \subsection{Script Identification}
 
 Examples from RSnake's XSS Cheat Sheet~\cite{xsscheatsheet}\footnote{The XSS Cheat Sheet also provides a handy reference of malicious scripts that can be used to test user input filters} exhibit many ways in which a script can be encoded to bypass user input filters.
-As a second line of defence, a web page can employ syntax filters and program analysis to restrict the running of malicious scripts~\cite{browsershield, corescript, webssari}.
+As a second line of defence, a web page can employ syntax filters and program analysis to restrict the running of malicious scripts~\cite{reis.etal+06, yu.etal+07, yaowen.etal+04}.
 
 Just as HTML has many different character encodings, JavaScript provides several syntaxes for accessing an object's properties.
 For example, each of the following three lines create a dialog box with the contents of a page's cookie:

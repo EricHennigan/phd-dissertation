@@ -20,7 +20,7 @@ During this process, static analysis enables the instrumentation of additional b
 
 \section{Label Lattice}
 
-This work takes inspiration from the decentralized label model~\cite{decentralized-labels}.
+This work takes inspiration from the decentralized label model~\cite{myers.liskov+00}.
 Each web domain corresponds to a separate security principal, shown in the bottom row of Figure~\ref{fig:label-lattice}.
 The information flow framework extends JavaScriptCore with a \code{LabelRegistry} which maps web domains to unique bit positions within the 64-bit label portion of a \code{JSValue}.
 This configuration allows labels to represent any element within the lattice over web domains.
@@ -230,7 +230,7 @@ When the information flow VM assigns to a value, it upgrades the label attached 
 The information flow VM system, explicitly labels values manufactured in a higher security context before allowing them to enter a lower security context, as may happen during via a function \code{return} statement.
 The VM labels the result of computations involving two or more values using the join of the labels of all arguments.
 The program counter acts as an implicit argument in all operations, so it's label too is joined in with the result.
-As the interpreter executes, these joins steadily elevate the labels on objects within the system, a phenomenon known as \term{label creep}~\cite{creep}.
+As the interpreter executes, these joins steadily elevate the labels on objects within the system, a phenomenon known as \term{label creep}~\cite{sabelfeld.myers+03}.
 
 At all times during program execution, a monotonically increasing list of security labels comprises the control flow stack.
 All of the operations that our system performs on the control flow stack either leave the relationship between successive labels unchanged, or elevates the labels at the top of the stack.

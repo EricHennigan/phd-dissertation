@@ -15,7 +15,7 @@ Before discussing the details of the two possible implementations of dynamic sec
 
 \subsection{Existing Type System}
 
-Many implementations of dynamically typed languages follow a common approach of using a tagged union to represent each possible primitive or object reference type~\cite{gudeman1993representing}.
+Many implementations of dynamically typed languages follow a common approach of using a tagged union to represent each possible primitive or object reference type~\cite{gudeman+93}.
 In JavaScriptCore, this union takes the form of a 64-bit word, within the class \code{JSValue}.
 Figure~\ref{fig:base-encoding} illustrates the union's fields as ordered on a big-endian\footnote{On a little-endian machine the order of the \code{tag} and \code{payload} fields are swapped.}, 64-bit machine.
 
@@ -482,7 +482,7 @@ The increase also extends to all dynamically assigned properties on JavaScript o
 In contrast, the cloak approach requires a single field be added to all objects, which the VM uses for security tagging, increasing memory requirements 20\% for each JavaScript object\footnote{On a 64-bit system, the unmodified \code{JSObject} base class requires 32 bytes. Introducing the label field requires 8 bytes, a 20\% increase. Other classes inheriting \code{JSObject} have a smaller percentage increase. For example, \code{JSNonFinalObject}, which abstracts most of JavaScript's built-in prototype objects, requires 48 bytes.}.
 Additionally, the cloak class itself increases the memory requirements 600\% for each primitive\footnote{On a 64 bit system, primitive \code{JSValue}s are 8 bytes, while the \code{JSCloak} class requires 48 bytes, a 6x increase.}.
 
-Technical difficulties of the JavaScriptCore design prevented implementation of sparse labeling~\cite{sparse-labeling} and forced conservative cloaking of primitive values.
+Technical difficulties of the JavaScriptCore design prevented implementation of sparse labeling~\cite{austin.flanagan+09} and forced conservative cloaking of primitive values.
 Because of label creep, many primitives quickly require labeling, leading to the allocation of cloak objects.
 The cloak technique only uses less memory than the fat value technique in situations where very few primitive values require labeling.
 In our experience, this situation does not normally arise, because the VM labels values in many common operations, such as function returns and binary operations with at least one labeled argument.
@@ -559,6 +559,7 @@ Security Semantics  & Labeled reference & Labeled value \\
 \todo{DO: DOM interaction + channels}
 
 \section{Chosen Implementation for \FlowCore}\label{sec:conclusion}
+\label{sec:chosen-implementation}
 
 Although both the fat value and cloak approaches can assist information flow security by adding runtime security types to all values within an existing dynamically typed language, this work uses the fat value approach, because it
 (1) provides a reference semantics that works with interned objects,
@@ -580,6 +581,6 @@ In information flow security, the fact that two immutable objects might carry th
 The labeled reference semantics provided by the fat value technique usefully allows distinguishing the security label of an object from the value of that object.
 Fortunately, this semantics means that it is possible to keep the interned object optimization, even during implementing dynamic labeling for information flow security.
 
-Given the difficulty and work involved during my implementation experience I wholeheartedly corroborate the statement: ``security is not a separable concern''\cite{miller2005structure}.
+Given the difficulty and work involved during my implementation experience I wholeheartedly corroborate the statement: ``security is not a separable concern''\cite{miller.etal+04}.
 
 
