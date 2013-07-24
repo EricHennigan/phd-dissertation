@@ -23,6 +23,7 @@
 \usepackage{psfrag}
 \usepackage{relsize}
 \usepackage{subfigure}
+\usepackage{textcomp}
 
 \usepackage{python}   % have to pre-process the jsc bytecode dump
 \usepackage{courier}  % need a bfseries ttfamily
@@ -42,6 +43,8 @@
 \newcommand{\superscript}[1]{\ensuremath{^{\textrm{#1}}}}
 \newcommand{\subscript}[1]{\ensuremath{_{\textrm{#1}}}}
 
+\newcommand{\brackdbl}[1]{\textlbrackdbl\code{#1}\textrbrackdbl}
+
 \usepackage{tikz}
 \usetikzlibrary{arrows}
 \usetikzlibrary{backgrounds}
@@ -56,6 +59,7 @@
 \usetikzlibrary{shapes}
 \usetikzlibrary{shapes.multipart}
 \usetikzlibrary{shapes.symbols}
+\usetikzlibrary{snakes}
 
 \newcommand{\tikzmark}[1]{\tikz[overlay,remember picture] \coordinate (#1) at (0,0);}
 %\newcommand{\tikzmark}[1]{\tikz[overlay,remember picture] \node (#1) {};}
@@ -71,7 +75,7 @@
   comment=[l]{//},
   morecomment=[l]{  >}
   morecomment=[s]{/*}{*/},
-  commentstyle=\color{black}\ttfamily,
+  commentstyle=\color{gray}\ttfamily,
   stringstyle=\color{black}\ttfamily,
   morestring=[b]',
   morestring=[b]",

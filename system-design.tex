@@ -14,6 +14,7 @@ Finally, we show how this work compares with that of others (Section~\ref{sec:re
 Before discussing the details of the two possible implementations of dynamic security types, we first give a review of the existing dynamic type system that WebKit's JavaScriptCore VM employs.
 
 \subsection{Existing Type System}
+\label{sec:existing-type-system}
 
 Many implementations of dynamically typed languages follow a common approach of using a tagged union to represent each possible primitive or object reference type~\cite{gudeman+93}.
 In JavaScriptCore, this union takes the form of a 64-bit word, within the class \code{JSValue}.
@@ -92,8 +93,8 @@ Figure~\ref{fig:base-encoding} illustrates the union's fields as ordered on a bi
     bit values & type  \\
 \hline
     \texttt{0000 0000 0000 0000} & \texttt{empty} \\
-    \texttt{0000 0000 0000 0004} & \texttt{deleted} \\
     \texttt{0000 0000 0000 0002} & \texttt{null} \\
+    \texttt{0000 0000 0000 0004} & \texttt{deleted} \\
     \texttt{0000 0000 0000 0006} & \texttt{false} \\
     \texttt{0000 0000 0000 0007} & \texttt{true} \\
     \texttt{0000 0000 0000 000a} & \texttt{undefined} \\
@@ -519,6 +520,7 @@ Runtime Speed       & All primitives stay on fast path & Cloaked primitives move
 \medskip
 
 \subsection{Impacts on Security Semantics}
+\label{sec:impacts-on-security-semantics}
 
 As an embeddable language, JavaScript allows the host environment to expose functionality to the client programs.
 For example, within the WebKit browser the DOM subsystem reflects native C++ objects into the JavaScriptCore VM.

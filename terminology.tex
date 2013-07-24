@@ -68,10 +68,10 @@ This work offers more precise and descriptive designations of the established ty
 For each flow identified, this work also illustrates the language mechanisms responsible for the information flow.
 Finally, I demonstrate the descriptive utility of the new terminology by mapping each flow to the program analysis required to detect it.
 
-This chapter refines the two categories of information flow established by Denning and Denning~\cite{denning.denning+77}, explicit flows (Section~\ref{sec:explicit}) and implicit flows (Section~\ref{sec:implicit}).
+This chapter refines the two categories of information flow established by Denning and Denning~\cite{denning.denning+77}, explicit flows (Section~\ref{sec:explicit-flow}) and implicit flows (Section~\ref{sec:implicit-flow}).
 
 \section{Explicit Information Flows}
-\label{sec:explicit}
+\label{sec:explicit-flow}
 
 Explicit information flows occur as a result of data flow dependence.
 This dependence can be either \emph{direct} or \emph{indirect} (see Table~\ref{table:explicitterminology}).
@@ -118,7 +118,7 @@ This paper preserves the use of the term ``indirect'' as originally defined by D
 \end{description}
 
 \section{Implicit Information Flows}
-\label{sec:implicit}
+\label{sec:implicit-flow}
 
 Implicit information flows occur when a value is influenced as a result of control flow dependence.
 This dependence can be either \term{active}, corresponding to a runtime dependence, or \term{passive}, corresponding to a static dependence.

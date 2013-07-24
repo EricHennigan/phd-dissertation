@@ -1,16 +1,199 @@
 
 \chapter{JavaScript Feature Catalog}
 
-JavaScript, like many scripting languages, agglomerate different programming paradigms and hosts a large number of built-in conveniences.
-In order to provide a comprehensive overview of the labeling semantics, this chapter gives the labeling semantics for each language feature present in JavaScript.
-
-\section{Primitives}
-
-\FlowCore follows the fat value approach explored in the discussion on system design (Chapter~\ref{ch:system-design}).
-
+JavaScript, like many scripting languages, agglomerates different programming paradigms and provides a large number of built-in convenience functions.
+In order to provide a comprehensive treatment of the labeling semantics, this chapter gives implementation details of the labeling system for language features present in JavaScript.
 
 \section{Data Structures}
+
+JavaScript offers some built-in data types such as Date, String, Array, and Object which programmers use to compose larger data structures.
+For reasons of efficient implementation JavaScript breaks down these data types into two categories: primitives, which fit into a 64-bit machine integer (according to the encoding in Chapter~\ref{sec:existing-type-system}), and objects, which function as generic key-value hash tables stored in the garbage-collected heap.
+As mentioned in Chapter~\ref{ch:syste-design}, this breakdown affects \FlowCore's implementation of label attachment and propagation.
+
+\subsection{Primitives}
+
+\FlowCore\ follows the fat value approach explored in the discussion on system design (Chapter~\ref{sec:chosen-implementation}).
+This approach directly tags all primitives within the virtual machine, providing the foundation on which to build the tagging propagation rules.
+
+The JavaScript Specification~\cite{ecma} defines the following primitive types:
+\begin{description}
+  \item \textbf{\code{Null}}, contains the single value \code{null} that represents the absence of an object value.
+  \item \textbf{\code{Undefined}}, contains the single value \code{undefined} that acts as a placeholder for declared variables that have not been assigned a value.
+  \item \textbf{\code{Boolean}}, contains the two value instances \code{true} and \code{false}.
+  \item \textbf{\code{Number}}, contains all possible numeric values (defined according to the 64-bit binary format IEEE 754~\cite{ieee754}), including the ``Not-a-Number'' (NaN) values, positive infinity, and negative infinity.
+  \item \textbf{\code{String}}, contains all possible string values (defined as a finite ordered sequence of zero or more 16-bit unsigned integers).
+\end{description}
+
+WebKit's JavaScriptCore implementation adjusts the specification in some subtle ways.
+
+First, the \code{Number}s are separated into two different classes: 32-bit integers and IEEE 754 doubles, which includes the special values NaN, positive infinity, and negative infinity.
+Internally, this separation allows for JavaScriptCore (and its Just-in-Time compiler) to distinguish between floating point and integer numerical data types so that the interpreter uses the appropriate machine arithmetic operations.
+
+Second, each of the boolean types receives its own primitive encoding (Figure~\ref{fig:base-encoding}).
+This decision speeds up the recognition of these primitive values, by providing a direct representation that avoids wrapper objects.
+
+Third, despite the designation of Strings as primitives in the JavaScript specification~\cite{ecma}, JavaScriptCore implements them as native objects.
+Consequently, strings appear as object pointer values in the \code{JSValue} 64-bit encoding (Figure~\ref{fig:base-encoding}).
+Additionally, all string objects have a prototype reference to the String Prototype object that carries all of the specification-defined methods available for strings.
+Within JavaScriptCore, native string objects are always clearly distinguishable from user-defined objects, allowing the interpreter to treat strings according to the rules defined in the JavaScript specification~\cite{ecma}.
+
+Finally, JavaScriptCore implements additional values not present within the specification:
+\begin{description}
+  \item \textbf{\code{empty}}, which represents holes within an array and designates uninitialized values.
+  \item \textbf{\code{deleted}}, which appears in hash table code and designates an invalid GC cell.
+  \item \textbf{\code{pointer}}, which provides references to string or other objects within the garbage-collected heap.
+\end{description}
+
+Two of these values \code{empty} and \code{deleted} have bit patterns that distinguish them from each of the primitives defined in the JavaScript specification~\cite{ecma}.
+No valid \code{JSValue} has the bit pattern of all zeros (the \code{empty} value), nor does any object reside at that address.
+The \code{deleted} value contains a bit pattern that violates the object alignment within the garbage-collected heap.
+The specification-defined \code{null} and \code{undefined} values have non-zero integral representation that distinguish them from the internal \code{empty} and \code{deleted} values (Figure~\ref{fig:base-encoding}).
+
+\FlowCore\ tags all of these primitive values, including the additional ones specific to JavaScriptCore's implementation, by extending the base representation, \code{JSValue}, with an additional 32-bits.
+This design allows for \FlowCore\ to tag all representable values within the JavaScriptCore interpreter, regardless of its mapping back to the JavaScript specification.
+The most evident side-effect of tagging primitive pointer values rather than extending objects with an internal label field implies that \FlowCore\ follows the reference semantics discussed in Chapter~\ref{sec:impacts-on-security-semantics}.
+
+%As a side-effect of tagging all representable values within the interpreter, \FlowCore\ sometimes evaluates operations using a more conservative label than necessary.
+%For example, iteration over an array with holes proceeds to use labels attached to the hole values, in spite of the language specification claiming holes should be skipped over entirely.
+
+\subsection{Variables}
+
+Unlike many other languages, variables in JavaScript do not float around freely, but are tied to a current context object.
+Within a called function the current context is the activation record of the function.
+At the JavaScript console, it is the built-in global object.
+And within WebKit's debugging console, the default context is the built-in window object.
+
+Given that all variables in JavaScript are stored as properties on an object, the semantics for accessing variables in JavaScript is the same as for accessing properties of objects.
+Listing~\ref{list:vardef} shows these semantics at the JavaScriptCore console, where the built-in global object that holds defined variables is also accessible through the \code{this} keyword.
+
+\lstset{caption={Variable definition and access at the JavaScript console},
+        label={list:vardef}}
+\begin{jscode}
+js> var x = 7
+undefined
+js> this.x
+7
+\end{jscode}
+
+In other contexts, such as within a function call, the object that stores declared variables (i.e. the activation record object) is not necessarily accessible to the JavaScript programmer.
+For example, in Listing~\ref{list:funcdef}, the \code{this} keyword does not refer to the activation record object.
+
+\lstset{caption={Variable definition and access in a JavaScript function.},
+        label={list:funcdef}}
+\begin{jscode}
+js> function foo() {
+      var x = 7;
+      print(this.x);
+    }
+undefined // result value returned from function definition
+
+js> foo()
+undefined // printing this.x
+undefined // result value returned from function call
+\end{jscode}
+
+In spite of the syntax for accessing the current context object or activation record, the mental model of variable storage as properties on an object remains valid.
+Consequently, the labeling semantics for variable access follow that of property access on objects.
+
 \subsection{Objects}
+
+Unlike class-based languages such as C++ and Java, JavaScript supports the dynamic generation of objects.
+Rather than defining the presence of fields at compile-time, the JavaScript programmer constructs empty objects and populates them with properties at runtime.
+JavaScript replaces the strict hierarchical relationship between object classes with runtime prototypal inheritance.
+Property access proceeds by first scanning the initial object for the requested property.
+In the event that the property is absent, the lookup proceeds by recursively scanning each object in the prototype chain, following the internal \brackdbl{Prototype} property.
+
+\subsubsection{Property Access}
+
+Objects in JavaScript resemble hash tables, with property name-to-value bindings created, updated, and removed at runtime.
+Two different syntaxes allow a programmer to access an object's properties\footnote{The presence of \code{eval} and \code{with}-blocks can modify the path of access, but their presence does not change the syntax.}.
+As shown in Listing~\ref{list:property-access-notation} one form uses the dot notation while the other uses square brackets.
+
+\lstset{caption={Syntax for Property Access},
+        label={list:property-access-notation}}
+\begin{jscode}
+obj.key  // property access using dot notation
+obj[key] // property access using bracket notation
+\end{jscode}
+
+\FlowCore\ first retrieves \code{obj} from the current activation object.
+Recall that \FlowCore\ does not tag the object itself, but rather tags the pointers that reference the object.
+The resulting object reference \code{obj} then carries a tag representing the union of all labels encountered on the reference path taken.
+
+In the bracket form, the \code{key} is first coerced into a string via the internal \code{ToString} function.
+This coercion happens for all accesses, including numerical indexing on an array.
+Assuming that the \brackdbl{ToString} method has not been overridden by the programmer, the result of the coercion carries the same label as the given \code{key}.
+While, in the dot notation, the \code{key} is an embedded code string, and therefore carries the same label as the origin of the provided code.
+
+Once the object instance \code{obj} has been retrieved and the \code{key} calculated, a hash-table lookup is performed on the properties of that object.
+In the event that an object does not itself have a value associated with the requested \code{key}, the lookup proceeds recursively through objects in the prototype chain following \brackdbl{Prototype} references.
+Figure~\ref{fig:prototype-chain} shows this access path for a generic property lookup.
+
+\newcommand{\hashvalue}[2]{\textlangle \code{#1} \textbar\ \code{#2}\textrangle}
+\newcommand{\hashbrackdbl}[2]{\textlangle \brackdbl{#1} \textbar\ \code{#2}\textrangle}
+\begin{figure}[h!]
+  \centering
+\begin{tikzpicture}[
+  cell/.style={text badly centered},
+  cellpath/.style={draw=black, text badly centered}
+  ]
+
+  \node[] (lookup) at (-2cm,0cm) {};
+
+  \matrix [draw=gray, matrix anchor=west, column sep=1.5cm] (object1) {
+    & \node[cellpath] (proto1) {\hashbrackdbl{Prototype}{P}}; \\
+    & \node[cell] {\vdots}; \\
+    & \node[cell] {\hashvalue{value}{A}}; \\
+    \node[draw=black] (table1) {}; & \node[cell] {\hashvalue{value}{B}}; \\
+    & \node[cell] {\hashvalue{empty}{C}}; \\
+    & \node[cell] {\hashvalue{value}{D}}; \\
+    & \node[cell] {\vdots}; \\
+  };
+  \node[above, anchor=south west] at (object1.north west) {Object \code{obj}};
+
+  \matrix [draw=gray, matrix anchor=west, column sep=1.5cm] at (7cm,0cm) (object2) {
+    & \node[cell] (proto2) {\hashbrackdbl{Prototype}{Q}}; \\
+    & \node[cell] {\vdots}; \\
+    & \node[cell] {\hashvalue{value}{E}}; \\
+    \node[draw=black] (table2) {}; & \node[cell] (value2B) {\hashvalue{empty}{F}}; \\
+    & \node[cellpath] (valueG) {\hashvalue{valueK}{G}}; \\
+    & \node[cell] {\hashvalue{empty}{H}}; \\
+    & \node[cell] {\vdots}; \\
+  };
+  \node[above, anchor=south west] at (object2.north west) {Object \code{obj}'s Prototype};
+
+  \node[] (prototerm) at ([xshift=3cm]proto2) {//};
+
+  \draw[arrow] (lookup) -- node[above, sloped] {\hashvalue{obj}{O}} (table1.west);
+  \draw[arrow] (table1.east) -- node[above, sloped] {\hashvalue{key}{K}} (proto1.west);
+  \draw[arrow] (proto1.east) -- (table2.west);
+  \draw[arrow] (table2.east) -- node[above, sloped] {\hashvalue{key}{K}} (valueG.west);
+  \draw[arrow] (proto2.east) -- (prototerm);
+
+\end{tikzpicture}
+\caption{
+    \label{fig:prototype-chain}
+    Path of access for a property defined on an object's prototype.
+    References and values follow \hashvalue{value}{label} notation.}
+\end{figure}
+
+\subsubsection{Labeling Semantics for Property Access}
+
+As shown in Figure~\ref{fig:prototype-chain}, property access begins with two labeled items: the object \code{obj} carrying label \code{O} and the stringified property name \code{key} carries label \code{K}.
+The target value \code{valueK} ultimately found via the lookup chain also carries its own label \code{G}.
+At minimum, the final label on the value resulting from the lookup incorporates labels from the starting object, the key, and the value found.
+However, the lookup chain also involved labeled prototype references, so \FlowCore\ also incorporates this chain into the label of the resulting value.
+Additionally, \FlowCore\ tracks direct implicit flows (Chapter~\ref{sec:implicit-flow}) and joins in the label on the current program counter (Chapter~\ref{sec:control-flow-stack}).
+
+In summary, the resulting value carries a label formed by the union of
+\begin{itemize}
+  \item the label of each reference link taken to look up the object,
+  \item the label of the stringified key,
+  \item the label of each prototype link taken to look up the value,
+  \item the label of the value,
+  \item and the label of the current program counter.
+\end{itemize}
+
 \subsection{First-Class Functions}
 \subsection{Built-ins}
 \subsubsection{Arrays}
@@ -24,6 +207,10 @@ In order to provide a comprehensive overview of the labeling semantics, this cha
 \subsection{Break and Continue}
 \subsection{Exceptions}
 \subsection{Eval}
+property access and creation
+
+\subsection{With}
+property access and creation
 
 
  - what to do with arrays, or does this fit better in design considerations?
