@@ -1,4 +1,179 @@
 
 \chapter{Related Work}
 
+\begin{comment}
+\todo[inline] {
+* 2009-xss-survey
+  client-side solutions:
+  - ismail et al. 2004 (rewrite browser requests, detect reflected XSS)
+  - Kirda et al. 2006 (firewall intercept HTTP, block/allow connection)
+  - Maone 2007 (NoScript, disables Java ActiveX + JS)
+  - Vogt et al. 2007 (dyn+static data tainting + user policy)
+  - Microsoft 2007 http-only cookie
+  - Jim et al. 2007 BEEP (whitelisting + sandbox)
+  - Yu et al. 2007 CoreScript (edit automata inserted into JS)
+  - Chugh et al. 2009 staged info flow, lazy static analysis
+
+  Server-side solutions:
+  - Kruegel and Vigna 2003, anomaly detection
+  - Nguyen-Tuong et al. 2004 dyn data taint in PHP
+  - Huang et al. 2004 WebSSARI, instrumentation of sanitization
+  - Pietraszek and Berghe 2005, CSSE (tracks user-generated string for mysql query)
+  - Haldar et al. dynamic tainting in JVM
+  - Xie and Aiken 2006, PHP calls to SQL
+  - Jovanovic et al. 2006 Pixy, static data flow PHP
+  - Reis 2006 BrowserShield, pass all JS through filter (JS rewriting)
+  - Bisht and Venkatakrishnan 2008, shadow HTTP request
+  - Phung 2009, inlined reference monitors
+
+  Hybric solutions:
+  - Nadji 2009, document structure integrity (pseudo random number sequence on tags)
+  - Scott and Sharp 2002, Security policy description language web app firewall
+  - Huang 2003, WAVES, fault-injection to find SQL injection, behavior monitoring to find XSS
+  - Kc 2003, randomize function calls with key to prevent injection
+  - Lucca 2004, automated test find user input to execute XSS strings
+  - Kals 2006, SecuBat, tests script injection
+  - Johns 2008, traffic monitor
+  - Wassermann and Su 2008, formal language model find weak input validation
+  - Maffeis and Taly 2009, secure subset of JS (analyzed FBJS AdSafe)
+
+* 2012_crisis
+  suggested by reviewers:
+  - Austin, Flannagan ``Multiple Facets for Dynamic Information Flow''
+  - Sabelfeld, Li, Russo ``Implicit flows in malicious and nonmalicious code''
+}
+
 \todo{There are two outstanding problems: 1. label creep, 2. can't track passive indirect flows.}
+\end{comment}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%
+% From 2011 acsac.tex
+
+\section{Related and Future Work}
+\label{sec:relatedwork}
+
+%\todo{no standard benchmarks, no standard evals, no standard info flow attacks to compare against}
+
+Over the past decades researchers have embraced the task of adding security enhancements to existing languages.
+In this section, we show how our work fits into the field of information flow security and highlight related research which will likely bolster current efforts.
+We remain optimistic that information flow can be brought from the world of static verification to the world of dynamically typed languages.
+
+\subsection{Static Analysis}
+
+In 1977, Denning and Denning~\cite{359712} gave a specification that ensures non-interference of Pascal programs using a static type checking analysis.
+Programs which contain implicit information flows fail certification by the compiler.
+This work builds on the lattice model~\cite{denning1976lattice} of secure information flow proposed in 1976.
+
+In 2001, Myers and Liskov~\cite{myers2001jif} introduced a programming language called Jif (Java Information Flow), which extends Java with static checking of information flow.
+Though the static analysis techniques developed in this work are not applicable to dynamic languages, we find the associated contribution of a decentralized label model~\cite{363526} presciently appropriate for dealing with the multitude of principals that require representation in an embedded language such as JavaScript.
+%We have incorporated much of this model into our own work which allows a full, general tracking of which labels are involved in influencing each object.
+
+Both of these works demonstrate static typing systems able to verify secure information flow.
+We incorporate these insights into our labeling mechanism, adjusting as necessary for a dynamically typed language.
+Our paper does not discuss many of these details in favor of keeping focus on the supporting data structures and implementation details.
+
+\subsection{Other Approaches}
+
+Other authors have implemented security mechanisms for JavaScript by employing source rewriting techniques.
+
+In 2010, Russo et al.~\cite{1813092} provide a mechanism for tracking information flow within the Document Object Model, a browser provided API for manipulating page layout.
+This work inlines dynamic information flow monitors at the time a code string evaluates.
+They demonstrate that the dreaded \texttt{eval} statement can be secured enough to satisfy the termination-insensitive non-interference property.
+The proposed technique prevents the DOM from being used as a covert channel.
+In contrast, our work does not address information flows present within host provided objects.
+
+Also in 2010, Jang et al.~\cite{1866339} proposed an information flow framework for JavaScript itself based on source rewriting.
+Their framework invokes a rewrite function on JavaScript code and encapsulates it into a monitored closure.
+Although rewriting the source can instrument policy enforcement mechanisms, their current implementation is not capable of detecting implicit information flows.
+Although they give no performance numbers, we reason that these closures incur a high memory and function call overhead, something that we seek to prevent by operating at the instruction level.
+
+\subsection{Security Stack}
+\label{sec:relatedwork-security-stack}
+
+We implement the control flow stack as a runtime shadow stack, which records the history of the labels attached to the program counter at each control flow branch.
+The use of a runtime shadow stack is a common technique for securing programs~\cite{abadi2009control, frantzen2001stackghost, prasad2003binary} and has been successfully used in other information flow research~\cite{lam2006general}.
+Our implementation extends this research by introducing \emph{explicit} instructions for manipulating the shadow stack.
+After extensive literature review, we could not find any publications that introduce instructions for maintaining a runtime shadow stack data structure.
+Indeed, we could find no authors which address these important details so vital to implementors.
+
+In 2007, Vogt et al.~\cite{Vogt_CrossSiteScripting_2007} modified an earlier version of SpiderMonkey to monitor the flow of sensitive information in the Mozilla web browser by using dynamic data tainting.
+Their system explicitly identified data sources and sinks within the Firefox browser, and tags data at each source.
+For each script, a static data flow analysis simulates the VM operations on an \emph{abstract stack}, to determine existence of information leaks.
+Their framework handles control structures such as \texttt{throw} and \texttt{try} conservatively, by statically marking all variables within that function as tainted.
+Although the tainting mechanisms in this work closely parallel our own, we incorporate a \emph{runtime} stack that allows for a more precise analysis about implicit flows which \emph{actually} occur.
+
+\subsection{Policy Specification}
+\label{sec:policy_specification}
+
+Although our implementation can trigger an alarm, complete with details about where and why an information flow violation occurred, we do not extend the Firefox browser with any mechanism for website authors to specify an information flow policy.
+
+In 2007, Browser-Enforced Embedded Policy (BEEP)~\cite{beep} introduced the idea of allowing a webpage to specify which scripts are trusted, using the browser itself to filter out entire scripts.
+Their framework hashes the source of each script and refers to a whitelist to determine the legitimacy of a script before executing it.
+A website author must place this whitelist in the \texttt{<head>} portion of a webpage, so that the browser can load it before executing any JavaScript that might change the list.
+Rather than focusing on whether a script itself is legitimate, we would rather preserve the flexibility of executing all scripts as long as they do not incur an information flow violation.
+
+Introduced in 2010, ConScript~\cite{5504806} is a client-side advice implementation for enforcing JavaScript security that allows the author of a webpage to express fine-grained application-specific security policies that are enforced by the user's browser.
+They show how a policy can be automatically generated via static analysis of server-side code or runtime analysis of client-side code.
+Although they define a policy specification framework that can refer to the browser objects exported to JavaScript runtime, it is not capable of specifying a non-interference policy, so it cannot detect implicit information flows.
+
+Although we achieve our objectives of implementing a framework that detects such violations without assistance from script authors,  we still feel that we will not be able to cut down on the number of false positives without some kind of author input.
+The difficulty of introducing information flow security into large bodies of existing code without developer assistance has been a long standing problem in the field~\cite{1159651}.
+Rather than address this issue in depth, we have focused our work on the implementation details of introducing information flow security into a mature VM.
+
+\subsection{Formalization}
+
+We currently do not have a formal proof that our framework can guarantee non-interference security.
+Although some researchers have worked toward providing a formalization of JavaScript semantics~\cite{yu2007javascript, herman2007status, maffeis2008operational, guha2010essence} on which such a proof could be based, we did not find any that were readily suitable for creating such a proof.
+These formalizations suffer from being incomplete with respect to all the features of JavaScript or are only available in paper form.
+Tackling such a drawback will require much future work to bring these efforts into a state where they can be easily used by implementors as a verification framework within an automated proof system.
+We eagerly await further research in this direction, so that we may identify and fix any bugs within our approach.
+
+%===============================================================================
+
+\section{Conclusion and Outlook}
+\label{sec:conclusion}
+
+We have presented a framework for tracking information flow within a JavaScript virtual machine with the goal of preventing information leaks.
+Achieving this objective required a hybrid analysis, combining a static analysis to insert security instructions at compile time and a dynamic analysis that actively checks for security violating commands at runtime.
+We demonstrated these techniques for some of the more difficult control-flow features of JavaScript.
+Furthermore, we have successfully demonstrated that our framework is able to cope with control-flow found on real world sites, and inform the host environment of information flow violations.
+
+To the best of our knowledge, no other research explicitly presents a collection of security instructions which are (1) orthogonal to existing instructions within the VM, (2) general enough to be incorporated in other language runtimes, (3) handle tricky control-flow structures common among dynamically typed programming languages, and (4) capable of providing instruction level information flow security.
+We successfully add these instructions to an existing, heavily used, real-world implementation of a popular language, i.e. the JavaScript interpreter, SpiderMonkey.
+We also justify that introducing such instructions is necessary (see Section~\ref{sec:bytecodes-are-necessary}) and observe that no other research has discusses such details (see Section~\ref{sec:relatedwork-security-stack}).
+
+We discovered that introducing security instructions causes a moderate increase in the size of the instruction stream, and that cloaking increases the number of objects.
+Both of these measures incur a substantial performance decrease, mostly because of the overhead from allocating cloak objects.
+However, we remain optimistic that a combination of sparse labeling to reduce the number of security wrapper objects together with improvements to the garbage collector can reduce this overhead to a manageable level (see Section~\ref{sec:evaluation-performance}).
+
+Adopting our framework will require some effort on the part of web developers.
+Current web site organization, such as the use of separate content distribution servers, causes our system to raise false positives.
+Before our approach can be adopted, script authors will need a policy specification language for expressing allowed information flows (see Section~\ref{sec:policy_specification}).
+
+\begin{comment}
+\begin{jscbytecode}
+|\tikzmark{mylabelStart1}|[   0] enter|\tikzmark{mylabelEnd1}|
+|\tikzmark{mylabelStart2}|[   0] enter|\tikzmark{mylabelEnd2}|
+|\tikzmark{mylabelStart3}|[   0] enter|\tikzmark{mylabelEnd3}|
+|\tikzmark{mylabelStart4}|[   0] enter|\tikzmark{mylabelEnd4}|
+|\tikzmark{mylabelStart5}|[   0] enter|\tikzmark{mylabelEnd5}|
+\end{jscbytecode}
+
+\begin{tikz}[overlay, remember picture] {
+  \draw[->, thick] ($(mylabelStart1)$) -- ($(mylabelEnd5)$);
+}
+\end{tikz}
+\end{comment}
+
+
+In keeping with our goal of not exposing the labeling system to the JavaScript programmer, we modify the semantics of the JavaScript language to provide secrecy, but do not introduce a language-level declassification mechanism.
+We remain optimistic that introducing such a mechanism may not be necessary to prevent label creep introduced by the monotonicity of the control flow stack (see Section~\ref{sec:monotonicity})
+Instead, we suggesting that this phenomenon can be successfully combatted with a combination of detailed information about the violation provided to the host environment and policies capable of expressing fine-grained flows.
+
+%\appendix
+%\section{Appendix Title}
+%This is the text of the appendix, if you need one.
+
+%\acks
+
