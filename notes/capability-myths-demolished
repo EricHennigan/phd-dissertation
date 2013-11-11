@@ -1,0 +1,70 @@
+
+Contains really fucking awesome pictures of capabilities. Charts comparing different security models. Logical map of the consequences.
+
+Possible ref: K. Sitaker. Thoughts on Capability Security on the Web. http://lists.canonical.org/pipermail/kragen-tol/2000-August/000619.html
+
+Compare infoflow with ACL?
+Does infoflow form an access matrix?
+
+quote: "However, no description of any security mechanism is complete withouut a specification of how access relationships are allowed to evolve over time.
+quote: "avoid introducing a shared namespace into the foundations of the model, and thereby avoid the complex issues involved in managing a shared namespace"
+
+Property A: No designation without authority
+Property B: Dynamic Subject Creation
+Property C: Subject Aggregated Authority Management
+
+Does infoflow require ability to edit the principal hierarchy to perform revocation?
+or do we maintain a ref to the data and change its label?
+Myer's Thesis claims this topic is outside scope of work.
+
+Property D: No Ambient Authority
+Property E: Composability of Authorities
+Property F: Access Controlled Delegation Channels
+
+quote: "Unix filesystem permissions constitution an ambient authority mechanism, because the caller of a function such as open() does not choose any credentials to present with the request; it merely succeeds or fails"
+quote: "In the capabilities-as-keys model subjects authorize subjects, whereas subjects access resources. As long as subjects and resources are partitioned into two separate type categories, authorization and access cannot be unified because the types of these two operators do not match."
+quote: "Observe that without Property E, we cannot construct revocable forwarders to solve the revocation problem. And it is precisely the restriction of Property F that enables confinement."
+
+Property G: Dynamic Resource Creation
+
+quote: "Looking again at the scenario of the compiler as a confused deputy, we see that an authorization given by one party is used to access a resources designated by a different party. In a system where designation and authority are inseparable, this common type of confused deputy problem -- in which a malicious party designates a resource they are not supposed to access -- simply cannot occur."
+
+Scattered notes:
+
+* patch so <script src="..."> is lower in the classification lattice (one URI delegates another)
+* Focus on integ labeling (vs. conflabel) they are not quite dual
+  
+- write must check if scope label matches gc region label
+- write to value on stack must allocate cloak, implicit pc problem
+
+- no sensitive upgrade rule on setslot
+- virtual method dispatch on isCloak()
+- cloak overloads setslot
+- collapse double-cloaks
+
+- api.h allows CSP security callbacks (is eval allowed?)
+
+- no read cookies
+- no set location
+  - need DOM (create|append)Element document
+  - img.src ?
+
+- code needs labels, implies influence confidential constants
+
+- password fields already tagged by developers (this is how automated form-fillers work)
+
+- pseudorandom keyed tags vs. stored XSS
+
+- shared key label data network protocol, encryption => label
+
+- secure VM forks on condition with rejoin. what about side effects? Synchronization?
+
+- web dev policies
+  - declassify statement => first-class labels/principal
+  - non-injectable policy language?
+
+
+
+
+
+

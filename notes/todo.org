@@ -1,5 +1,7 @@
 
 [ ] put actual names in the committee listing
+[ ] Listing numbers in bytecodes are messed up, why?
+    because of the lstset applies to all following jscode listings
 
 * thesis
   [ ] :spelling: make sure that 'web browser' 'web page' 'web server' are all consistent
@@ -15,6 +17,17 @@
         is there a language transport format that would prevent code injection?
         a non-injectable object description language?
     [ ] Romer et. Structure Interp 1995
+
+    [ ] Cox et al. A safety oriented platform for web applications
+    [ ] Gazelle web browser, the multi-principal OS construction
+    [ ] Grier Tong King, Secure web browsing with OP web browsers
+    [ ] Askarov and Sabelfeld, Tight Enforcement of Information-Release Policies for Dynamic Languages
+    [ ] Boniface Hicks, Dave KKKing, Patrick McDaniel, Michael Hicks. Trusted Declassification: High-level policy for a security-typed language
+    [ ] Sabelfeld and Myers, A Model for Delimited Information Release
+    [ ] Myers and Liskov. Complete, Safe Information Flow with Decentralized Labels
+    [ ] Russo and Sabelfeld. Securing Timeout Instructions in Web Applications
+    [ ] Su and Wasserman. The Essence of Command Injection Attacks in Web Applications
+    [ ] Chugh, Meister, Jhala, Lerner. Staged Information Flow for JavaScript
 
 * Motivation
     [x] say that js handles sensitive info
@@ -36,6 +49,14 @@
 *** Preventing Malicious Action
 
 * Related Work
+[ ] Information flow security for a core of javascript
+    http://www.cse.chalmers.se/\~utter/jsflow/jsflow-full.pdf
+    gives a full formal semantics of labeling for non-interference
+    was proved sound using coq
+[ ] Sabelfeld, Li, Russo ``Implicit flows in malicious and nonmalicious code''
+[ ] Russo and Sabelfeld "impossiblity of sound, purely dynamic, flow sensitive monitoring" [Dynamic vs. static flow-sensitive security analysis, Security Foundations Symposium'10]
+[ ] Le Guernic's PhD thesis for survey on dynamic information flow techniques: "Confidentiality Enforcement Using Dynamic Information Flow Analyses" Kansas State University, 2007
+
 
 * Terminology
   [ ] make a section on classic problems: label creep
@@ -107,7 +128,60 @@
     outline chart
     real-world frequency of occurance
     - no-sensitive upgrade vs others
+** Capabilities
+   - topology of runtime reference graph
+   - confinement: cooperative isolation
+   - selective revocation: withdraw previously granted acces
+   - *-property: one-way communication between clearance levels
 
 * Conclusion
 
+***************************************************
+General Notes found on scratch paper when moving
 
+JavaScript Security Problems
+   Field Accesses (computed)
+   Heterogenity (Should obj have fields of mixed labels?)
+   var hoisting (Mark M's es5 talk)
+      but static scoping isn't lexical scoping
+      google-caja.googlecode.com/svn/trunk/doc/html/es5-talk/img45.html
+   Scope-ing (if-else, for, while, with not considered separate scope)
+   AutoCreation of vars (mis-spelling creates new global vars)
+   lookps (call parent scope vs. prototype chain)
+
+   Other Lambda + 1st class functions (will have label attached)
+    if fn's == message to object, then it is capability but the label is permission
+    1st class labels ...
+
+
+             +----------+---------+-------------------+
+             |  Confid  |  Integ  |  Access           |
+     --------+----------+---------+-------------------+
+      Local  |          |         | Defacement Denial |
+     --------+----------+---------+-------------------+
+ non-persist |          |         |                   |
+   reflected |          |         |                   |
+     --------+----------+---------+-------------------+
+semi-persist |          |         |                   |
+      cookie |          |         |                   |
+     --------+----------+---------+-------------------+
+     persist |          |         |                   |
+     stored  |          |         |                   |
+     --------+----------+---------+-------------------+
+
+  Douglas Crockford Secure EcmaScript wiki.ecmascript.org/doku.php?id=ses:ses
+  Attacks:
+    tag body
+    node splitting
+    attribute value
+    attribute splitting
+    tag splitting
+
+  IFlow:
+    ActsFor = reflexive and transitive
+              defines partial order (hierarchy) of principals
+              role = restriction on user authority
+
+
+
+     
