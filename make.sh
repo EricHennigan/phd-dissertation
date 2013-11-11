@@ -11,5 +11,5 @@
 mkdir -p output
 cp *.py output/
 touch thesis.tex
-/usr/local/bin/rubber --pdf --shell-escape --into=output thesis.tex
+/usr/local/bin/rubber -vvv --pdf --shell-escape --into=output thesis.tex
 
