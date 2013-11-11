@@ -2,6 +2,8 @@
 [ ] put actual names in the committee listing
 [ ] Listing numbers in bytecodes are messed up, why?
     because of the lstset applies to all following jscode listings
+[ ] propagation rules summary: mention that the design of JSC as a bytecode interpreter greatly assisted implementation.
+[ ] add motivation for implementing at the bytecode level
 
 * thesis
   [ ] :spelling: make sure that 'web browser' 'web page' 'web server' are all consistent

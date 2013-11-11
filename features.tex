@@ -8,7 +8,7 @@ In order to provide a comprehensive treatment of the labeling semantics, this ch
 
 JavaScript offers some built-in data types such as Date, String, Array, and Object which programmers use to compose larger data structures.
 For reasons of efficient implementation JavaScript breaks down these data types into two categories: primitives, which fit into a 64-bit machine integer (according to the encoding in Chapter~\ref{sec:existing-type-system}), and objects, which function as generic key-value hash tables stored in the garbage-collected heap.
-As mentioned in Chapter~\ref{ch:syste-design}, this breakdown affects \FlowCore's implementation of label attachment and propagation.
+As mentioned in Chapter~\ref{ch:system-design}, this breakdown affects \FlowCore's implementation of label attachment and propagation.
 
 \subsection{Primitives}
 
@@ -44,7 +44,7 @@ Finally, JavaScriptCore implements additional values not present within the spec
   \item \textbf{\code{pointer}}, which provides references to string or other objects within the garbage-collected heap.
 \end{description}
 
-Two of these values \code{empty} and \code{deleted} have bit patterns that distinguish them from each of the primitives defined in the JavaScript specification~\cite{ecma}.
+Two of these values, \code{empty} and \code{deleted}, have bit patterns that distinguish them from each of the primitives defined in the JavaScript specification~\cite{ecma}.
 No valid \code{JSValue} has the bit pattern of all zeros (the \code{empty} value), nor does any object reside at that address.
 The \code{deleted} value contains a bit pattern that violates the object alignment within the garbage-collected heap.
 The specification-defined \code{null} and \code{undefined} values have non-zero integral representation that distinguish them from the internal \code{empty} and \code{deleted} values (Figure~\ref{fig:base-encoding}).
@@ -57,14 +57,15 @@ The most evident side-effect of tagging primitive pointer values rather than ext
 %For example, iteration over an array with holes proceeds to use labels attached to the hole values, in spite of the language specification claiming holes should be skipped over entirely.
 
 \subsection{Variables}
+\label{sec:variables}
 
 Unlike many other languages, variables in JavaScript do not float around freely, but are tied to a current context object.
-Within a called function the current context is the activation record of the function.
-At the JavaScript console, it is the built-in global object.
-And within WebKit's debugging console, the default context is the built-in window object.
+Within a called function, the activation record acts as the current context.
+At the JavaScript console, the built-in global object acts as the current context.
+And within WebKit's debugging console, the context defaults to the built-in window object.
 
-Given that all variables in JavaScript are stored as properties on an object, the semantics for accessing variables in JavaScript is the same as for accessing properties of objects.
-Listing~\ref{list:vardef} shows these semantics at the JavaScriptCore console, where the built-in global object that holds defined variables is also accessible through the \code{this} keyword.
+Given JavaScript stores all variables as properties on an object, the semantics for accessing variables in JavaScript is the same as for accessing properties of objects.
+Listing~\ref{list:vardef} shows these semantics at the JavaScriptCore console, where the \code{this} keyword references the built-in global object that holds defined variables.
 
 \lstset{caption={Variable definition and access at the JavaScript console},
         label={list:vardef}}
@@ -76,7 +77,7 @@ js> this.x
 \end{jscode}
 
 In other contexts, such as within a function call, the object that stores declared variables (i.e. the activation record object) is not necessarily accessible to the JavaScript programmer.
-For example, in Listing~\ref{list:funcdef}, the \code{this} keyword does not refer to the activation record object.
+For example, in Listing~\ref{list:funcdef}, the \code{this} keyword does not refer to the activation record object, but to the object holding the method definition, the built-in global object.
 
 \lstset{caption={Variable definition and access in a JavaScript function.},
         label={list:funcdef}}
@@ -88,11 +89,11 @@ js> function foo() {
 undefined // result value returned from function definition
 
 js> foo()
-undefined // printing this.x
+undefined // this.x
 undefined // result value returned from function call
 \end{jscode}
 
-In spite of the syntax for accessing the current context object or activation record, the mental model of variable storage as properties on an object remains valid.
+In spite of the syntax for accessing the current context object or members of the activation record, the mental model of variable storage as properties on some object remains consistent throughout the specification and JavaScriptCore's implementation.
 Consequently, the labeling semantics for variable access follow that of property access on objects.
 
 \subsection{Objects}
@@ -106,26 +107,27 @@ In the event that the property is absent, the lookup proceeds by recursively sca
 \subsubsection{Property Access}
 
 Objects in JavaScript resemble hash tables, with property name-to-value bindings created, updated, and removed at runtime.
-Two different syntaxes allow a programmer to access an object's properties\footnote{The presence of \code{eval} and \code{with}-blocks can modify the path of access, but their presence does not change the syntax.}.
-As shown in Listing~\ref{list:property-access-notation} one form uses the dot notation while the other uses square brackets.
+Three different syntaxes allow a programmer to access an object's properties\footnote{The presence of \code{eval} and \code{with}-blocks can the path of access by naming the current context object, but their presence does not change the syntax of access.}.
+As shown in Listing~\ref{list:property-access-notation} the first form does not explicitly name the object being accessed, while in the other two forms a dot or square bracket follows the name of the target object.
 
 \lstset{caption={Syntax for Property Access},
         label={list:property-access-notation}}
 \begin{jscode}
+key      // property access targeting the current context object
 obj.key  // property access using dot notation
 obj[key] // property access using bracket notation
 \end{jscode}
 
-\FlowCore\ first retrieves \code{obj} from the current activation object.
+In the latter two examples of Listing~\ref{list:property-access-notation}, \FlowCore\ first retrieves \code{obj} from the current activation object.
 Recall that \FlowCore\ does not tag the object itself, but rather tags the pointers that reference the object.
 The resulting object reference \code{obj} then carries a tag representing the union of all labels encountered on the reference path taken.
 
-In the bracket form, the \code{key} is first coerced into a string via the internal \code{ToString} function.
+In the bracket form, the interpreter first coerces the \code{key} into a string via the internal \code{ToString} function.
 This coercion happens for all accesses, including numerical indexing on an array.
-Assuming that the \brackdbl{ToString} method has not been overridden by the programmer, the result of the coercion carries the same label as the given \code{key}.
-While, in the dot notation, the \code{key} is an embedded code string, and therefore carries the same label as the origin of the provided code.
+Assuming that the \brackdbl{ToString} method has not been overridden by the programmer, the result of the coercion carries the same label as the given \code{key}, otherwise it carries the label of the returned result from the overloaded method call.
+In contrast, The dot notation contains the \code{key} as an embedded code string (requiring no coercion) that carries the label of the code source.
 
-Once the object instance \code{obj} has been retrieved and the \code{key} calculated, a hash-table lookup is performed on the properties of that object.
+Once the object instance \code{obj} has been retrieved and the \code{key} calculated, the interpreter performs a hash-table lookup on the properties of that object.
 In the event that an object does not itself have a value associated with the requested \code{key}, the lookup proceeds recursively through objects in the prototype chain following \brackdbl{Prototype} references.
 Figure~\ref{fig:prototype-chain} shows this access path for a generic property lookup.
 
@@ -178,7 +180,6 @@ Figure~\ref{fig:prototype-chain} shows this access path for a generic property l
 \end{figure}
 
 \subsubsection{Labeling Semantics for Property Access}
-
 As shown in Figure~\ref{fig:prototype-chain}, property access begins with two labeled items: the object \code{obj} carrying label \code{O} and the stringified property name \code{key} carries label \code{K}.
 The target value \code{valueK} ultimately found via the lookup chain also carries its own label \code{G}.
 At minimum, the final label on the value resulting from the lookup incorporates labels from the starting object, the key, and the value found.
@@ -194,7 +195,35 @@ In summary, the resulting value carries a label formed by the union of
   \item and the label of the current program counter.
 \end{itemize}
 
-\subsection{First-Class Functions}
+Implementation of \FlowCore\ required modification of helper methods internal to the JavaScriptCore interpreter to join in each component in union of labels applied to the resulting value of the lookup.
+Note that, as a side-effect of joining in the label of each prototype reference along the lookup path, the \code{undefined} value that results from lookup of a non-existent property might have a label very high in the security lattice.
+Flagrant use of values taken from extend reference chains can be yet another source of label creep in a JavaScript program.
+
+\subsection{Functions}
+
+The JavaScript specification~\cite{ecma} describes functions as having first-class status: they can be passed as arguments to other functions, returned as values from function calls, assigned to variables, and stored in data structures.
+Additionally, functions in JavaScript do not require programmatic names and can be declared anonymous.
+
+JavaScript does not feature the compiler-enforced access and visibility rules of class-based languages exemplified by the \code{public}, \code{private}, and \code{protected} keywords of C++ and Java.
+Instead, JavaScript programs make widespread use of closures to achieve code encapsulation and data-hiding.
+The JavaScriptCore interpreter supports this feature by separating the function code from an execution context, composed of three parts~\cite{ecma}:
+\begin{itemize}
+  \item the LexicalEnvironment, used to resolve identifier references made by code within the execution context,
+  \item the VariableEnviornment, used to identify the context object that holds bindings created by variable statements and function declarations within the execution context,
+  \item and the ThisBinding, used to provide the object targeted by the \code{this} keyword within the execution context.
+\end{itemize}
+Unlike the current context object (the target of the ThisBinding) described in Section~\ref{sec:variables}, the execution context remains inaccessible by any JavaScript program.
+
+Just as \FlowCore\ labels variables, it also labels references to functions, supporting the first-class definitions offered by JavaScript.
+At the cite of storage, the label of a function depends on how it gets defined.
+Functions defined by loading source code have a label representing the domain from which the code was fetched.
+Functions defined during runtime execution, carry the label of the current program counter at the cite of definition.
+When accessing a function in order to invoke a call, the label of function follows the same rules as provided earlier for the lookup of variables (Section~\ref{sec:variables}).
+
+The practice of using closures for data encapsulation and variable hiding, does not affect the implementation of \FlowCore\.
+Instead it only affects the placement of the function and consequently the path of access a programmer must use to retrieve the function for invocation.
+Section~\ref{sec:function-calls} discusses the setup of the execution context prior to function evaluation and the mechanism for labeling the value resulting from the function call.
+
 \subsection{Built-ins}
 \subsubsection{Arrays}
 \subsubsection{Date}
@@ -202,6 +231,35 @@ In summary, the resulting value carries a label formed by the union of
 
 \section{Control Flow}
 \subsection{Function Calls}
+\label{sec:function-calls}
+
+todo: describe what happens on entry
+todo: describe what happens on return
+todo: show where the bytecodes get placed for 
+
+When calling a function, the label on the program counter at the site of the call joins with 
+
+JavaScripts offering of first-class functions means that \FlowCore\ 
+Source code definining function
+\FlowCore\ labels source code with the domain of origin, providing a label on the LexicalEnvironment.
+When the interpreter
+
+ \item [The function is provided by a script.]
+  When the host environment hands a script to the JavaScript VM, it has the option of labeling that script with a security principal.
+  In this case, the function lookup process is responsible for retrieving the label of the function.
+ \item [The function is an uncloaked first class value.]
+  The current program counter implicitly labels anonymous functions at the time of their creation.
+  As a result, the label of the function is always lower than that of the pc-label, and it is safe to call directly.
+ \item [The function is a cloaked first class value.]
+  If a sensitive control flow computation resulted in the return of a function, the return specification (see Section~\ref{sec:returns}) cloaks the function.
+  In this case, the VM retrieves label of the function from its wrapper before the call.
+
+http://lostechies.com/derekgreer/2012/02/17/javascript-closures-explained/
+http://javascript.info/tutorial/closures
+
+
+
+
 \subsubsection{Closures}
 \subsection{Early Return}
 \subsection{Break and Continue}
