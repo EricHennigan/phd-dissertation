@@ -1,0 +1,1490 @@
+
+% [ ] add ajax sequence diagram
+% [ ] get a cookie from Google
+% [ ] mention xsscheatsheet by RSnake
+
+\documentclass{acmtrans2m}
+
+\usepackage{color,soul}
+\usepackage{alltt}
+\usepackage{url}
+\usepackage{graphicx}
+\usepackage{color}
+
+\urlstyle{same}
+
+\clubpenalty10000
+\widowpenalty10000
+\definecolor{lightblue}{rgb}{.90,.90,1}
+\sethlcolor{lightblue}
+
+\acmVolume{V}
+\acmNumber{N}
+\acmYear{YY}
+\acmMonth{M}
+
+\markboth{Eric Hennigan et al.}{XSS Vulnerabilities and Countermeasures}
+\title{Cross-Site Scripting Vulnerabilities and Countermeasures in Web 2.0: A Survey}
+\author{ERIC HENNIGAN, MASON CHANG, CHRISTIAN WIMMER, MICHAEL FRANZ\\
+University of California, Irvine}
+
+\begin{abstract}
+Cross-site scripting (XSS) is a technique for code injection on the Internet.
+XSS permits an attacker to insert active content (such as JavaScript) into a webpage, causing viewers of that page to unwittingly execute the malicious content.
+Using XSS, an attacker can take control of a user's web browser, gain access to private data, or surreptitiously conduct transactions on the user's behalf.
+Vulnerability studies have consistently ranked XSS attacks as the most prevalent type of attack on web applications.
+This paper summarizes the various causes and effects of XSS attacks and the recently proposed countermeasures.
+\end{abstract}
+
+\category{K.6.5}{Management of Computing and Information Systems}{Security and Protection}[Invasive software; Unauthorized access]
+
+%\category{A.1}{General Literature}{Introductory and Survey}
+%\category{C.2.0}{Computer-Ccommunication networks}{General}[Security and protection (e.g., firewalls)]
+%\category{D.2.0}{Software Engineering}{General}[Protection mechanisms]
+%\category{D.2.11}{Software Engineering}{Software Architectures}[Security]
+%\category{D.3.2}{Programming Languages}{Language Classifications}[JavaScript]
+%\category{D.3.3}{Programming Languages}{Language Classifications}[Language Constructs and Features]
+%\category{D.4.6}{Operating Systems}{Security and Protection}[Information flow controls; Invasive software (e.g., viruses, worms, Trojan horses)]
+%\category{E.m}{Data}{Miscellaneous}[Protection mechanisms (integrity and confidentiality)]
+%\category{K.4.4}{Computers and Society}{Electronic Commerce}[Security]
+
+
+\terms{Design, Languages, Security}
+\keywords{Cross-site scripting (XSS), Asynchronous JavaScript and XML (AJAX), Security, Same-Origin Policy, Software Vulnerabilities, Web~2.0}
+
+\begin{document}
+
+\setcounter{page}{1}
+
+\begin{bottomstuff}
+Department of Computer Science\\University of California, Irvine
+\end{bottomstuff}
+
+\maketitle
+
+\section{Introduction and Motivation}
+Since its inception, the World Wide Web has experienced explosive growth and has evolved from an initial collection of static pages to a global network of dynamic and interactive content.
+As critical business functions become increasingly Web-based, the amount of sensitive information traversing the Web increases correspondingly.
+Personal information, used in sensitive online transactions (e.g., banking, tax filing, shopping, etc.), now possesses a black-market value that continues to draw the attention of criminals and fraudsters.
+Because the Web was neither designed with these uses in mind, nor with an explicit focus on security, it contains inherent architectural weaknesses that permit criminals to steal credit card numbers, identification credentials, and other personal information.
+
+One particular type of attack, known as cross-site scripting (XSS), is now a prevalent means by which an attacker can obtain such sensitive data.
+This article surveys the cross-site scripting vulnerabilities related to the web architecture and examines various research projects for solving the problem.
+XSS forms a large and complex problem space, so a fully comprehensive survey is infeasible.
+The reviewed papers were selected for their practical impact among web implementors and web application developers.
+
+\section{Brief Overview of Web 2.0 Architecture}\label{sec:web-architecture}
+
+Web developer and user demand for increased interactivity in web pages led Netscape to introduce the JavaScript\footnote{JavaScript has now been standardized as ECMAScript~\cite{ECMA-262}} programming language as a means of enabling more dynamic behavior within a webpage.
+Modern web browsers now contain an embedded JavaScript virtual machine (VM) that enables a webpage to contain code for dynamically updating the page, even as it is being parsed.
+To embed JavaScript code into a webpage, HTML was extended with the addition of a \texttt{<script>} tag, and page-embedded URLs were extended with support for the \texttt{javascript:} protocol.
+The HTML specification~\cite{htmlSpec} establishes the following ways to embed JavaScript in a webpage:
+
+\begin{enumerate}
+ \item Inside an HTML tag:
+The \texttt{<script>}, \texttt{<object>}, \texttt{<applet>}, and \texttt{<embed>} tags can all be used to include JavaScript in a webpage.
+The \texttt{<script>} supports the inlining of JavaScript code into the HTML document, and is commonly used as part of a code-injection attack (see Section~\ref{sec:code-injection}).
+ \item As an event handler:
+HTML specifies attributes for certain intrinsic events, e.g., key presses, mouse hovering or clicking, errors, page loading and unloading, and form submission.
+JavaScript code that is attached to an event is executed every time that event is triggered.
+Often the JavaScript referenced by an event handler is designated via the \texttt{javascript:} URL scheme.
+ \item As an HTML attribute:
+HTML tags often provide an attribute (e.g., \texttt{src}, \texttt{data}, \texttt{content}) that allows JavaScript code to be loaded from a separate URL.
+%\texttt{script src="www.example.com/login.js"}.
+\end{enumerate}
+
+Web developers quickly began to take advantage of client-side scriptability to migrate application logic to the client's browser in order to reduce the load on web servers.
+As a result, users now enjoy many new \emph{web applications} that demonstrate increased interactivity and responsiveness reminiscent of traditional desktop applications.
+
+\subsection{The DOM Environment}\label{sec:dom}
+To support the dynamic modification of a webpage that has already been retrieved from the web server, the browser exposes an interface known as the \emph{Document Object Model (DOM)}~\cite{dom3cor}.
+This interface allows scripts in a page to reference, through a hierarchical tree of JavaScript objects, any HTML element of that page.
+For example, a form input element can be accessed by name using \texttt{document.formName.inputName} or through the HTML hierarchy as \texttt{document.forms[0].elements[0]}.
+The DOM not only allows the addressing and modification of page elements through the \texttt{document} object, but also makes available certain aspects of the browser environment through the \texttt{window}, \texttt{navigator}, \texttt{screen}, \texttt{history}, and \texttt{location} objects.
+Security within a web browser is often focused on preventing the content of these objects and page data from being modified or purloined by arbitrary JavaScript code, and is complicated by the multiple syntaxes for accessing page elements.
+
+\subsection{AJAX}
+One of the goals of Microsoft's Outlook Web Access 2000 application was to enhance user interaction and lessen server load by keeping the surrounding user interface persistent as different emails are viewed by the user.
+Achieving this effect required the invention of a means to request raw data from a web server without performing any page navigation in the browser.
+This requirement led to the introduction of the \texttt{XMLHttpRequest} object, which asynchronously fetches data in the background while the displayed page remains responsive to user events.
+Other vendors quickly realized the potential of this technology, so that by 2005 it became supported as a standard in major browsers.
+
+User's experience of interactive applications on the Web has been taken to a new level, christened Web~2.0~\cite{web20def}, through a collection of technologies labeled Asynchronous JavaScript and XML\footnote{XML (eXtensible Markup Language) is a popular data interchange format that consists of paired tags definable by the developer in an \emph{XML schema}.} (AJAX), which incorporates the following parts~\cite{garrett05}:
+\begin{itemize}
+ \item standards-based presentation using style sheets;
+ \item dynamic display and interaction using the Document Object Model;
+ \item data interchange and manipulation using standardized formats;
+ \item asynchronous data retrieval using \texttt{XMLHttpRequest};
+ \item and JavaScript code binding everything together.
+\end{itemize}
+
+AJAX enables developers to write webpages with improved user interfaces.
+These pages are able to dynamically update in response to newly available information, without requiring a page refresh.
+For example, an early web-based email application required the user to refresh the page showing the inbox to check for new mail.
+With the introduction of client-side code and dynamically updatable page content, a webmail application is now able to periodically check with the mail sever for new mail without user intervention, even issuing a notification of new mail.
+
+%\subsection{Mashups}
+
+\section{The Many Types of XSS}\label{sec:xss-types}\label{sec:code-injection}
+Cross-site scripting is a type of \emph{code-injection} vulnerability in which an attacker is able to insert JavaScript or other code into a webpage, causing viewers of that page to unwittingly execute malicious code.
+In the following examples, the inserted code is benign, and serves as a proof-of-concept, that code insertion is possible.
+In a realistic scenario, the inserted code is used by an attacker to harvest user information (login credentials, credit card numbers), useful for imitating a user or hijacking their browsing session (see Section~\ref{sec:xss-uses}).
+XSS can be classified into four categories according to the origin of the injected code: \emph{Local} (see Section~\ref{sec:xss-types-local}), \emph{Reflected} (see Section~\ref{sec:xss-types-reflected}), \emph{Semi-Persistent} (see Section~\ref{sec:xss-types-semipersistent}), and \emph{Persistent} (see Section~\ref{sec:xss-types-persistent}).
+
+\subsection{Local or DOM-Based XSS}\label{sec:xss-types-local}
+\citeN{localXSS} explores a local XSS attack that does not require a vulnerability in the web server.
+Instead, the vulnerability lies within a static page that is not dynamically processed by the originating web server.
+For example, consider a webpage that contains a customized greeting message for each user.
+The page delivered by the web server contains code that reads the query string of the URL to obtain the user's name, which is used to update the greeting message.
+This processing is local to the user's browser.
+
+A concrete demonstration of this vulnerability is shown below.
+The HTML contains a \texttt{<p>} tag for the insertion of a paragraph of text into the page.
+The JavaScript after the paragraph tag modifies the paragraph contents to insert the \texttt{name} variable from the current URL.
+Thus, the text `\texttt{Hello Guest}' is replaced with part of the current URL.
+If a malicious user inserts JavaScript into the URL, the text `\texttt{Hello Guest}' is replaced by a malicious script that the browser immediately executes.
+Because JavaScript execution is performed on the client side, no cooperation (except page retrieval) is needed from the server.
+
+\begin{alltt}
+{
+<body>
+\	<p id="hello">Hello Guest</p>
+\	<script language="javascript">
+\	\	var beg = document.URL.indexOf("name=")+5
+\	\	var end = document.URL.indexOf("\&", beg)
+\	\	if (end==-1) end = document.URL.length
+\	\	var welcomestr = "Hello " + document.URL.substring(beg, end)
+\	\	document.getElementById("hello").innerHTML = welcomestr;
+\	</script>
+</body>
+
+\textnormal{A URL used to greet a user named Bob:}
+http://www.ex.com/welcome.html?name=\hl{Bob}
+\textnormal{A script injection that causes JavaScript code to be executed:}
+http://www.ex.com/welcome.html?name=\hl{<script>evil_code()</script>}
+}
+\end{alltt}
+
+This attack can be mitigated if the data pulled from the URL is first encoded such that special characters (e.g., `\texttt{<}' and `\texttt{>}') are replaced by innocuous equivalents (HTML encoded) before being placed in the page.
+Sanitization forces the browser to interpret the injection as data rather than code.
+The availability of web services that replace a URL with a hash code (e.g., TinyURL), or that provide automated HTTP forwarding or redirection, permit an attacker to easily mask the malicious form of the URL before delivering it to an innocent user.
+
+\begin{itemize}
+ \item[\textbf{Vulnerability:}] Any static webpage that can self-modify its contents using data from \texttt{document.location}, \texttt{document.URL}, \texttt{document.referrer} or other attacker-controlled DOM property.
+ \item[\textbf{Method of Exploitation:}]~
+  \begin{enumerate}
+   \item Attacker embeds malicious script into local data source (URL or DOM element).
+   \item Victim opens the page in their browser.
+   \item Trusted code on the page loads the malicious script from the local data source.
+   \item Victim's browser executes the malicious script in the context of the original page.
+  \end{enumerate}
+\end{itemize}
+
+\subsection{Reflected or Non-Persistent XSS}\label{sec:xss-types-reflected}
+A reflected XSS attack exploits the behavior of web servers configured to return pages that incorporate data originating from a client-side request.
+Such data is commonly used to provide customized page contents to the user.
+If user data is left unsanitized, a malicious script can be inserted into the request.
+This causes the web server to inject the script into the returned page.
+As an example, consider a search engine that echoes back the search query submitted in the query string of a~URL.
+
+\begin{alltt}
+<p>
+Your search for <?php echo(GET["query"]); ?>
+returned the following results:
+</p>
+
+\textnormal{An ordinary search for the term `example':}
+http://www.ex.com/search.php?query=\hl{example}
+\textnormal{A malicious `search' that causes JavaScript code to be executed:}
+http://www.ex.com/search.php?query=\hl{<script>evil_code()</script>}
+\end{alltt}
+
+Because the malicious code is inserted by the server, the victim's browser is unable to distinguish the insertion from any other code on the page.
+It executes the malicious script in exactly the same manner, and with the same trust, as any other script on the returned page.
+This type of attack is known as a \emph{reflected} attack because the script originates from the client and is reflected back after being embedded into the returned page.
+Unfortunately, this type of attack cannot be easily detected by a divergence from the expected behavior of the web application, because a clever attacker can almost always construct a payload that, from the victim's perspective, does not affect the functionality of the page.
+
+\begin{itemize}
+ \item[\textbf{Vulnerability:}] Webpage that is dynamically assembled on the server by incorporating unsanitized client-supplied data.
+ \item[\textbf{Method of Exploitation:}]~
+  \begin{enumerate}
+   \item Attacker embeds malicious script into a temporary data source (URL query string, form fields, etc).
+   \item Victim requests a page, with malicious data as part of the request.
+   \item Server returns a page with the malicious script inserted.
+   \item Victim's browser executes the malicious script on the page, as if it originated from the server itself.
+  \end{enumerate}
+\end{itemize}
+
+%\textcolor{red}{Do we want a reflected-encoded subsection [Kals et al. 2006] or do we cover that point in a section about filtering?}
+
+\subsection{Semi-Persistent XSS}\label{sec:xss-types-semipersistent}
+\citeN{semipersistent} identifies another type of XSS attack that involves injecting a malicious script into a user's cookie.
+This vulnerability exists if a web application creates cookie data from content in a URL or HTML form.
+An attacker can prepare a malicious URL or HTML form that causes the web server receiving the request to issue a cookie containing malicious script to the user.
+The \emph{poisoned cookie} is then used in all subsequent HTTP conversations with the web application for as long as it remains unexpired.
+If the web application uses information from an issued cookie to dynamically create pages, then the malicious script can also migrate from the cookie to a page (as in a \emph{Reflected} attack~\ref{sec:xss-types-reflected}).
+
+Because cookies are created and maintained by web servers, ordinary users rarely inspect their cookies, and web developers have become accustomed to implicitly trusting the data contained in cookies their own server issued.
+This type of attack is referred to as \emph{semi-persistent} because the malicious script is stored in the user's cookie.
+It lasts longer than the data sources involved in a \emph{Reflected} attack, but eventually disappears either when the browser is closed or when the cookie expires.
+
+\begin{itemize}
+ \item[\textbf{Vulnerability:}] Web application that inserts unsanitized cookie data stored by the client into a page dynamically assembled by the server.
+ \item[\textbf{Method of Exploitation:}]~
+  \begin{enumerate}
+   \item Attacker constructs a malicious URL or pre-filled HTML form.
+   \item Victim visits the URL or submits the form, sending the malicious data as part of the HTTP request.
+   \item Server issues a cookie to the victim containing malicious content derived from the HTTP request.
+   \item Web application constructs a page with the malicious content from the cookie.
+   \item Victim's browser executes the malicious script on the page.
+  \end{enumerate}
+\end{itemize}
+
+
+\subsection{Persistent XSS}\label{sec:xss-types-persistent}
+The most pernicious type of XSS attack allows the injected script to persist between sessions.
+Persistence is achieved by infecting a server-side data store.
+The canonical example of such an attack involves a message board or web forum that allows the posting of user-generated content.
+This content is stored in a server-side database, so that it can be retrieved for viewing by other visitors.
+If a malicious user is able to inject JavaScript into a forum posting, the script is saved by the site and inserted into all pages that contain the post.
+To become a victim, a user only needs to view a page with the malicious post.
+
+\begin{itemize}
+ \item[\textbf{Vulnerability:}] Web application that stores user-supplied data into a server-side data store.
+This data is then inserted into dynamically assembled pages delivered to all users.
+ \item[\textbf{Method of Exploitation:}]~
+  \begin{enumerate}
+   \item Attacker submits a malicious entry into the web application.
+   \item Victim uses the web application and views a page containing the malicious entry.
+   \item Server inserts content from the malicious entry into a page of the application.
+   \item Victim's browser executes malicious script embedded in the page, and trusts it as originating from the application server.
+  \end{enumerate}
+\end{itemize}
+
+\subsection{Content-Sniffing XSS}\label{sec:xss-types-content}
+\citeN{barth09sniffing} highlight a special case of a persistent XSS attack that exploits the difference between browser and server behavior in identifying MIME types.
+A rather humorous example of such an attack involves a web-based paper submission system.
+A malicious author is able to create a \emph{chameleon} document for peer-review, such as a PDF with a forged header containing HTML and JavaScript.
+The site upload filters detect and scan the document, accepting it as a valid PDF.
+Later, a reviewer uses their browser to download and view the PDF.
+Their browser detects the file as HTML, rendering and processing the contained JavaScript within the context of the review page.
+The malicious author now has an opportunity to craft the payload JavaScript such that it fills out forms with a favorable review.
+
+\begin{itemize}
+ \item[\textbf{Vulnerability:}] Web application that stores user-supplied documenting into a server-side data store.
+This data is then made viewable to other users using a web browser.
+Malicious data exploits a difference between server-side MIME detection, and client-side content-sniffing algorithms.
+ \item[\textbf{Method of Exploitation:}]~
+ \begin{enumerate}
+  \item Attacker submits a \emph{chameleon} document, conforming to two different MIME types.
+  \item Server performs MIME detection, and accepts the document as an allowed MIME type.
+  \item Victim uses the web application to view the uploaded document.
+  \item Victim's browser overrides the server's MIME description using its own content-sniffing algorithm.
+  \item Victim's browser processes HTML/JavaScript contained in the document.
+ \end{enumerate}
+\end{itemize}
+
+\subsection{Summary}
+
+The presence of an XSS vulnerability on a popular web application allows attackers to inject arbitrary code into the browsers of innocent users.
+Most websites generate popularity from their encouragement of user participation.
+Such community-driven websites host user-generated content, making them particularly desirable and exploitable, targets.
+Because most exploits are aimed at executing JavaScript within a browser, the injection techniques derive their forcefulness from weaknesses in existing Web infrastructure, standards, and common practices.
+As a result, XSS exploits are generally OS and browser agnostic, granting them an amazingly large scope of potential victims.
+In practice, XSS attacks are often difficult to detect because the JavaScript exploit code is difficult to distinguish from normal web page markup~\cite{xss-history}.
+
+\section{Historical Uses of XSS}\label{sec:xss-uses}
+
+Attackers benefit from XSS vulnerabilities because the injected code is executed in the context of the original page.
+The victim's browser misidentifies the code as being a legitimate part of the requested page, with the result that the malicious code subverts any security protections (such as the same-origin policy, see Section~\ref{sec:same-origin}) and acquires the same access and privileges as all other code on the page.
+The examples in Section~\ref{sec:xss-types} demonstrated this point, but did so in a way that indicated XSS might be of a fairly low-profile or merely irritating nature.
+Though code injection attacks can be used to detract from user experience, by defacing the visited page or changing user settings at a public forum, we prefer to draw attention to some examples of more serious uses of XSS.
+
+\subsection{The `Samy' Worm}
+\citeN{myspace} is a social networking website that allows users to create their own webpages.
+A user's default page features a friends list, a heroes list, a blog, and shared profile information.
+\citeN{samy} wrote a small piece of JavaScript code that performed three tasks when a user viewed an infected profile: (1) alter the victim's profile to declare ``but most of all, Samy is my hero'', (2) add Samy to the victim's list of heroes and friends by generating a `friend request' to the code author, and (3) inject itself into the victim's profile.
+Kamkar initialized the infection by placing the code on his own profile by bypassing the sanitization and filtering mechanisms that MySpace applied to all user input.
+The worm itself used an \texttt{XMLHttpRequest} to perform its tasks without user intervention or knowledge.
+Within 20 hours, the author had received over 1 million friend requests, setting a world record for viral spreading, and forcing MySpace to suspend service in order to purge the worm from their database.
+
+\subsection{The `Yamanner' Worm}
+Yahoo! Mail Beta, a webmail AJAX web application, was infected by a JavaScript worm named JS.Yamanner@m~\cite{yamanner}, notable for being the first such XSS exploit.
+Webmail applications are not unique in requiring careful input sanitization.
+In order to protect both themselves and users, Yahoo! had already implemented filtering mechanisms designed to neutralize JavaScript and certain HTML expressions from the body of an email before displaying in within the webmail application.
+Without this foresight, any email could contain malicious code that would be executed by a victim's browser merely as a side-effect of opening mail.
+The author of the attack crafted an email containing script that bypassed Yahoo!s sanitization filters:
+
+\begin{alltt}
+{<img src=`http://images.yahoo.com/mail_logo.gif'
+\ \hl{target=""}onload="alert(document.cookie)">}
+\end{alltt}
+
+As part of Yahoo!'s sanitization routines, \texttt{target=""}, was stripped from the HTML.
+This action still left a valid \texttt{img} tag with \texttt{onload} attribute.
+For presentation we have substituted the malicious JavaScript code used in the attack with the more benign \texttt{alert(document.cookie)}.
+The actual attack code used an \texttt{XMLHttpRequest} to scan the user's address book and previous mail history, collecting a large number of email addresses.
+In order to further its propagation, the worm then composed an email (containing itself) to each of the victim's contacts.
+The worm also placed the addresses in an HTTP request to \texttt{av3.net}, which allowed the site administrator to collect the addresses merely by scanning the server logs.
+Yahoo! was able to stop execution and propagation of the worm by updating their sanitization routines.
+
+\subsection{RightMedia Trojan}\label{sec:advertisement}
+Many websites have included within their applications code for dynamically fetching advertisements from 3rd-party suppliers.
+Typically, because of an existing business relationship, the ads are sandboxed, but otherwise trusted.
+In one instance, the advertisement provider RightMedia was caught supplying banner ads which contained malicious code to popular web sites such as Yahoo! Photobucket and MySpace~\cite{adjacking}.
+Though the supplied payload was targeted at exploiting a vulnerability specific to Internet Explorer and install a generic trojan horse, it could have been constructed to perform a browser-agnostic XSS attack on the site to which the ad was ultimately delivered.
+
+\subsection{Nduja Connection}
+\citeN{nduja} authored a ``Cross Webmail Worm'' that was able to propagate itself across four webmail providers among the most popular in Italy.
+The worm contained code that was able to detect which domain the victim uses to view the webmail, and take the appropriate XSS actions for that domain.
+In each case, it followed the classical model of (1) scraping the users' contacts by examining past email or via an \texttt{XMLHttpRequest}, (2) acquire any authorization tokens necessary for sending email, and (3) sending itself to all the addresses that the victim has corresponded with.
+On each of the four webmail providers separate functionality for both infection and propagation needed to be developed, making this worm the first to spread across different web applications.
+Fortunately, the author cared more about making a point concerning advanced XSS techniques than about pilfering the confidential information held in victims' inboxes.
+
+\subsection{XSS Threat Summary}
+Though dated, these examples are notable not only for setting records, but also for demonstrating the relative ease with which a clever user can control the actions taken by millions of other browsers.
+Consider also that many of the victims are simultaneously logged into other more sensitive services (such as email, shopping, banking or brokerage accounts), and the potential for harvesting of sensitive user credentials becomes a serious threat.
+We would also like to remind the reader that your web browser probably knows more about your habits, interests, and other personally identifying information than any other single application.
+In addition, it probably also stores login credentials to banking sites, webmail services, and many shopping sites, as well as form information containing your real name, address, phone number, and credit card numbers.
+
+%\section{What Can Be Done With XSS}
+%In principle, much more can be accomplished using by XSS as an initial bootstrapping technique for a more nefarious attack.
+%In this section we wish to highlight some of the more notable uses 
+
+\subsection{Future XSS attacks}
+As Web 2.0 moves forward and more services are moved ``into the cloud'', we see a demand for the improvement of client-side hardware and more powerful client-side technologies.
+Such developments certainly make web applications into more desirable targets.
+We should expect that XSS exploits increase in sophistication and begin to use more powerful mechanisms already found in traditional worms, viruses and trojans~\cite{xss-worms}:
+\begin{itemize}
+ \item command-and-control channels to direct the actions taken by hostage browsers,
+ \item subtler payloads that perform malicious activities without affecting ordinary user expectations,
+ \item polymorphic payloads aimed at defeating detection and identification systems,
+ \item the use of a hostage browser to act as a vulnerability scanner on every site that the victim visits,
+ \item remaining dormant during propagation to avoid attention.
+\end{itemize}
+
+\section{Architectural Defects of the Web}\label{sec:web-architecture-defects}
+
+The ad-hoc evolution of the Web has resulted in a profoundly insecure architecture.
+In particular, three facets of the current architecture have an important impact on security.
+The nature of XSS as a \emph{code-injection} attack reveals these architectural bugs.
+Central to the issue of code-injection is the anatomy of an HTML page, which includes formatting commands inline with the textual content, making HTML particularly prone to the insertion of nefarious control sequences.
+
+\subsection{Encoding}\label{sec:encoding}
+Today, the Web is constructed from various interrelated technologies: URLs used for resource requests, HTML used for page layout, CSS used for content layout, JavaScript used for page code, the JavaScript Object Notation (JSON) used for object description, XML used for data description, etc.
+Each of these technologies has its own specification and set of allowed characters.
+So many different character encodings are now used that it is very difficult for developers to track in what context a user-supplied string might appear on a page, and how a browser interpret the string in that context.
+
+These many different encodings allow an attacker to formulate strings that are acceptable in one context, but nefarious in a different context.
+For example, characters such as `\texttt{<}', which has special meaning in HTML, can be encoded in many different ways (see Table~\ref{tab:html-encoding}).
+This problem is also compounded by historic design philosophies of `being liberal in what you accept from others'~\cite{rfc761}, which has coerced browsers into allowing whitespace (\texttt{<scr ipt>}) or mixed-case (\texttt{<ScrIpT>}) when matching HTML tags.
+The acceptance of tags formatted in unconventional manners contributes to the difficulty of identifying potentially malicious inputs.
+
+\begin{table}[ht]
+\centering 
+\begin{tabular}{l|ccccc}
+ \textbf{Encoding Type} & \multicolumn{4}{c}{\textbf{Encoded variant of `\texttt{<}'}} \\
+ \hline
+ URL Encoding           & \texttt{\%3C} &&&\\
+ HTML Entity            & \texttt{\&lt;} & \texttt{\&lt} & \texttt{\&LT;} & \texttt{\&LT} \\
+ Decimal Encoding       & \texttt{\&\#60;} & \texttt{\&\#060;} & \texttt{\&\#0060;} & \texttt{\ldots} \\
+ Hex Encoding           & \texttt{\&\#x3c;} & \texttt{\&\#x03c;} & \texttt{\&\#X3c} & \texttt{\ldots} \\
+ Unicode                & \texttt{\textbackslash u003c} &&&\\
+\end{tabular}
+\caption[Submanifold]{Examples of Character Encoding~\cite{secubat}.}
+\label{tab:html-encoding}
+\end{table}
+
+\subsection{Escaping}\label{sec:escaping}
+Once an attacker has succeeded in getting past any input filters, the issue of document structure still remains.
+Core to this issue is the idea of \emph{quoting} user supplied inputs, with the intention of having such inputs presented in the page as plain text.
+We give two such examples~\cite{article-xss} of environment escaping, both attacking the following HTML fragment:
+
+\begin{alltt}
+  <form ...
+    <input name=q value="\%(query)s">
+  </form>
+\end{alltt}
+
+\begin{itemize}
+ \item \textbf{Escaping up the DOM hierarchy.}
+ To inject code into the current document, it is often possible for an attacker to close the current environment and begin a new script environment, which allows the execution of injected code.
+In our current example, this attack can be accomplished by using the malicious input string \texttt{blah"><script>evil\_script()</script>}.
+Assuming the literal, inlined inclusion of the input into the page, the attacker obtains the following result:
+ \begin{alltt}
+   <form ...
+     <input name=q value="\hl{blah"><script>evil_script()</script>}">
+   </form>
+ \end{alltt}
+ Because the HTML parser runs before the JavaScript parser, it might also be possible to use \texttt{</script} to escape a quoted string from within an existing script (assuming literal, inlined inclusion of the input into the page).
+Even when the input is sanitized so as to contain no HTML control characters, and thus prevent the inclusion of such tags, there may still be means of escaping the quoted environment via different encodings.
+Prematurely closing tags in this manner is known as a \emph{node splitting} attack.
+
+ \item \textbf{Escaping down to a subcontext.}
+ If the query is not protected via quoting, a different attack, known as an \emph{attributed injection} attack can occur.
+In our current example (without quoting the query string), this type of attack can be accomplished by using the malicious input string \texttt{blah onmouseover=evil\_script()}.
+which results in the following HTML code:
+ \begin{alltt}
+   <form ...
+     <input name=q value=\hl{blah onmouseover=evil_script()}>
+   </form>
+ \end{alltt}
+ The injection, in this case, occurs within the same HTML context.
+It is also easy for the attacker to use other event handlers, such as \texttt{onload} that permit the script to be run regardless of user interaction.
+
+\end{itemize}
+
+In both these examples, the use of the \texttt{javascript:} URL scheme, as well as different encoding schemes can be used to aid in bypassing sanitization and input filtering routines.
+In general, these sorts of issues, in combination with the vast number of inputs and outputs that require sanitization, make it practically impossible for web developers to track all such vulnerabilities in their applications.
+
+\subsection{Client-Server Architecture}\label{sec:client-server-architecture}
+
+Because the original focus of the Web was to provide access to \emph{static webpages} that do not have dynamically updatable content, HTTP was conceived as a stateless protocol: safe for the retrieval of static resources.
+The demand for interactive content and more complex behavior (such as that involved in managing user identification at community forums, virtual shopping carts at online retailers, and many other activities that engage the client in an extended interaction with a web server) soon clashed with the original, stateless design of HTTP.
+This clash resulted in the introduction of many different extensions that allow the sharing of state between client browsers and web servers.
+Most such mechanisms for \emph{session handling} did not emphasize security.
+A browser session begins when the client first contacts the web server as part of an HTTP conversation.
+Depending on the browser software, the session may end when (1) the browser process is terminated, (2) the browser window is closed, or (3) the tab displaying that page is closed.
+Because users have a habit of re-using the same browser tab to navigate to many different sites, modern browsers typically have many active sessions.
+In the interests of brevity, we only consider two session handling mechanisms:
+
+\begin{itemize}
+ \item \textbf{Cookies} are the most popular technique of preserving state between page requests.
+Data is stored within a cookie as a collection of name-value pairs, and is automatically inserted into every HTTP request sent by the client to the issuing domain.
+Originally, cookies were used to directly store the shared state between client and server.
+This state can contain sensitive information, but nothing prevents clients from altering or forging cookie data, in a practice known as \emph{cookie poisoning}.
+This situation quickly led to the practice of issuing uniquely identifying pseudo-random values\footnote{The usual practice for creating such a value is to perform a hash of information that can be used to help uniquely identify a client, such as the client's user-agent string, HTTP referrer, IP address, time of connection, a pseudo-random nonce produced for each initial (cookie-less) connection, etc.}, which the web server can then use to lookup sensitive data in a server-side database.
+
+ \item \textbf{Hidden Form Fields} are also a popular technique of identifying clients.
+A session identifier is placed in a pre-filled non-visible part of a web form, and is used by the server to track the conversation state with individual clients.
+Because the hidden field is still accessible to any injected script, this technique is also vulnerable to many of the same security issues as cookies.
+\end{itemize}
+
+Though we have not reviewed all such state maintaining mechanisms, they work by adding storage on the client side that enables the coordination of stateful data between client and server during the HTTP conversation in one of two ways:
+\begin{enumerate}
+ \item Store the data on the client and relay the data with every communication.
+ \item Store the data on the server and a unique key on the client; relaying the key in every communication.
+\end{enumerate}
+
+Storing the data on the client is subject to poisoning attacks, in which an attacker can coerce the server into performing undesired actions as a result of providing it with faulty or corrupt data.
+Relaying a key between client is server is more secure, and can ensure reasonable protection against replay attacks, as long as the server generates a new key with each communication and does not accept the same key twice.
+Despite the architectural weakness involved with retrofitting state securely into HTTP conversations, both the number and utility of web applications that require shared state or local storage is increasing at a rapid pace, and has helped to solidify the Web's usefulness for far more than its initial design.
+
+\subsection{Mashups and Third-Party Scripts}\label{sec:mashups}
+
+As the Web moves to a more service-oriented architecture, the ease with which data from many disparate sources can be combined into a single interface has led to a renaissance in web application design.
+The dynamic and flexible nature of AJAX enables web services to be linked and integrated together in a \emph{web mashup} without any formal application programming interface.
+For example, a calendar mashup can recognize street addresses and incorporate a miniature map next to the user's appointments.
+The ability to share and distribute user data between services hosted by different web domains has security implications that are only now being fully understood.
+The architecture of a mashup unfortunately requires that it pulls together many scripts from different sources into a single browser process.
+As a result, mashups have been referred to as a `self inflicted cross site scripting attack'~\cite{mashup}.
+
+The concerns regarding mashups also apply to syndicated web advertisement that supports most of the interactive services available online today.
+During syndication, web advertisement space is sold and re-sold through several marketing companies, finally being purchased by an online retailer.
+A webpage with advertisement loads a script from the syndication server, which then loads another script from a dynamically chosen advertisement provider.
+Because web advertisement involves JavaScript code that is loaded onto a page from a third-party server, it should be considered a security risk, as demonstrated by the RightMedia Trojan (see Section~\ref{sec:advertisement}).
+
+\section{Current Browser Security Models}\label{sec:current-security-models}
+Many security researchers view the ability to automatically run arbitrary code downloaded from the Web as an inherent security risk.
+JavaScript fortunately disallows access to the underlying file system on a client machine, and is therefore \emph{sandboxed} to the execution environment supplied by the browser.
+Despite this restriction, JavaScript has a long history of security vulnerabilities resulting from its intricate interaction (through the DOM) with the large amount of sensitive user data controlled by the browser.
+Historically, protecting user data has received much less attention than browser functionality and developer convenience.
+As issues regarding the privacy of user data began to surface, several security models have been added to the browsers' execution environment.
+
+\subsection{Same-Origin Policy}\label{sec:same-origin}
+The primary mechanism through which unauthorized data flow is restricted is known as the \emph{Same-Origin Policy}, and has been in effect since the first version of JavaScript.
+The policy enforces the separation of scripts within the browser by assigning each script a tuple $\langle$domain name, protocol, port number$\rangle$ which represents the origin of that script.
+The browser then permits only scripts of the same origin to communicate and share data, while other forms of inter-script communication are prohibited (see Table~\ref{tab:same-origin}).
+DOM access, cookie data, and \texttt{XMLHttpRequest}s are all mediated by the same-origin policy.
+When two origins are compared, each of the three items in the tuple must be the same.
+
+\begin{table}[ht]
+\begin{tabular}{l|c|l}
+\textbf{Compared URL} & \textbf{Outcome} & \textbf{Reason} \\
+\hline
+
+\url{http://store.company.com/dir2/other.html} & Success & \\
+\url{http://store.company.com/dir/inner/another.html} & Success &\\
+\url{https://store.company.com/secure.html} & Failure & Different Protocol\\
+\url{http://store.company.com:81/dir/etc.html} & Failure & Different Port\\
+\url{http://news.company.com/dir/other.html} & Failure & Different Host\\
+\url{http://company.com/dir/other.html} & Failure & Different Host\\
+& & (exact match required)\\
+\url{http://en.company.com/dir/other.html} & Failure & Different Host\\
+ & & (exact match required)\\
+\end{tabular}
+\caption{Results of comparison to \protect\url{http://store.company.com/dir/page.html} using the same-origin policy~\protect\cite{moz-same-origin-policy}.}
+\label{tab:same-origin}
+\end{table}
+
+Although it seems like a secure mechanism, the same-origin policy is not without significant drawbacks.
+For example, two subdomains that wish to communicate must use a fully-qualified, right-hand suffix of their domain, which may permit access to more subdomains than the webpage creator desires.
+Using this mechanism, a page from \texttt{news.example.com} can communicate with a page from \texttt{www.example.com} only if both pages set their \texttt{document.domain} to \texttt{example.com}.
+But doing so also allows pages from \texttt{untrusted.example.com} potential access.
+Furthermore, other communication side-channels still exist, allowing two pages of completely different domains to access each other's content by using shared server-side data or through the exploitation of browser bugs.
+
+
+%Restricting the access rights of JavaScript programs in this manner has met with mixed success.
+%In general, the restriction is usually viewed as either too draconian and inconvenient (since it can prevent web developers from accessing useful data) or as ineffective (since a method to bypass the restriction can usually be found).
+
+\subsection{Configurable Security Policies}
+Modern browsers also provide a means of creating custom security policies.
+For example, Microsoft's Internet Explorer implements Security Zones, a coarse-grained security mechanism that enables the user to block or allow access to browser extensions on a site-specific basis.
+Mozilla's Firefox browser implements a more fine-grained mechanism that permits the user to customize JavaScript's functionality~\cite{moz-config-policies}.
+These security restrictions are specified in a user-preferences file and can be used to name specific functionality for each website.
+Each functionality is assignable to one of three categories:
+\begin{enumerate}
+ \item \texttt{noAccess} prevents any script from using the functionality.
+ \item \texttt{sameOrigin} allows use of the functionality only from sites of the specified origin.
+ \item \texttt{allAccess} allows all scripts to use the functionality.
+\end{enumerate}
+Policies can be written to apply to specific sites, or even specific DOM hierarchies.
+Unfortunately, most users do not even know the feature exists, so these policies are used infrequently.
+Even worse, the policies must be stated statically, which is cumbersome in its specificity, and makes the policies inflexible and unable to react to updates in a website's design and layout.
+
+\section{Security in Web 2.0}
+
+This section discusses several of the outstanding techniques both currently used and still in research to defeat XSS and prevent its side effects.
+
+
+\subsection{Whitelisting Trusted Scripts}
+Because browsers maintain so much information about their users, an immediate first defense against untrusted code downloaded from a web page is not to run that code.
+Because of the interaction of many web technologies, preventing JavaScript execution is not enough.
+\citeN{whitehat-without-js} identify methods for stealing browser history, obtaining NAT'ed IP addresses, and performing port scanning that do not rely on the use of JavaScript.
+Nevertheless, the goal of disabling malicious scripts is a very good first line of defense.
+
+Following this line of reasoning, a popular and highly recommended~\cite{login} Firefox extension, known as NoScript~\cite{noscript} disables Java, Flash, and JavaScript execution within the browser.
+In this state, XSS JavaScript injection attacks are not functioning, but neither are all interactive functionalities of the visited sites.
+To allow a rich user experience, NoScript users can manually maintain a `whitelist' of websites that are considered trusted, so that scripts on pages from the whitelist are executed.
+NoScript also contains counter-measures against DOM-based and reflective XSS attacks, filtering cross-site requests, even when the request originates from a whitelisted domain.
+
+The idea of whitelisting trusted scripts is revisited by \citeN{beep}.
+In this approach, a browser-enforced embedded policy (BEEP) allows the webpage to specify which scripts are trusted.
+Importantly, the authors begin with a concession that, because of issues with encoding, it is nearly impossible to detect a script until the browser actually begins to execute it.
+The browser itself is able to filter out untrusted scripts using a whitelisting policy.
+The browser is modified to maintain a security function that is called to determine script legitimacy.
+A whitelist of scripts for a page is delivered to the browser in the \texttt{<head>} portion of the page, before any JavaScript that might change the list is a able to execute.
+Script legitimacy is determined by comparing the SHA-1 hash (of the script body) with the items in the whitelist.
+
+The difficulties of implementing the browser-server cooperation required for BEEP to work is addressed in \citeN{TerLouw:09a}, which uses an approach that allows the web application, not the browser, to control the steps involved during HTML and JavaScript interpretation.
+The solution is cross-browser, allows benign HTML, and is backwards compatible with existing practices, requiring no heavy modification of browser and server technologies.
+The application server generates a parse tree from untrusted HTML that ensures the absence of script within the document.
+This parse tree is then delivered to the browser, using trusted JavaScript code, such that the browser is forced to parse the document in a controlled fashion.
+By avoiding existing, insecure loops in current browser parsing procedures, strong protection against code-injection is achieved while still allowing support for complex (but script-free) user supplied HTML.
+
+\subsubsection*{Summary}
+Whitelisting scripts has one principal drawback: any whitelisted script is granted \emph{full privileges} over the page contents.
+In particular, whitelisting advertisement scripts can leave a page vulnerable to attacks such as the RightMedia Trojan (see Section~\ref{sec:advertisement}).
+In addition, shipping hashcodes of the scripts in question, requires that the webpage author has complete foreknowledge of all scripts that need to run on the page; a situation not always possible with todays web mashups.
+
+\subsection{Sandboxing Portions of a Page}
+
+\citeN{beep} also proposes a DOM sandboxing policy that prohibits script execution in portions of the page by surrounding it with \texttt{<div class="noexecute">} \ldots \texttt{</div>} tags.
+To prevent escaping by the injection of HTML that prematurely closes the \texttt{div} tag, it is possible to re-organize the page layout so that all such \texttt{noexecute} sections are initially empty.
+Then, at the end of the document, JavaScript can be inserted that contains the text to be inserted into each \texttt{noexecute} section.
+Such script encapsulates the untrusted content within the simpler JavaScript quoting environment.
+
+This approach is extended by \citeN{dsi}, who observe that all injection attacks have one feature in common: they change the structure of the document's parse tree.
+In order to maintain \emph{document structure integrity}, a more advanced mechanism of quarantining untrusted data using special paired delimiters.
+To prevent premature closing, the delimiters are numbered according to a pseudo-random sequence.
+As long as the browser and server agree on the seed value, which can be safely communicated as an attribute of the \texttt{<head>} tag, the server can section off untrusted portions of the page while the browser treats as string data all characters within a matched pair of delimiters.
+To maintain backward compatibility, they cleverly use a subset of 20 characters that browsers now treat as whitespace for the delimiters.
+
+\citeN{noncespaces-ndss09} apply ideas based on \emph{instruction set randomization} to defeat content injection in web pages.
+The mechanism randomizes XML namespace prefixes to identify untrusted content, so that the browser can enforce a security policy particular to the applied namespace.
+Due to the randomized prefixes, escaping strings crafted to perform a \emph{node splitting} attack are made unguessable.
+Before delivering an XHTML document to the client, the server annotates every element and attribute with a trust classification (randomized prefix).
+A policy is also delivered to the browser, enabling it to make appropriate decisions about executing code.
+
+\subsubsection*{Summary}
+Proposals for selectively sandboxing portions of a page contents are usually ineffective, because XSS attackers can too easily craft escaping sequences that break out of the sandbox.
+Both \citeN{dsi} and \citeN{noncespaces-ndss09} address this concern through the use of pseudo-random sequences.
+ As long as a sever is able to identify sources of untrusted data (e.g., through the use of various tainting mechanisms) it can insert delimiters around the data to warn compliant browsers that such sections should not be interpreted as code, thus protecting against both stored and reflected XSS attacks.
+While quite clever, this approach is probably insufficient for more complex mashups where the web developer does not have complete knowledge about which portions of the page need to be marked \texttt{noexecute}, because the sources of untrusted data cannot always be reliably enumerated in practice.
+
+\subsection{JavaScript Rewriting}\label{sec:jsfilter-problems}
+Though user input filtering is the first line of security defense of any website, not every malicious script can be deterministically identified.
+The difficulties underlying filtration are readily apparent after reading examples from RSnake's XSS Cheat Sheet~\cite{xsscheatsheet}\footnote{The XSS Cheat Sheet also provides a handy reference of malicious scripts that can be used to test user input filters}.
+Hampering the recognition of malicious JavaScript is the support for several different mechanisms for accessing an object's properties.
+For example, the following three lines each create a dialog box with the contents of a page's cookie:
+
+\begin{alltt}
+alert(document.cookie)
+alert(document['cookie'])
+with(document) alert(cookie)
+\end{alltt}
+
+These mechanisms allow DOM elements to be accessed using different syntactical styles.
+Unfortunately, this multiplicity interferes with routines that attempt to identify malicious code when filtering user input.
+To provide a clear demonstration of problems that are encountered with input filtering, Hasegawa~\cite{xssfilters} has manufactured the following JavaScript snippet that calls \texttt{alert(1)}, yet contains no alphanumeric characters:
+
+\begin{alltt}
+($=[$=[]][(__=!$+$)[_=-~-~-~$]+({}+$)[_/_]+($$=($_=!''+$)
+[_/_]+$_[+$])])()[__[_/_]+__[_+~$]+$_[_]+$$](_/_)
+\end{alltt}
+
+Because of the drawbacks with identification of JavaScript, some approaches are directed toward various implementations of JavaScript re-writing.
+These solutions attempt to implement a security reference monitor, or type system, that guarantees security by forcing all scripts to execute in a constrained environment.
+
+\citeN{browsershield} create a JavaScript library, called BrowserShield, that programmatically translates webpages into a benign version.
+The BrowserShield library regulates all accesses to the DOM, enforces user-specified policies, and filters out exploits of known vulnerabilities.
+Webpages are automatically modified to use BrowserShield through refactoring: passing all the JavaScript code through the BrowserShield interfaces.
+For example, a function call \texttt{foo( param )} becomes \texttt{bshield.invokeFunc( foo, param )}.
+This instrumentation is also applied to object property accesses, object creation, variable assignment, and \texttt{for..in} iteration.
+The interposition of BrowserShield callbacks between an HTML page and its JavaScript provides a mechanism for insertion of flexible policies.
+Such policies have the opportunity to modify script behavior at all BrowserShield interpositions, and can be used to prevent XSS attacks.
+Though the rewriting of JavaScript can be done before the page is delivered to the client browser, security policies preventing XSS attacks must be written to deal with some complex semantic issues of JavaScript source code, including scoping, reflection and typing.
+
+Noting that one of JavaScripts most problematic features is in its use as a \emph{higher-order} scripting language (i.e., having a script that generates script), \citeN{instrumentation} create a formal set of rewriting rules, called CoreScript.
+The browser is modified to pass all scripts through a rewriting process, which instruments JavaScript code with edit automata.
+Dynamically generated scripts are handled through embedded callbacks that perform further rewriting on demand.
+The rewriting rules that comprise the edit automata represent security policies that directly address the security issues in JavaScript semantics.
+These rules are composable and type-checked for internal consistency.
+With careful instrumentation of all JavaScript code, the behaviors typical of XSS attacks can be stopped.
+
+\citeN{self-protectingJavaScript} propose a means of securing the JavaScript on a page containing inlined reference monitors, which intercept the field and method access of built-in functions and objects in order to programmatically enforce security policies.
+Challenges regarding JavaScript's dynamic nature were overcome through the use of anonymous function closures that encapsulate the functions a web developer wishes to protect.
+The integrity of built-in objects is protected via overriding of the \texttt{\_\_defineGetter\_\_} and \texttt{\_\_defineSetter\_\_} methods of the the built-in \texttt{Object}'s prototype.
+This overriding prevents injected code that is later run as part of the page from tampering with any of the original objects and functions.
+Even though such code can override and redefine the behavior of such methods, it cannot obtain a direct reference to the original without going through the monitor.
+As a result of using inlined reference monitors, security policies themselves are written in JavaScript and can perform an inspection of all arguments at run time.
+
+
+\subsubsection*{Summary}
+Approaches targeting the execution of JavaScript through reference monitoring or instrumentation suffer from weaknesses in the specifiable policies.
+Such solutions are limited in their knowledge of the execution environment, and contain only a `local' view of the code.
+Thus information leakage of cookies or authentication credentials can only be prevented by policies that prevents \emph{all} URL loading or redirection after the monitor has detected a read of such sensitive data.
+This limitation is a direct result of the inability to track how the information is actually processed by the instrumented code.
+Though secure, these solutions are viewed as draconian by developers, because they prevent too much useful behavior.
+
+\subsection{Capability Restriction}
+Historically, JavaScript has become increasingly secure through the introduction of restrictions on certain global objects each time a new security risk to user data held by the browser was identified.
+For example, the \texttt{history} object stores a list of sites that the user has recently visited.
+The entire list was originally available to JavaScript running on any page, until it was realized that this information could potentially contain credentials or be used for blackmail.
+This realization quickly led to a restriction on the \texttt{history} object, so that it now supports only the \texttt{forward()}, \texttt{back()} and \texttt{go()} methods.
+
+%The immediate disadvantage of enhancing security through this approach lies in the difficulty of always providing a quick response to vulnerability identification, therefore it will always remain a step behind the attackers.
+%More seriously, we can never be certain that all security vulnerabilities have been patched.
+%For example, Raskin~\cite{raskin08} identified a means through which certain elements of the \texttt{history} object could still be identified.
+%If the attacker were interested only in whether or not the user had visited any of the sites on a particular list, it is only necessary to render a list of links to those sites in an invisible frame.
+%Knowing that visited links are displayed with a darker color, a script can `walk' the list and inspect the color attribute on each of the links, reporting a summary back to the web server.
+
+As a prototype-oriented language, JavaScript code is also vulnerable to \emph{Prototype Hijacking}~\cite{subvertajax}, where an attacker modifies the behavior of objects by overriding the functionality of universally inherited base prototypes.
+For example, the \texttt{XMLHttpRequest} constructor can be overridden to transparently monitor all asynchronous data requests or even send a copy of all such data to a third-party web server.
+Once an XSS exploit is successful, the payload can override the behavior of a commonly used JavaScript object (such as \texttt{Array}) for the duration of the browser session.
+Because such objects are often used to temporarily store sensitive data, this has become a big security concern.
+This kind of privilege escalation can be prevented by programming in a safe or secure subset of the JavaScript language.
+Several real-world efforts to restrict the capabilities of arbitrary JavaScript take this approach.
+
+Yahoo!'s ADsafe~\cite{ADsafe} works by implementing a secure subset of the JavaScript language.
+It removes certain features that are widely considered to be unsafe (access to global variables, direct access to the DOM hierarchy, etc.) Any third-party script to be included on a page is handed an ADsafe object that both checks the script for validity, and proxies all access to the surrounding environment.
+Validity is ensured by parsing the third-party script and checking that adheres to the restricted language subset.
+
+Facebook's FBJS~\cite{fbjs} allows developers to write Facebook applications in a `walled garden'.
+It restricts JavaScript's functionality by prepending all language identifiers (function and variable names) with a unique application ID.
+These prefixes encapsulate every application into its own virtual scope.
+Access to page and other Facebook content is then exposed to the re-written application in restricted manner.
+
+\citeN{langisolation} provide a formal analysis of producing a secure subset of JavaScript.
+Security is normally achieved by blacklisting certain properties, separating the namespaces corresponding to code in different trust domains, inserting run-time checks to prevent illegal accesses, and wrapping sensitive objects to limit their accessibility.
+The formal analysis helps to identify leaks in these approaches, and is used to analyze Facebook's FBJS and Yahoo!'s ADsafe, demonstrating the reliability of formal semantics in achieving \emph{provably secure} code isolation.
+
+Google's Caja~\cite{caja} derives its philosophy directly from the object capabilities model developed for operating system security.
+Behavior of a JavaScript program is restricted by handing it references only to what it need to accomplish its task.
+These references can even be wrapped so that all access to the referent can be monitored.
+An existing web application can be compiled into the supported secure subset of JavaScript.
+It currently implements a secure subset of the JavaScript language.
+Existing web applications can be compiled into this subset so that they use only secure constructs and access the DOM through a monitored API.
+
+\subsubsection*{Summary}
+The capability model used by ADsafe, FBJS, and Caja is well proven and studied in the operating systems literature.
+The biggest drawbacks of this approach concern the creation of a large number of membranes (wrappers that proxy and monitor access) and the accidental handing of unrestricted references to untrusted code.
+This last problem, known as a \emph{capability leak} often occurs in implementation of complex capability systems (i.e., web browsers).
+\citeN{barth09heapgraph} and \citeN{finifter10jssafesubsets} are able to detect such leaks by monitoring the references of JavaScript objects in the heap.
+Though the capabilities model is not a perfect safeguard, we do consider it to be an indispensable part of a principled approach to secure web application design.
+
+\subsection{Data Flow and Tainting}
+
+Only available in JavaScript 1.1, a feature called \emph{data tainting} was introduced to restrain the free flow of data between untrusted origins.
+The insight behind data tainting is not to prevent the access of private information, but to track it through the execution of a JavaScript program, and prevent its transmission across the network to a third-party.
+In order to protect data in this way, each object within the JavaScript VM is extended to carry a `taint' label.
+If an object represents data supplied by the user (through a form element, dialog box, or sensitive portion of the DOM), then the object is considered `tainted', and is tagged with a label indicating its origin.
+The interpreter propagates these labels throughout program execution, so that any objects derived from tainted data also carry a taint label.
+Because the labels of objects are unionized whenever they interact or influence (through control flow) each other, taint can spread quickly throughout a JavaScript program, in a phenomenon known as \emph{label creep}.
+This problem led to the removal of data tainting in JavaScript 1.2, but has not prevented research into the technique.
+
+\subsubsection*{Server Side Static Analysis}
+
+\citeN{tuongPHPtaint} implement dynamic data tainting in the PHP interpreter.
+The modified interpreter identifies data coming from all untrusted sources (e.g., HTML form posts, URL query strings, etc.), and propagates the taint information throughout the entire processing of a request.
+The implementation has precise tracking at the granularity of individual characters.
+This taint information is propagated up until the point that the response page is about to be sent back to the client.
+To prevent XSS attacks, output filtering on PHP functions, such as \texttt{echo()} and \texttt{print()}, is applied.
+These functions are modified to check for tainted strings prior to actually outputting any content.
+If tainted characters are detected, they are sanitized or removed from the output altogether.
+
+\citeN{pixy} introduce an open-source tool, called Pixy, that implements static data flow analysis in the PHP interpreter.
+Pixy differs from Tuong's implementation in that it is only used as a detection tool, while Tuong takes tainting one step further to prevent XSS attacks.
+However, Pixy is more comprehensive and precise in its analysis, using a flow-sensitive, inter-procedural, and context-sensitive data flow that includes literal analysis and alias analysis.
+
+\citeN{suwass} use a two-pronged approach to help identify the root cause of XSS: weak input validation.
+The approach uses an adapted form of string analysis, which tracks untrusted substring values in direct flows through a PHP application.
+Output from the application is checked, using formal language techniques, against a policy that blacklists certain HTML expressions.
+This analysis determines that an XSS vulnerability exists by detecting a non-empty intersection between a context-free grammar built from the application output and the set of regular expressions that would invoke the JavaScript interpreter.
+
+\citeN{livshits09gatekeeper} proposes a points-to analysis for JavaScript programs.
+They identify a statically analyzable subset of JavaScript, and notice, by analyzing more than eight thousand widgets, that very few use the more difficult to analyze features (such as \texttt{with}), but many use statically unknown field references (such as \texttt{a[index]}).
+Analysis gaps such as unknown field references can be easily instrumented for run-time security.
+This approach allows widget host providers (Live.com and Google/IG) to express enforcement policies as succinct Datalog queries and scan all widgets submitted to their system, thereby ensuring the protection of all subscribed clients.
+
+\subsubsection*{Client Side Dynamic Analysis}
+
+\citeN{jsTaint} implement dynamic and static data tainting in the JavaScript interpreter in Firefox to prevent sensitive information~\cite{mozillaAdvancedTopics} in the browser from leaking to third parties.
+Anytime sensitive data is about to be transmitted, an alert prompts the user whether or not to allow the attempted connection.
+A user can deny the transmission, and thereby prevent an XSS attack from occurring.
+The primary weakness with this solution lies with its reliance on the user.
+Further complicating the issue is the widespread practice of websites making multiple connections to various domains, especially for syndicated advertisements.
+Both of these situations combine, with the result that numerous alerts continually prompt the user for authorization.
+These issues are addressed by the ability to store a permanent denial or authorization for certain domains.
+
+\citeN{stagedflow} propose a framework for performing a combination of static and dynamic analysis of JavaScript loaded by the web browser called \emph{staged information flow}.
+This framework allows the web developer to specify a policy of information flows that must \emph{not} occur between variables.
+As code is progressively loaded from a webpage, the framework performs static information flow analysis on the available code in a series of stages.
+A series of set constraints is formed at each \emph{hole} where the browser might load code dynamically through \texttt{eval()} or a network request.
+Due to the dynamic nature of JavaScript, the system must conservatively unify confidentiality protection across all JavaScript objects with fields of the same name, as a solution to the field alias problem.
+The framework is able to capture both direct and indirect information flow through dynamically created objects, fields, first-class functions, and prototypes by partially instrumenting code that detects when a policy violation occurs or a set constraint fails.
+
+\subsubsection*{Summary}
+The exclusively static analysis approaches also face the difficulty of alias analysis for dynamically typed languages, and the large number of false positives that results from necessarily conservative assumptions made about the code being analyzed.
+The exclusively dynamic approaches face false negatives from their inability to trace \emph{implicit} information flows (information purloined by knowing that a control flow path was \emph{not} taken).
+A significant advancement in the data flow approach to solving XSS is the hybridization of dynamic and static analysis in~\cite{stagedflow}.
+Together with the advancements in formal methods (such as that provided by \citeN{1250739}) we expect that information flow will also play a critical role in the future of web security.
+
+\subsection{Mashup Security}
+Most of the security in a mashup architecture comes from the use of the inline frame.
+The \texttt{<iframe>} tag provides a mechanism for encapsulation of mashup \emph{gadgets}.
+Typically, each gadget is enclosed in a separate iframe, becoming a separate DOM document, and the browser is responsible for securing frame communications according to the same-origin policy.
+Business economics behind mashups have strongly encouraged user participation in both the creation and sharing of gadgets.
+Because all the gadgets are placed together in the same page, plenty of opportunities arise for a malicious gadget author to pilfer authorization credentials or data from other gadgets.
+The JavaScript used to tie gadgets together lacks important data-hiding and encapsulation mechanisms, such as the public and private keywords, commonly found in other languages such as C++ and Java.
+As a result, it is difficult to protect the memory space and context of a JavaScript program.
+In particular, this difficulty arises when script from different origins are loaded into the same page, exactly the situation that arises in a web mashup.
+
+To become a victim, an innocent user need only add the malicious gadget to an existing personalized page.
+Pending a reliable browser-based security analysis of the code invoked in mashup page, most providers have chosen to allow only gadgets written in a secure subset of JavaScript (Google's Caja~\cite{caja}), or using a sandboxed API (Facebook's FBJS~\cite{fbjs}).
+A core security issue for mashups is that developers must often choose between complete trust (inlining the gadget code into the HTML of a page) or complete distrust (using an iframe and the same-origin policy segregation) when assembling a mashup.
+
+\citeN{mashupos} create a framework, called \mbox{MashupOS}, that applies security lessons concerned with the separation mutually untrusting principals (users and programs) in a traditional operating system setting to the web browser.
+\mbox{MashupOS} seeks to provide secure cross-domain communications, while simultaneously ensuring cross-domain protection from integrity and confidentially violations.
+A new HTML tag, \texttt{<friv>} is introduced to accommodate both the security isolation of a \texttt{<frame>} with the layout and communication benefits of a \texttt{<div>}.
+The \texttt{<friv>} allocates a subregion of the display, creates a new \emph{ServiceInstance} (akin to a browser process) and populates the DOM sub-hierarchy by loading the document referenced through the \texttt{src} attribute.
+ServiceInstances are securely isolated from each other, yet maintain communications through shared \texttt{<friv>}s.
+The MashupOS model has helped to identify weaknesses with secure communication between principles represented in a single page, and has led to industry wide adoption of cross-\texttt{iframe} communication policy improvements~\cite{secureframes} by all modern browsers.
+
+\subsection{XSS Detection Systems}
+The final line of defense for web applications is to be rigorously tested using an automated system for finding, generating, probing, and detecting opportunities for malicious code injection.
+Use of these systems reveals that many opportunities for code injection are overlooked in the complexity of real-world web applications.
+
+\citeN{Kruegel} describe a system based on anomaly detection to determine if an XSS attack has occurred.
+The idea complements intrusion detection systems that are limited to detecting only known vulnerabilities.
+Kruegel's system is able to prevent new attacks, provided that the attacks generate an anomalous signature that the system can detect.
+The system scans the web server log files and creates an anomaly score based on HTTP requests and their respective parameters.
+
+\citeN{WAVES} design a security assessment tool for Web applications called Web Application Vulnerability and Error Scanner (WAVES).
+WAVES features multiple software-testing techniques, including black-box testing, fault-injection, and behavior-monitoring.
+The fault-injection abilities are used to detect SQL injection, while the black-box testing and behavior-monitoring features are used to detect XSS attacks.
+To perform application testing, WAVES contains a web crawler that acts as a full web browser in its ability to execute all JavaScript, ActiveX, Java Applets, and Flash scripts.
+The crawler begins training by rendering and executing code from a list of trusted sites, recording `normal' behavior in a behavioral monitoring specification language (BMSL).
+Once this training is complete, page execution is monitored, and system calls are intercepted and compared with the policies written in BMSL.
+Any abnormal behavior is considered malicious.
+WAVES only detects potential vulnerabilities in the web application and neither prevents attacks, nor discovers the underlying cause for the detected vulnerabilities.
+
+\citeN{webssari} develop a tool named Web Application Security by Static Analysis and Runtime Inspection (WebSSARI) that implements a hybrid between static and dynamic analysis.
+WebSSARI first performs a static analysis, finding code that requires run-time checks.
+These checks are then inserted, providing calls to complete sanitization routines that would normally be inserted by careful programmers.
+
+\citeN{secubat} also implement a web scanner, called SecuBat, that uses a different method of detecting vulnerabilities.
+SecuBat tries to detect three types of XSS vulnerabilities: reflected, encoded-reflected, and form-redirection.
+
+\begin{itemize}
+ \item To detect reflected XSS attacks, a test script is injected into all inputs in a webpage.
+The response is then analyzed and scanned for the injected script.
+If the script appears in the response then an XSS vulnerability is detected.
+
+ \item To detect encoded-reflected attacks, the script characters are decimal encoded using an ASCII numerical representation for special characters (e.g., `\texttt{\&\#60}' represents `\texttt{<}').
+
+ \item To detect form-redirection attacks, a test script containing a URL-redirection is in injected into any forms on a page, and the web server response is examined for the injected redirection code.
+\end{itemize}
+
+\citeN{xssguard} propose a mechanism for identifying malicious scripts after a dynamic page has been assembled.
+The technique involves generating a shadow HTTP request containing benign input of the same length as actual user input.
+As long as the web application processes both inputs in the same manner, by using a mirror computation for the benign shadow-input, the resulting output features structural differences if an injection attack occurred.
+These differences can be detected by passing the outputs through an HTTP tokenizer and comparing the resulting streams.
+The biggest difficulty with this approach lies in verifying that the tokenizer performs appropriately for all encodings and replicates accurately the differences between browsers.
+
+\citeN{xssds} implement a traffic monitor that can identify successful reflected XSS attacks and identify stored XSS code.
+The monitor requires no changes to the web application, and performs its detection based on longest common subsequences present in the HTML conversation between server and client.
+Because the system is concerned only with detection of JavaScript code, all non-HTML script content is ignored.
+The approach requires a training phase so that the system can learn, and whitelist, all the scripts that form a legitimate part of the web application.
+Variances away from this set are indicative of XSS injection.
+Even dynamically generated scripts can be handled, because such scripts are usually generated by the substitution of parameters, and therefore differ only in specific strings and numbers, which can be tokenized away.
+Unfortunately, the detection mechanism can be subverted via the creation of HTTP requests that contain parameters filled with substrings of legitimate scripts.
+It is also conceivable that a sophisticated combination of legitimate scripts with altered constants can possess a control flow that achieves the goal of the attacker, without injection.
+
+\citeN{1404042} construct an HTTP proxy, called Spectator, that inspects traffic between the browser and web server.
+By using a distributed tagging system, and server cooperation to preserve tags, Spectator can track the propagation chains used by XSS worms.
+Tagging is accomplished through the use of HTTPOnly cookies, and cannot be removed by malicious code.
+Obtaining reliable propagation of tags within the browser is accomplished through the injection of self-protecting, JavaScript tag propagating code into every retrieved HTMl page.
+Spectator is able to detect worm-like propagation behavior within HTTP traffic.
+
+
+\section{Conclusions}
+
+We present a survey on cross-site scripting attacks, covering both the categorization of such attacks, and possible solutions to prevent, detect, or thwart the attacks.
+We also discuss features of the Web's architecture that contribute to the prevalence of XSS attacks.
+Preventing XSS attacks is still an active area of research, and the proposed solutions are still being tested in the World Wild Web.
+Research into XSS has resulted in (1) novel insights about HTML document structure and integrity-secure communication, (2) more rigorous definitions of application vulnerabilities, and (3) an expansion of the techniques for code analysis; each of which is applicable to other security disciplines.
+We find that XSS attacks are made possible by four fundamental features of the Web's architecture:
+\begin{enumerate}
+ \item The inlining of code together with the textual content of an HTML page.
+This inlining turns complex web applications into a polyglot of different web technologies, enabling injected code to appear in unexpected contexts.
+ \item The many different encodings specified for each aspect of the Web.
+The interaction of separate web technologies and their separate contexts results in a combinatorial explosion of encodings that hampers procedures for discriminating what strings should be allowed and what strings should be considered malicious.
+ \item The mechanisms used to retrofit state into stateless HTTP conversations.
+The explicit management of shared state between client and server has led many developers to adopting workable, but insecure technologies.
+ \item The confusion of many different principals and their interests within the same context.
+HTML and JavaScript both lack mechanisms important for secure encapsulation and separation of concerns.
+\end{enumerate}
+As the functionality of web pages and browsers converge, we already see many security benefits in looking at the construction of web browser's from an operating systems perspective~\cite{browserOS}.
+
+\bibliographystyle{acmtrans}
+\bibliography{survey}
+
+\begin{received}
+Received Month Year; revised Month Year; accepted Month Year
+\end{received}
+
+\end{document}
+
+% Here-after is old material
+
+\section{Evolution of the Web:\\From Stateless to Stateful Communication}\label{sec:web-intro}
+The Web contains many different, competing, and interacting standards, each with disparate terminology depending on the application.
+To provide clarity and context throughout the survey, we track the relevant historical development of the Web, and define our terminology along the way.
+
+\subsection{URLs for Document Request}\label{sec:web-url}
+Tim Berners-Lee introduced the Web in 1989~\cite{bernerslee90} as part of a project at CERN with the aim of providing a single, convenient user interface for automatically sharing and viewing notes, reports, and other large classes of information.
+The project successfully joined the \emph{Internet}, which provided computer interconnections, with \emph{hypertext}, which provided document interconnection.
+A critical insight to achieving this goal was the invention of a global naming scheme that is used to uniquely identify data.
+Every resource is identifiable by a string known as a Uniform Resource Locater (URL)~\cite{RFC1738}, which has the following parts:
+\begin{quote}
+\url{<scheme>://<host>:<port>/<path>?<query>\#<anchor>}
+\end{quote}
+
+\begin{itemize}
+ \item \texttt{scheme} names the protocol to be used for resolving the URL.
+The most common protocols are \texttt{http} and \texttt{https}, but others exist, such as \texttt{ftp}, \texttt{mailto}, \texttt{wais}, etc.
+ 
+ \item \texttt{host} (a.k.a.
+\texttt{domain}) identifies the address of the server that hosts the resource.
+The domain can be specified as an Internet Protocol (IP) address (e.g., \texttt{192.168.1.1}) or as a registered hostname (e.g., \url{www.example.com}).
+Domain name resolution is case-insensitive.
+
+ \item \texttt{port} specifies the port on which the traffic is to be sent.
+Most protocols have default ports (e.g., HTTP uses port \texttt{80}, HTTPS uses port \texttt{443}), so this portion of the URL is often omitted.
+
+ \item \texttt{path} specifies the resource to be fetched from the named server, and is formatted as a series of strings delimited by `\texttt{/}'.
+
+ \item \texttt{query} strings are used to communicate information to code that controls hosting of the resource.
+These strings contain key-value pairs such as \texttt{q=123}, and appear as an `\texttt{\&}' delimited list.
+Section~\ref{sec:query-string} explains how this functionality is used in practice.
+
+ \item \texttt{anchor}s are used to automatically navigate the browser to a specific section of the requested page.
+\end{itemize}
+
+Because only certain characters are allowed to appear within a URL, a technique called \emph{URL encoding} is used to escape special characters into a numerically coded equivalent, as shown in Table~\ref{tab:url-encode}.
+URLs often appear in other contexts (e.g., embedded as a link within a webpage); as a result, most URL encoding functions provided by commercial libraries also encode other potentially `unsafe' characters in addition to the reserved URL characters.
+Avoiding the accidental embedding of control characters in this manner is known as \emph{sanitization}, and forms the primary defense against \emph{code-injection} attacks (Section~\ref{sec:code-injection}).
+
+\begin{table}[h]
+\centering 
+\begin{tabular}{r|cccccccccc}
+ Reserved Character &
+ \texttt{!} &
+ \texttt{"} &
+ \texttt{\#} &
+ \texttt{\$} &
+ \texttt{\%} &
+ \texttt{\&} &
+ \texttt{'} &
+ \texttt{(} &
+ \texttt{)} &
+ \texttt{*} \\
+ Numerical Encoding (Hex) &
+ \texttt{21} &
+ \texttt{22} &
+ \texttt{23} &
+ \texttt{24} &
+ \texttt{25} &
+ \texttt{26} &
+ \texttt{27} &
+ \texttt{28} &
+ \texttt{29} &
+ \texttt{2A} \\
+ \hline
+ Reserved Character &
+ \texttt{+} &
+ \texttt{,} &
+ \texttt{/}&
+ \texttt{:} &
+ \texttt{;} &
+ \texttt{=} &
+ \texttt{?} &
+ \texttt{@}&
+ \texttt{[} &
+ \texttt{]} \\
+ Numerical Encoding (Hex) &
+ \texttt{2B} &
+ \texttt{2C} &
+ \texttt{2F} &
+ \texttt{3A} &
+ \texttt{3B} &
+ \texttt{3D} &
+ \texttt{3F} &
+ \texttt{40} &
+ \texttt{5B} &
+ \texttt{5D} \\
+
+\end{tabular}
+\caption{Characters Reserved in the URL Specification~\protect\cite{RFC3986}, and their Hexadecimal Encoded Value.
+When used in a URL, the hexadecimal value is prefixed with `\texttt{\%}'.}
+\label{tab:url-encode}
+\end{table}
+
+\subsection{Static HTML for Page Layout}
+Users `surf' the Web by continually following the links embedded in webpages.
+These pages are fetched from a \emph{web server} and rendered on the user's screen by a \emph{web browser}.
+The pages themselves are written in \emph{HyperText Markup Language (HTML)}~\cite{htmlSpec}, which not only allows the page creator to embed links to other pages, but also provides formatting and other document structure and layout commands.
+Initially, all pages on the Web had \emph{static} content, which is neither assembled by the web server at request time, nor modified by the browser at render time.
+The demand for more user interactivity quickly led to the introduction of \emph{dynamic} content\section{Dynamic HTML}.
+
+%The inclusion of additional data into a resource request\footnote{Additional data can be embedded into a GET or POST request, as explained in Section~\ref{sec:web-arch}.} enables the web server to assemble or customize a webpage for each specific client at the time of request.
+Further improvements on client-side functionality side now allow a webpage to include instructions that control modification and updating, even after the page has been loaded by the browser (Section~\ref{sec:javascript-intro}).
+
+\begin{figure}[h]
+ \centering
+ \begin{minipage}{5cm}
+  \begin{alltt}
+   <html>
+     <head>
+       <title>
+         This is the title bar
+       </title>
+     </head>
+     <body>
+       Hello World!
+     </body>
+   </html>
+  \end{alltt}
+ \end{minipage}
+ %\hfill
+ \begin{minipage}{5cm}
+  \begin{tabular}{c} 
+   \includegraphics[scale=0.5]{images/html}
+  \end{tabular}
+ \end{minipage}
+
+ \caption[Submanifold]{A static HTML page and rendered output.}
+ \label{fig:html_output}
+\end{figure}
+
+Each string of text between `\texttt{<}' and `\texttt{>}' is an \emph{HTML tag} used as a control sequence to direct the formatting, layout, or functionality of a rendered page.
+The tags shown in the example static HTML page in Figure~\ref{fig:html_output} are \texttt{html}, \texttt{head}, \texttt{body}, and \texttt{title}.
+
+
+
+\subsection{Client-Server Architecture}\label{sec:web-arch}
+
+The web browser and web server communicate through a request/response protocol known as the \emph{HyperText Transfer Protocol (HTTP)}~\cite{httpprotocol}.
+An HTTP client, such as a web browser, creates a request and transmits it to a web server.
+The server assembles an HTTP response containing the requested resources\footnote{Usually a webpage is requested from the server, but other forms of data (images, documents, XML data, etc.) can also be requested.} and transmits it back to the client.
+An example of this exchange is shown in Figure~\ref{fig:http_request}.
+Because the original focus of the Web was to provide access to \emph{static webpages} that do not have dynamically update-able content, HTTP was conceived as a stateless protocol: safe for the retrieval of static resources.
+Though the HTTP standard defines eight methods, we concern ourselves only with GET and POST, as these are the primary methods for submitting data to the web server.
+
+\begin{figure}[h]
+ \centering
+ \begin{sequencediagram}
+  \newthread{client}{:Client}
+  \newinst[2]{server}{:Server}
+
+  \begin{call}{client}{{1.
+HTTP Request}}{server}{{3.
+HTTP Response}}
+   \begin{callself}{server}{{2.
+Process Request}}{}
+   \end{callself}
+ \end{call}
+ \begin{callself}{client}{{4.
+Render Page}}{}
+ \end{callself}
+ \end{sequencediagram}
+
+ \caption[Submanifold]{Sequence Diagram of an HTTP Request.}
+ \label{fig:http_request}
+\end{figure}
+
+
+The GET method allows an HTTP client to request a resource from a web server.
+The URL is directly embedded into the HTTP header as follows:
+\begin{quote}
+ \texttt{GET /category/search.html HTTP/1.1\\Host: www.example.com}
+\end{quote}
+
+GET requests are also capable of supporting additional information that may be useful to the server; this is accomplished by encoding the additional information into the URL string using a \emph{query string} composed of key-value pairs onto the end of the base URL.
+For example, a browser can communicate the variable setting \texttt{q=grue}, along with the request for an associated resource, by issuing the following GET request:
+\begin{quote}
+ \texttt{GET /category/search.html?q=grue HTTP/1.1\\Host: www.example.com}
+\end{quote}
+
+A more direct mechanism of submitting data to a web server during a request is provided by the POST method.
+Though POST is most often used to communicate the fields of a \emph{web form} as a list of key-value pairs, it can also be used to send any string of data.
+The POST request differs from the GET request by placing the data in the request body.
+An example of a POST request with a corresponding web form is shown in Figure~\ref{fig:post_request}.
+
+\begin{figure}[h]
+ \begin{minipage}{6.5cm}
+  \begin{tabular}{c}
+   \includegraphics[scale=0.5]{images/webform}
+  \end{tabular}
+ \end{minipage}
+ %\hfill
+ \begin{minipage}{6cm}
+  \texttt{POST /category/feedback.asp HTTP/1.1\\
+  Host: www.example.com\\
+  Content-Length: 130\\
+  Content-Type: application/x-www-form-urlencoded\\
+  \\
+  name=Joe+User\&company=Acme\&email=joe\%40acme.com\&\\
+  contact=1\&subject=Tech+Support\&body=I've+been+ha\\
+  ving+a+problem+with+...\&attachment=\\
+  } 
+ \end{minipage}
+ \caption[Submanifold]{Sample web form and corresponding POST request.}
+ \label{fig:post_request}
+ \label{fig:web_form}
+\end{figure}
+
+Many times a \emph{proxy} sits between the web client and server intercepts and inspects HTTP requests.
+By monitoring the traffic of a large number of clients, a proxy can often respond with cached material of frequently visited webpages.
+Proxies can also be used to examine or manipulate HTTP traffic so that it adheres to a security policy.
+Some proposed solutions for the code-injection problem involve the use of proxies that manipulate HTML content sent through HTTP.
+A sequence diagram of the HTTP traffic through a proxy is shown in Figure~\ref{fig:http_proxy}.
+
+\begin{figure}[h]
+ \centering
+
+ \begin{sequencediagram}
+  \newthread{client}{:Client}
+  \newinst[2]{proxy}{:Proxy}
+  \newinst[2]{server}{:Server}
+
+  \begin{call}{client}{{1.
+HTTP Request}}{proxy}{{7.
+Forward Response}}
+   \begin{callself}{proxy}{{2.
+Possible Modification}}{}\end{callself}
+   \begin{call}{proxy}{{3.
+Forward Request}}{server}{{5.
+Return Response}}
+    \begin{callself}{server}{{4.
+Process Request}}{}\end{callself}
+   \end{call}
+   \begin{callself}{proxy}{{6.
+Possible Modification}}{}\end{callself}
+ \end{call}
+ \begin{callself}{client}{{8.
+Render Page}}{}\end{callself}
+ \end{sequencediagram}
+% \end{minipage}
+
+% \begin{minipage}{5cm}
+% \begin{sequencediagram}
+%  \newthread{client}{:Client}
+%  \newinst[2]{proxy}{:Proxy}
+
+%  \begin{call}{client}{{1.
+HTML Request}}{proxy}{{3.
+Return Response}}
+%   \begin{callself}{proxy}{{2.
+Cache Lookup}}{}\end{callself}
+%  \end{call}
+%  \begin{callself}{client}{{4.
+Render Page}}{}\end{callself}
+% \end{sequencediagram}
+% \end{minipage}
+
+ \caption[Submanifold]{Sequence Diagram of an HTTP Request Forwarded Through a Proxy.}
+ \label{fig:http_proxy}
+\end{figure}
+
+\subsection{Stateful Additions}\label{sec:web-lang}
+
+The demand for interactive content soon clashed with the original design of HTTP, which explicitly omitted the saving and agreement of state between client and server for both simplicity and safety.
+In order to provide the functionality required to support more complex behavior (such as that involved in managing user identification at community forums, virtual shopping carts at online retailers, and various other activities that engage the client in an extended interaction with a sever), web developers fashioned workarounds, known as \emph{session\footnote{A browser session begins when the client first contacts the web server as part of an HTTP conversation.
+Depending on the browser software, the session may end when (1) the browser process is terminated, (2) the browser window is closed, or (3) the tab displaying that page is closed.
+Because users have a habit of re-using the same browser tab to navigate to many different sites, modern browsers typically have many active sessions.} handling} to preserve state.
+
+\subsubsection{Cookies}\label{sec:cookies}
+HTTP cookies~\cite{RFC2965} are the most popular technique of preserving state between page requests.
+When a browser first requests a resource from a web server, the server can respond with both the resource and a collection of name-value pairs in the HTTP header.
+The browser stores this data, now called a `cookie', and treats it as plain-text that is sent as part of every subsequent HTTP request to that domain.
+By placing uniquely identifying information in the cookie, the web server can track clients and respond with personalized pages.
+Cookies are equipped with the following metadata properties that allow the browser to identify its purpose and use:
+\begin{itemize}
+ \item \textbf{Expiration date:} Cookies can expire for any of the following reasons: (1) the user ends their browsing session, (2) the expiration date passes, (3) the expiration date is changed to the past, or (4) the browser deletes the cookie at user request.
+Historical convention identifies two types of cookie, based on the cookie's lifetime: \emph{session cookies}, which store temporary information that resides within the browser until the browser session is ended, and \emph{persistent cookies}, which expire on a date determined by the cookie creator, and may persist between browsing sessions.
+
+ \item \textbf{Path and Domain of the Issuer:} A cookie's path and domain properties allow the browser to prevent the unnecessary sending of the cookie to all pages of a site, when only a few pages need the cookie data, and to prohibit sending the cookie to inappropriate domains (an essential security feature).
+
+ \item \textbf{Encryption Flag:} This flag tracks whether or not the cookie is to be used for an \texttt{https} session.
+\end{itemize}
+
+An example cookie delivered by the popular search engine Google is shown below:
+\begin{quote}
+ \texttt{HTTP/1.1 200 OK\\
+Cache-Control: private\\
+Content-Type: text/html\\
+Set-Cookie: PREF=ID=5e66ffd215b4c5e6:TM=1147099841\\
+:LM=1147099841:S=Of69MpWBs23xeSv0; expires=Sun, \\
+17-Jan-2038 19:14:07 GMT; path=/; domain=.google.com}
+\end{quote}
+
+Initially, many companies used cookies to store user preferences directly.
+For example, an online retailer might have used the cookie to store a list of items that the user currently may have in a shopping cart.
+One obvious drawback to this approach is the performance cost of having the client send back the entire contents of the cart each time a new page is requested.
+A more serious drawback is now recognized to be the security implications of storing such data at the client.
+Very little can be done to prevent a client from behaving in a malicious manner, up to and including alteration or outright forgery of cookie data.
+If sensitive information is contained in a cookie, a malicious client can fabricate cookie data and commit various types of fraud.
+Fortunately, this vulnerability has become widely known throughout the web industry, and standard practice is now to issue clients a uniquely identifying pseudo-random value\footnote{The usual practice for creating such a value is to perform a hash of information that can be used to help uniquely identify a client, such as the client's user-agent string, HTTP referrer, IP address, time of connection, a pseudo-random nonce produced for each initial (cookie-less) connection, etc.} in the cookie, which the web server uses to lookup the client's data in a server-side database.
+This technique allows the sensitive data to be stored by the web server, where the data can be protected from tampering.
+
+Because any web server is able to issue a cookie to a client and many pages link to content, such as images or advertisements, on other servers, it is possible for a client to be issued what is called a \emph{third-party cookie}, which comes from a server with a domain different from that of the visited URL.
+These cookies are often used to track users browsing across domains by syndicated advertising and web tracking companies, and represent a substantial threat to user expectations of privacy and anonymity.
+Most browsers now give users the option of automatically rejecting third-party cookies, which usually has no negative impact on a user's Web browsing experience.
+
+\subsubsection{IP Address}
+The simplest method to try to identify users is to track them by IP address.
+This method is unreliable, as many users can share the same computer, traffic between the client and server might flow through a proxy or NAT router\footnote{Network Address Translation (NAT) routers allow many computers to sit behind a single externally visible IP address.
+The router can act as a proxy and handles the problem of pairing responses with client requests.}, or the client's true IP address might be masked through a traffic-anonymizing service.
+This technique not only fails to uniquely identify clients, but is also unable to store key-value data pairs.
+
+\subsubsection{URL Query Strings}\label{sec:query-string}
+One of the simpler means of maintaining state between client and server involves the embedding of parameters into the URL itself using query strings.
+Because the query string is also a list of key-value pairs, this technique can hold data similar to cookies.
+Because this data is visible to the user as part of the URL, a security issue arises if users share URLs with each other.
+Lacking any other identifying information, a server could easily confuse two clients submitting the same request, and respond the same way independently of who is making the request.
+This situation would be devastating if the request performed a real-world side-effect, such as a money transfer between bank accounts.
+A secondary issue regarding uniqueness arises if a user visits the same page more than once.
+If the query string is auto-generated at every request, the same page could then have two different URLs.
+Both of these issues make query strings much more useful for temporary user data such as search queries or layout preferences, and less appropriate for user or session identification.
+
+\subsubsection{Hidden Form Fields}
+A more advanced technique of storing data involves the use of a web form with pre-filled, non-visible fields.
+By dynamically creating such a form for each page, the server can track users by the contents of the form.
+The non-visibility of the fields prevents users from modifying field contents, and the server can pre-fill the fields with a pseudo-random key, or other information useful for uniquely identifying that client.
+The session information becomes part of the HTML code of the page, and is sent as a part of the URL (in the case of a GET submission) or as part of an HTTP body (in the case of a POST submission).
+Unfortunately, because the session identifier is sent as part of the plain-text HTTP conversation between client and server, hidden form fields suffer from many of the same security concerns as cookies.
+
+\subsubsection{\texttt{window.name}}
+It is also possible to store cookie-style information within the \texttt{window.name} browser environment variable~\cite{frank08}.
+This element represents the name of the browser window displaying the current webpage, and can be used to store text that may survive between page loads and across domain navigations.
+Use of this technique advantageously offers the storage of about 2 to 32MB\footnote{By comparison, browsers offer much more limited storage for cookies.
+Only 20--50 cookies can be stored for each domain, and are limited to 4KB each.
+Further limitations on cookie size can be incurred if the traffic runs through a proxy or router that restricts the size of HTTP packets.} of data, does not automatically send the data with every request, and works even when the browser has been configured to reject cookies.
+Unfortunately, all data stored in this object is visible to any page loaded by that window, so this technique is not appropriate for sensitive material.
+
+\subsubsection{HTTP Authentication}
+HTTP provides a mechanism that allows a server to prompt the user for a username and password for access to certain pages~\cite{RFC2617}.
+The authentication can be accomplished using one of two methods:
+\begin{itemize}
+ \item \textbf{Basic Access Authentication}, which uses base64 to encode a concatenated string of the username, a colon `\texttt{:}', and the password.
+This string is then sent to the web server as part of every HTTP request header.
+Because base64 is trivially reversible and the resulting authentication string is sent in plain text, this method is not secure.
+
+ \item \textbf{Digest Access Authentication}, which begins when the web server responds with a \texttt{401: Unauthorized} code and cryptographic nonce.
+This response causes the client to prompt a user with a login dialog box, and the credentials are sent back to the server as MD5 hashes in an HTTP header that forms a second request for the original resource.
+\end{itemize}
+
+Neither method stipulates a period for the expiration of supplied credentials, so most browsers default by keeping the credentials until the browser session is ended.
+Though digest access is clearly the more secure method, both are vulnerable to a replay attack\footnote{Because the server issues a nonce as the first step in the digest access authentication, the server can expire that nonce after a set time period, thus invalidating any credentials that use the nonce.
+This method moderately increases the security, because a replay attack would have to occur within the valid time period of the original request.
+However, many sites reset the timer with each successful request, thus allowing page refreshes to extend the attack window.}.
+
+\subsubsection{Local Shared Objects}
+Some extensions to web browsers, such as Adobe's Flash Player, allow the web developer to store information at the client.
+Though web developers cannot always rely on a user's browser supporting the chosen plugin, they can expect that such plugins allow more storage than a cookie, and chances are good that this technique permit storage even when the user's browser has cookie support disabled.
+Because security implications of this technique vary for each plugin, we do not consider this method of maintaining state any further.
+
+\subsubsection{Browser Cache}
+Browsers hold large amounts of cached data on behalf of users.
+Because any unexpired item in cache is used by the browser in preference to fetching a new copy over the network, it is possible to use the cache as a means of local storage.
+Unfortunately, the cache memory provided by the browser is rather coarse (operating at the level of an entire HTML or image file) and infrequently updated.
+This limitation means that browser cache is only appropriate for the storage of immutable data and not for user preferences.
+
+\subsubsection{Web Storage}
+The draft of HTML 5~\cite{html5} specifies a mechanism that allows the storage of key-value pairs within a browser's \texttt{window} object.
+The data stored using this mechanism is not automatically transmitted during page requests and allows more space than is provided by cookies.
+The data can be stored in one of two places: \texttt{sessionStorage}, which ties data to the current browser, i.e., the data is deleted when the window is closed; and \texttt{localStorage}, which ties the data to the current domain and allows the data to persist between browser restarts.
+The draft also specifies that a \texttt{storageEvent} is triggered whenever the storage is updated.
+If a user has opened a single site that uses \texttt{localStorage} in multiple windows and one window updates the store, the event is triggered in \emph{all} windows.
+This mechanism allows a cross-window communication channel, with security implications that have not yet been fully explored.
+
+\subsection{Web 2.0: Stateful by Design}\label{sec:javascript-intro}
+
+
+
+\subsection{Data Tainting}
+Problems with the functionality restriction approach led to the adoption of a different security model in JavaScript 1.1.
+The insight with data tainting is not to prevent the access of private information, but to track it through the execution of a JavaScript program, and prevent its transmission across the network.
+In order to protect data in this way, each object within the JavaScript VM is extended to carry a `taint' label.
+If the data that object represents is supplied by the user (through a form element, dialog box, or sensitive portion of the DOM), then the object is considered `tainted', and is tagged with a label that indicates its origin.
+The interpreter then propagates these labels throughout program execution, so that any objects derived from tainted data also carry a taint label.
+When data tainting is enabled, JavaScript in one window can see properties of another window, without a same-origin policy check.
+Objects tainted by another window cannot be passed to any server without user confirmation through a dialog box.
+
+\label{sec:cookie-stealing}
+To demonstrate the potential security benefits of this approach, consider the following scenario: A JavaScript program accesses the cookie data corresponding to its domain.
+The program then encodes this data into the path of a URL, while the domain identifies a third-party server.
+By placing this URL into the source attribute of an image element, the browser tries to load that URL as an image.
+The foreign server could be configured to respond with an image regardless of the request, thus satisfying the browser's expectations.
+However, the path containing the cookie data still shows up in the foreign server's request logs, which means that cookie data belonging to one domain has been leaked to another domain, via an image request.
+By applying taint to the cookie data, and propagating the taint to the URL string involved in the request, the JavaScript VM prevents the request from being made, stopping the leak of user data.
+
+Tainting is propagated by the JavaScript VM according to the following rules~\cite{moz-tainting}:
+\begin{enumerate}
+ \item If a tainted value is passed to a function, the return value of that function is also tainted.
+ \item If a string is tainted, any substring of that string is also tainted.
+ \item If a script examines a tainted value in an \texttt{if}, \texttt{for}, or \texttt{while} statement, the script itself accumulates taint for the duration of that control block.
+ \item Script authors can taint or untaint properties, variables, functions, and objects.
+Untainting removes only the label of the current server from an object and has no effect on another server's properties and data objects.
+ \item Taint labels are unionized during operations.
+In the statement \texttt{a = b + c} the label on \texttt{a} is the union of the labels on \texttt{b} and \texttt{c}.
+\end{enumerate}
+
+The drawback of the data-tainting approach is a phenomenon known as \emph{label creep}.
+Typical behavior of a JavaScript program involves the passing around and manipulation of many objects.
+Because the labels obey union semantics, once an object acquires taint, it quickly spreads its taint to other objects during program execution.
+Fairly rapidly, nearly all objects within the program become tagged, prohibiting the browser from making any HTTP requests without prompting the user for confirmation.
+Though it was recognized that the label creep problem can be partially mitigated through the use of built-in sanitization routines that take tainted values on input and produce untainted values as output, the problem was still determined to be insurmountable and led to the removal of data tainting in JavaScript 1.2.
+However, the label creep problem has not prevented researchers from pursuing improved security techniques that use similar approaches, as reviewed in Section~\ref{sec:survey}.
+
+\subsection{Signed Scripts}
+Beginning with JavaScript 1.2, the integrity of scripts used in a webpage can be protected by browsers that detect scripts contained within a securely signed archive file.
+To create such a script, a digital signature must first be obtained from an existing certificate authority (e.g., a company like Verisign).
+The signature is then used with a signing tool to package the script into an archive file, which is signed by the certificate.
+The script can be used by placing a reference to it in the \texttt{src} attribute of a \texttt{script} tag.
+When a browser detects the loading of an archive file instead of a JavaScript program, it first verifies the signature before beginning execution of the packaged script.
+The verification confirms that the script has originated from the signer and that it has not been tampered with.
+Because a signed script is legally traceable to the signer (a.k.a.
+the \emph{principal}), such scripts are allowed extended privileges normally prohibited to unsigned scripts.
+For example, a signed script might be allowed access to the file system through URLs beginning with \texttt{file://}.
+
+Because JavaScript lacks important data-hiding and encapsulation mechanisms, such as the \texttt{public} and \texttt{private} keywords used in C++ and Java, commonly found in other languages, it is difficult to protect the memory space of a JavaScript program.
+In particular this difficulty arises when scripts signed by different principals are loaded into the same page.
+All of the scripts become part of the same browser process, and each script has unrestricted access to each other's objects.
+As a compromise, protection is achieved by allowing mixed scripts on an HTML page to operate as if they were all signed by the intersection of the principals that signed each script~\cite{moz-signed-scripts}.
+However, this compromise means that even a single unsigned script on that page causes the browser to treat all scripts on that page as if they were unsigned.
+
+%\section{Vulnerabilities}
+
+%\subsection{Cookies Spoil}
+% - inaccurate identification
+% - hijacking
+% - theft
+% - poisoning
+% - cross-site cooking
+% - inconsistent state
+% - expiry
+
+%\subsection{URL queries flounder}
+% - session fixation
+% - referrer logging
+
+
+\section{Security in Web~2.0}\label{web2.0sec}
+
+
+
+\subsection{Mashups and Third-Party Scripts}\label{sec:mashups}
+As the Web moves to a more service-oriented architecture, the ease with which data from many disparate sources can be combined into a single interface has led to a renaissance in web application design.
+The dynamic and flexible nature of AJAX enables web services to be linked and integrated together in a \emph{Web Mashup} without any formal application programming interface.
+For example, a calendar mashup could recognize street addresses and incorporate a miniature map next to the user's appointments.
+The ability to share and distribute user data between services hosted by different web domains has security implications that are only now being fully understood.
+The architecture of a mashup unfortunately requires that it pull together many scripts from different sources into a single browser process.
+As a result, mashups have been referred to as a `self inflicted cross site scripting attack'~\cite{mashup}.
+
+The concerns regarding mashups also apply to syndicated web advertisement that supports most of the interactive services available online today.
+During syndication, web advertisement space is sold and re-sold through several marketing companies, finally being purchased by an online retailer.
+A webpage with advertisement loads a script from the syndication server, which then loads another script from a dynamically chosen advertisement provider.
+Because web advertisement involves JavaScript code that is loaded onto a page from a third-party server, it should be considered a security risk.
+For example, in August 2007, the advertisement firm RightMedia supplied popular websites such as Yahoo and MySpace malicious banner ads which were displayed to millions of unsuspecting viewers~\cite{advertisement}.
+
+
+
+\section{Current Countermeasures}\label{sec:survey}
+Except for certain issues regarding cascading style sheets~\cite{xssfilters}, the most effective defense against cross-site scripting is already provided by all web browsers, and consists of disabling JavaScript, rendering XSS attacks useless.
+However, due to the ever growing popularity and functionality of web applications, disabling such a feature would cripple the user experience.
+Currently, users are dependent on the web developer's awareness of security vulnerabilities and defensive programming techniques.
+Despite concerns with filtering routines, it is still strongly recommended that \emph{all} inputs are sanitized as a first line of defense.
+All of the following research details more advanced approaches for detecting and preventing XSS attacks without negatively impacting the current user experience.
+
+\subsection{Client-Side Solutions}
+
+\subsubsection{}
+\citeN{ismail} implement a system that automatically rewrites browser requests, and analyzes the responses to detect reflective XSS vulnerabilities.
+The system implements a proxy that sits between the browser and the web server, and has two distinct modes: request change mode and response change mode.
+
+\begin{itemize}
+\item In request change mode, the requests generated by a user are altered such that a random number, to be used as an identifier, is inserted in all parameters.
+When the response is received, the proxy looks for these identifiers, and checks to see if a potential script has been generated.
+For example:
+
+\url{http://www.example.com/test.php?param=<script>test</script>}
+
+would be transformed to:
+
+\url{http://www.example.com/test.php?param=<123script>123test<123/script>}
+
+With these alterations, non-scripts are easy to detect, because no closing tag with the same number exists.
+Consider the following request:
+
+\url{http://www.example.com/test.php?param1=123kText&param2=<124script>124Dangerous<124/script>}
+
+The system sends the modified request to the server, and examines the response for the numerical identifiers.
+If the web server is vulnerable to XSS the system sends the original request with the special characters escaped.
+Otherwise, since a response is still needed by the client, the original request is sent unmodified.
+In this mode, two requests are always sent to the server, which could prove to be a heavy burden in practice, due to both network latency and processing overhead.
+
+\item In response change mode, the proxy checks to see if the request contains any special characters.
+If special characters are included in the HTTP request, a copy is saved, and the original request is forwarded.
+If no special characters exist in the request, the original request is simply forwarded, with no further action.
+Assuming special characters existed, the response is intercepted by the proxy, and compared to the original saved request.
+If the proxy finds that the same special characters are present in both the request and the response, the response is changed by escaping the special characters before the response is sent back to the user.
+Otherwise, the proxy server forwards the response back to the user.
+\end{itemize}
+
+This solution can only detect and prevent against reflective XSS attacks, and does nothing for stored or persistent attacks.
+
+\subsubsection{}
+\citeN{noxes} develop a client-side firewall, called Noxes, that intercepts HTTP requests originating from the user, and blocks or allows connections based on a security policy.
+The security policy is set by the user in one of three different modes:
+\begin{itemize}
+\item Manual mode allows the user to create rules stating which domains are valid, and whether or not to allow connections to certain domains.
+\item Firewall prompts mode asks the user whether or not to allow a connection to a specific domain when the connection is attempted.
+\item Snapshot mode allows the user to `teach' the Noxes application.
+Noxes records the domains that have been visited by the user during a browsing session, and automatically generate rules based on what was recorded.
+To limit the number of rules that need to be created, statically embedded links are considered safe, as such links are recognizable prior to the execution of any JavaScript, and must therefore have been inserted by the website operator.
+These static links are added as temporary exemptions in Noxes, allowing the user to access those pages without additional interaction.
+\end{itemize}
+XSS attacks are prevented from transmitting sensitive information with prompts that ask the user to allow or deny dynamically created connections.
+
+
+\subsubsection{}
+\subsubsection{}
+\citeN{httponly} introduces an extension to cookies, dubbed the HTTP-only cookie.
+Like the attribute \emph{HTTP-only} implies, the cookie contents are not accessible to JavaScript code.
+Hiding the contents of the cookie from client-side code ensures that the cookie data cannot be sent to a third party.
+Originally introduced in Internet Explorer 6 Service Pack 1, HTTP-only cookies are now supported by Mozilla's Firefox and Google's Chrome.
+This extension is interesting in that it tries to protect the data normally targeted during an XSS attack, rather than prevent the attack itself.
+Unfortunately, the approach is only appropriate for use with certain types of data, and has only been applied to cookies.
+% https://www.owasp.org/index.php/HTTPOnly#Who_developed_HTTPOnly.3F_When.3F
+
+
+\subsubsection{}
+
+\subsubsection{}
+
+\subsection{Server-Side Solutions}
+\subsubsection{}
+\subsubsection{}\label{Tuong}
+
+\subsubsection{}
+\citeN{CSSE} present a method known as Context-Sensitive String Evaluation (CSSE) to detect and prevent injection attacks.
+CSSE expands taint methods by incorporating metadata about a string that describes precisely where every fragment originated.
+Standard taint methods describe only the taintedness of data, and not how/when/where the data became tainted.
+Using this metadata, the system is able to distinguish between user-generated and programmer-generated parts of an expression.
+Prior to executing such strings in a potentially dangerous command, such as the PHP functions \texttt{mysql\_query()} or \texttt{exec()}, CSSE applies appropriate checks and sanitization to on the user-generated parts to ensure that the string is safe.
+This approach does not require developers to learn anything new, nor does it require any changes to application source code.
+Instead, the underlying platform is modified to implement these features.
+Pietraszek's research group implemented the idea in the PHP interpreter, and are able to successfully stop SQL injection attacks, though the techniques have yet to be extended to prevent XSS attacks.
+
+\subsubsection{}
+\citeN{dynamicJavaTaint} add dynamic data tainting to the Java Virtual Machine that operates in much the same way as Perl's data tainting and Tuong's work (Section~\ref{Tuong}).
+The label creep problem is mitigated by untainting the data whenever it is passed through a sanitization routine.
+Because the taint analysis is performed on Java bytecode, the following heuristic is used to determine which routines perform sanitization: any method of \texttt{Java.lang.String} that performs checking and matching operations is considered a declassifier.
+Clearly, this technique places a heavy reliance on the quality of the programmer's validation routines.
+However, the approach is fully automatic in its identification of tainted sources, taint propagation, untainting after validation, and appropriately raises an exception whenever tainted data is used as output.
+
+\subsubsection{}
+\subsubsection{}
+\subsubsection{}
+\subsubsection{}
+
+\subsection{Hybrid Solutions}
+
+\subsection{Application Solutions}
+
+\subsubsection{}
+\citeN{abstractAppWebSecurity} describe a Security Policy Description Language (SPDL) to program a web application firewall.
+SPDL security policies are compiled and executed on a security gateway that is placed between the network and the web server and intercepts all requests/responses in order to enforce the specified policy.
+SPDL describes a set of validation constraints and transformation rules.
+Validation constraints restrict access to cookies, URL parameters, and forms.
+Transformation rules are applied to user-inputs, enforcing policies, such as the escaping of all quotes in submitted text.
+The security gateway also rewrites HTTP responses by adding Message Authentication Codes (MAC).
+A MAC is similar to a cryptographic hash function, but requires a secret key in addition to the message as part of the encoding process.
+Finally, SPDL can allow the security gateway to analyze forms and automatically insert JavaScript validation code, thus blocking malicious input to web applications.
+
+%\subsubsection{}
+%AppScan~\cite{appscan} is an automated testing suite which tests for common web application vulnerabilities such as cross-site scripting, and SQL injections.
+However, since it only deals with common vulnerabilities, it must be continuously updated by the vendor.
+It relies heavily on the developers of the system to patch any vulnerabilities found.
+Thus, if the application must ship soon, the developers may not have enough time to thoroughly fix all the vulnerabilities in their applications.\textcolor{red}{It's a commercial product, get rid of this example?}
+
+\subsubsection{}
+\citeN{luccaScanner} introduce an automated test suite that utilizes dynamic and static analysis.
+The static analysis locates all places within a web application where user input may connect to an output function.
+The suite then generates a set of possible XSS attack strings, and executes each page.
+However, unlike WAVES (Section~\ref{waves}), which flags anomalous behavior as potentially malicious, the test suite avoids false positives by defining a successful attack as an information flow from input to output that does not pass through a sanitization mechanism.
+The test suite is able to track the data flow between all pages of the web application, as well as its supporting infrastructure, such as a back-end database.
+
+\subsubsection{}
+
+%\subsubsection{}
+%Jovanovic~\cite{preventXSRF} describes a cross-site request forgery solution via a proxy which sits between the web server and web application.
+This proxy intercepts incoming requests and outgoing responses.
+Whenever a new request is created, the proxy checks to see if the request is an authenticated session.
+If it is, a generated token associated with the session is attached.
+This token is then stored by the proxy in a table which maps the session id to the token id.
+This table is self-contained within the proxy, so neither the web server nor the application need to know about the token.
+This new token is now attached with all links and is expected in all subsequent requests.
+For example, a link such as\\ \texttt{http://www.example.com/getUser.php} becomes\\ \texttt{http://www.example.com/getUser.php?token=123}.\\ This rewriting is automatically done by the proxy.
+All further requests from a user must contain this token in order to be considered a valid request.
+If an incoming request uses a session id that is in the token table, but does not contain the proper token, the system reports a cross-site request forgery attack.
+Any further action is implemented by the administrator, but can be as simple as a warning message.
+
+\subsubsection{}
+\subsubsection{}
+\subsubsection{}
+
+\section{Conclusion}\label{sec:conclusion}
+
+We have presented a survey on cross-site scripting attacks, covering both the categorization of such attacks, and possible solutions to prevent, detect, or thwart the attacks.
+We have discussed features of the Web's architecture that contribute to the prevalence of XSS attacks.
+Preventing XSS attacks is still an active area of research, and we have reviewed the literature surrounding the issue.
+The most popular approaches either (1) attempt to identify XSS attacks through information flow and other code analysis techniques or (2) attempt to sandbox or encapsulate legitimate JavaScript through code rewriting so that it can be distinguished from a malicious code injection.
+Research into XSS has resulted in (1) novel insights about HTML document structure and integrity-secure communication, (2) more rigorous definitions of application vulnerabilities, and (3) an expansion of the techniques for code analysis; each of which is applicable to other security disciplines.
+Importantly, the dynamic nature of code on the Web has resulted in the recognition that data within an HTML conversation cannot even be reliably identified as JavaScript code until the browser actually attempts execution.
+As the functionality of webpages and browsers converge, we will likely see many security benefits in looking at the construction of web browser's from an operating systems perspective~\cite{browserOS}.
+
+\end{document}
