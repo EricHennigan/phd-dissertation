@@ -229,7 +229,17 @@ Instead it only affects the placement of the function and consequently the path 
 Section~\ref{sec:function-calls} discusses the setup of the execution context prior to function evaluation and the mechanism for labeling the value resulting from the function call.
 
 \subsection{Built-ins}
-\subsubsection{Arrays}
+
+The JavaScript specification~\cite{ecma} provides numerous built-in functions and values, defined on the built-in Global Object.
+\FlowCore\ provides an initial bottom label for each of these items and does not rewrite the internal functionality for label propagation.
+Rather, the implementation acquires label propagation ability through modifications made to the base \code{JSValue} datatype.
+
+All programs, including malicious ones, retain the ability to override the built-ins by simply replacing that property on the Global Object.
+However, because of its construction at runtime, the new item carries a label dependent on a later execution context, which necessarily differs from the bottom label.
+The presence of this label affects all later uses of the overridden item within the program.
+In this manner, \FlowCore\ tracks the influence that an unexpected override may have on the rest of a JavaScript program.
+
+\subsection{Arrays}
 \subsubsection{Date}
 \subsubsection{Interned Strings (And Other Things)}
 
