@@ -32,20 +32,20 @@ Internally, this separation allows for JavaScriptCore (and its Just-in-Time comp
 Second, each of the boolean types receives its own primitive encoding (Figure~\ref{fig:base-encoding}).
 This decision speeds up the recognition of these primitive values, by providing a direct representation that avoids wrapper objects.
 
-Third, despite the designation of Strings as primitives in the JavaScript specification~\cite{ecma}, JavaScriptCore implements them as native objects.
-Consequently, strings appear as object pointer values in the \code{JSValue} 64-bit encoding (Figure~\ref{fig:base-encoding}).
-Additionally, all string objects have a prototype reference to the String Prototype object that carries all of the specification-defined methods available for strings.
-Within JavaScriptCore, native string objects are always clearly distinguishable from user-defined objects, allowing the interpreter to treat strings according to the rules defined in the JavaScript specification~\cite{ecma}.
+Third, despite the designation of strings as primitives in the JavaScript specification~\cite{ecma}, JavaScriptCore implements them as native objects, interning the string values.
+Consequently, strings appear as object pointer values in the \code{JSValue} 64-bit encoding (Figure~\ref{fig:base-encoding}) that reference native String Objects.
+Additionally, all String Objects have a prototype reference to the String Prototype object that carries all of the specification-defined methods available for strings.
+Within the JavaScriptCore implementation, native String Objects always remain clearly distinguishable from user-defined objects, allowing the interpreter to treat strings according to the rules defined in the JavaScript specification~\cite{ecma}.
 
 Finally, JavaScriptCore implements additional values not present within the specification:
 \begin{description}
   \item \textbf{\code{empty}}, which represents holes within an array and designates uninitialized values.
   \item \textbf{\code{deleted}}, which appears in hash table code and designates an invalid GC cell.
-  \item \textbf{\code{pointer}}, which provides references to string or other objects within the garbage-collected heap.
+  \item \textbf{\code{pointer}}, which provides references to objects, both native and user-constructed, stored within the garbage-collected heap.
 \end{description}
 
 Two of these values, \code{empty} and \code{deleted}, have bit patterns that distinguish them from each of the primitives defined in the JavaScript specification~\cite{ecma}.
-No valid \code{JSValue} has the bit pattern of all zeros (the \code{empty} value), nor does any object reside at that address.
+Within JavaScriptCore, no valid \code{JSValue} has the bit pattern of all zeros (the \code{empty} value), nor does any object reside at that address.
 The \code{deleted} value contains a bit pattern that violates the object alignment within the garbage-collected heap.
 The specification-defined \code{null} and \code{undefined} values have non-zero integral representation that distinguish them from the internal \code{empty} and \code{deleted} values (Figure~\ref{fig:base-encoding}).
 
@@ -89,7 +89,7 @@ js> function foo() {
 undefined // result value returned from function definition
 
 js> foo()
-undefined // this.x
+undefined // result of printing this.x
 undefined // result value returned from function call
 \end{jscode}
 
@@ -118,7 +118,11 @@ obj.key  // property access using dot notation
 obj[key] // property access using bracket notation
 \end{jscode}
 
-In the latter two examples of Listing~\ref{list:property-access-notation}, \FlowCore\ first retrieves \code{obj} from the current activation object.
+In the first example of Listing~\ref{list:property-access-notation}, \FlowCore\ retrieves \code{key} from the current context object.
+The lookup path may follow the internal \brackdbl{scope} chain for properties defined in an outer lexical scope.
+The resulting value \code{key} carries a tag representing the union of all labels encountered on the reference path taken.
+
+In the latter two examples of Listing~\ref{list:property-access-notation}, \FlowCore\ first retrieves \code{obj} from the current activation object, in the same manner that it retrieves \code{key} in the first example.
 Recall that \FlowCore\ does not tag the object itself, but rather tags the pointers that reference the object.
 The resulting object reference \code{obj} then carries a tag representing the union of all labels encountered on the reference path taken.
 
@@ -183,7 +187,7 @@ Figure~\ref{fig:prototype-chain} shows this access path for a generic property l
 As shown in Figure~\ref{fig:prototype-chain}, property access begins with two labeled items: the object \code{obj} carrying label \code{O} and the stringified property name \code{key} carries label \code{K}.
 The target value \code{valueK} ultimately found via the lookup chain also carries its own label \code{G}.
 At minimum, the final label on the value resulting from the lookup incorporates labels from the starting object, the key, and the value found.
-However, the lookup chain also involved labeled prototype references, so \FlowCore\ also incorporates this chain into the label of the resulting value.
+However, the lookup chain also involves labeled prototype references, so \FlowCore\ incorporates this chain into the label of the resulting value.
 Additionally, \FlowCore\ tracks direct implicit flows (Chapter~\ref{sec:implicit-flow}) and joins in the label on the current program counter (Chapter~\ref{sec:control-flow-stack}).
 
 In summary, the resulting value carries a label formed by the union of
@@ -191,13 +195,13 @@ In summary, the resulting value carries a label formed by the union of
   \item the label of each reference link taken to look up the object,
   \item the label of the stringified key,
   \item the label of each prototype link taken to look up the value,
-  \item the label of the value,
+  \item the label of the value found (or bottom if no value present),
   \item and the label of the current program counter.
 \end{itemize}
 
 Implementation of \FlowCore\ required modification of helper methods internal to the JavaScriptCore interpreter to join in each component in union of labels applied to the resulting value of the lookup.
 Note that, as a side-effect of joining in the label of each prototype reference along the lookup path, the \code{undefined} value that results from lookup of a non-existent property might have a label very high in the security lattice.
-Flagrant use of values taken from extend reference chains can be yet another source of label creep in a JavaScript program.
+Consequently, we identify flagrant use of values taken from extended reference chains (explicit via syntax or implicit via lookup rules) yet another source of label creep in a JavaScript program.
 
 \subsection{Functions}
 
@@ -214,14 +218,14 @@ The JavaScriptCore interpreter supports this feature by separating the function 
 \end{itemize}
 Unlike the current context object (the target of the ThisBinding) described in Section~\ref{sec:variables}, the execution context remains inaccessible by any JavaScript program.
 
-Just as \FlowCore\ labels variables, it also labels references to functions, supporting the first-class definitions offered by JavaScript.
+Just as \FlowCore\ labels values and object references, it also labels references to functions, supporting the first-class definitions offered by JavaScript.
 At the cite of storage, the label of a function depends on how it gets defined.
 Functions defined by loading source code have a label representing the domain from which the code was fetched.
 Functions defined during runtime execution, carry the label of the current program counter at the cite of definition.
-When accessing a function in order to invoke a call, the label of function follows the same rules as provided earlier for the lookup of variables (Section~\ref{sec:variables}).
+When accessing a function in order to invoke a call, the label of function reference follows the same rules as provided earlier for the lookup of values (Section~\ref{sec:variables}).
 
-The practice of using closures for data encapsulation and variable hiding, does not affect the implementation of \FlowCore\.
-Instead it only affects the placement of the function and consequently the path of access a programmer must use to retrieve the function for invocation.
+The practice of using closures for data encapsulation and variable hiding does not affect the implementation of \FlowCore.
+Instead it only affects the placement of the function and consequently the path of access a programmer uses to retrieve the function for invocation.
 Section~\ref{sec:function-calls} discusses the setup of the execution context prior to function evaluation and the mechanism for labeling the value resulting from the function call.
 
 \subsection{Built-ins}
@@ -231,7 +235,63 @@ Section~\ref{sec:function-calls} discusses the setup of the execution context pr
 
 \section{Control Flow}
 \subsection{Function Calls}
-\label{sec:function-calls}
+
+JavaScript supports first-class functions, meaning that, just like Objects, references to functions carry a label.
+Upon entry into a function, the VM joins the caller's current program counter label with the function reference label to set the callee's current program counter label.
+All operations within the function occur under the new program counter label.
+
+Entry into a function creates an \term{execution context}\cite{ecma}, beginning with an activation object that holds the function-local variables and an \code{arguments} object that gives array-like indexable access to the function's runtime arguments and caller.
+
+\begin{comment}
+function foo() {
+  console.log(arguments.caller)        // undefined
+  console.log(arguments.length)        // length of the argumets
+  console.log(Function.caller)         // null
+  console.log(foo.caller)              // code of parent function
+  console.log(arguments.callee.caller) // code of parent function
+  console.log(arguments.callee)        // code of self
+  console.log(typeof arguments)        // object
+}
+
+foo(1,2,3,4)
+\end{comment}
+
+
+During execution, the \FlowCore\ applies the current program counter label to the result of all operations, including storage of function-local variables stored in the current activation object.
+In particular, this labeling applies to implicitly defined local values such as the function's return value, the \code{arguments} object, and any raised exception objects.
+Additionally, the labeling applies to any variables accessed along the \brackdbl{scope} chain, using the same procedures for variable access on the \brackdbl{property} chain.
+
+\subsubsection{Closures}
+
+Because JavaScript doesn't support the \code{public}, \code{private}, and \code{protected} access modifiers of class-based languages, programmers use closures for state encapsulation.
+
+\url{http://jibbering.com/faq/notes/closures/#clScCh}
+
+
+When the VM executes a function, the label on the reference used to make the call is used as the initial program counter label upon entry into the function.
+
+
+it's too early to provide code samples of the labeling
+  have to introduce both the attached label syntax
+  and the first-class labeling framework
+instead we have to talk specifically about semantics
+  breaks up into two parts
+  1. calling and return value
+  2. local variables
+
+what to say about closures ?
+
+
+JavaScript supports first-class functions, meaning that references to functions carry a label.
+In addition to the principals joined during computation, the label on the value returned from a function also includes all principals in label on the reference used to make the call.
+
+\lstset{caption={Label of Function Return Depends on Label of Reference to the Function}
+        label={list:label-function-reference}}
+\begin{jscode}
+\end{jscode}
+
+
+
 
 todo: describe what happens on entry
 todo: describe what happens on return
@@ -239,11 +299,12 @@ todo: show where the bytecodes get placed for
 
 When calling a function, the label on the program counter at the site of the call joins with 
 
-JavaScripts offering of first-class functions means that \FlowCore\ 
+JavaScripts offering of first-class functions means that \FlowCore\
 Source code definining function
 \FlowCore\ labels source code with the domain of origin, providing a label on the LexicalEnvironment.
 When the interpreter
 
+\begin{enumerate}
  \item [The function is provided by a script.]
   When the host environment hands a script to the JavaScript VM, it has the option of labeling that script with a security principal.
   In this case, the function lookup process is responsible for retrieving the label of the function.
@@ -253,6 +314,7 @@ When the interpreter
  \item [The function is a cloaked first class value.]
   If a sensitive control flow computation resulted in the return of a function, the return specification (see Section~\ref{sec:returns}) cloaks the function.
   In this case, the VM retrieves label of the function from its wrapper before the call.
+\end{enumerate}
 
 http://lostechies.com/derekgreer/2012/02/17/javascript-closures-explained/
 http://javascript.info/tutorial/closures
