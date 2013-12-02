@@ -10,6 +10,8 @@
 
 mkdir -p output
 cp *.py output/
+cp *.bib output/
 touch thesis.tex
-/usr/local/bin/rubber -vvv --pdf --shell-escape --into=output thesis.tex
+#/usr/local/bin/rubber -vvv --pdf --shell-escape --into=output thesis.tex
+rubber -vvv -c 'setlist arguments --shell-escape' --into=output --pdf thesis.tex
 
