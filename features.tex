@@ -231,7 +231,10 @@ Section~\ref{sec:function-calls} discusses the setup of the execution context pr
 \subsection{Built-ins}
 
 The JavaScript specification~\cite{ecma} provides numerous built-in functions and values, defined on the built-in Global Object.
-\FlowCore\ provides an initial bottom label for each of these items and does not rewrite the internal functionality for label propagation.
+Some of these built-ins have attributes that behave in a way that cannot be emulated in pure JavaScript, such as the \code{length} property of an \code{Array} object.
+
+\FlowCore\ provides an initial bottom label for the constructor of each of these items but does not rewrite the internal functionality for label propagation.
+Nor does \FlowCore\ provide special-case considerations for special attributes and methods for the built-in classes.
 Rather, the implementation acquires label propagation ability through modifications made to the base \code{JSValue} datatype.
 
 All programs, including malicious ones, retain the ability to override the built-ins by simply replacing that property on the Global Object.
@@ -239,11 +242,96 @@ However, because of its construction at runtime, the new item carries a label de
 The presence of this label affects all later uses of the overridden item within the program.
 In this manner, \FlowCore\ tracks the influence that an unexpected override may have on the rest of a JavaScript program.
 
-\subsection{Arrays}
-\subsubsection{Date}
-\subsubsection{Interned Strings (And Other Things)}
+Although the implementation of \FlowCore\ does not cover every aspect of the JavaScript specification, the parts remaining are of only a practical concern.
+This dissertation focuses on the implementation of a labeling framework that would support such effort and on the ramifications of attaching labels to values in a dynamic language.
 
 \section{Control Flow}
+
+Dynamically typed languages such as JavaScript present difficulties for tracking information flow.
+Dependence on runtime input, the automatic type coercion of values, and the ability to use first-class functions as a runtime dispatch, all conspire to increase the difficulty of static flow analysis.
+Consequently, \FlowCore\ performs label propagation during program execution.
+
+Fortunately, JavaScript uses structured control flow constructs.
+This language feature permits the use of a static analysis that calculates exactly at which point the information flow instructions introduced in \autoref{ch:instructions} need insertion into a program's instruction stream.
+
+\FlowCore\ modifies the instruction generator of JavaScriptCore, so that it instruments security instructions at parse time.
+This modification allows \FlowCore\ to prevent certain categories of information flow leaks (\autoref{sec:tracking-capabilities}) by using a control flow stack to track the security label of the program counter (\autoref{sec:control-flow-stack}) at runtime.
+
+This section presents a high-level motivation followed by the information flow instruction instrumentation for each type of control flow construct offered by JavaScript.
+
+\subsection{Conditional Branches}
+
+The conditional branch and the jump instructions that implement it, forms the foundation of many of the control flow constructs offered in JavaScript.
+
+As exhibited by \autoref{list:2branch}, a conditional branch consists of three parts:
+\begin{description}
+  \item [The predicate.] \hfill \\
+    A boolean that determines which branch to execute.
+  \item [The true-branch.] \hfill \\
+    A block of code that executes when the conditional evaluates True.
+  \item [The false-branch.] \hfill \\
+    An optional block of code that executes when the conditional evaluates False.
+\end{description}
+
+\lstset{caption={Example conditional branch.},
+        label=list:2branch}
+\begin{jscode}
+    if (cond) {      // the predicate
+        x = 233;     // the true-branch
+    } else {
+        y = 377;     // the false-branch
+    }
+\end{jscode}
+
+\begin{figure}[h]
+\begin{python}
+code = r'''
+function mybranch() {
+  var cond;
+  var x;
+  var y;
+  if (cond) {
+    x = 233;
+  } else {
+    y = 377;
+  }
+}
+
+print(debug(mybranch))
+'''
+import sys
+sys.path.append('..')
+
+import jsc
+j = jsc.jsc(code)
+j.run()
+
+import bytecodeformatter
+bytecodeformatter.tikz_picture(j.instructions())
+\end{python}
+  \caption{\FlowCore\ instruction stream represting the code snippet in \autoref{list:2branch}.}
+  \label{fig:2branch-bytecode}
+\end{figure}
+
+
+
+Ordinary label propagation through straight-line code ensures that the predicate has an attached label.
+\FlowCore\ uses this label to upgrade the label on the program counter and then pushes the new pc-label on the control flow stack, marking the entrance of a new program region that corresponds to the taken branch.
+
+
+
+Conditional branches begin with a \texttt{DUP\_CFLABEL} instruction that marks the beginning of a secure code region by cloning the current pc-label.
+The conditional value itself may be the result of an arbitrary expression, which could include function calls and shortcut evaluation of logical operators.
+Consequently, its label is not predictable at compile time, so we emit a \texttt{JOIN\_CFLABEL} instruction immediately following the conditional evaluation.
+This instruction upgrades the top of the control flow stack using the label of the conditional value computed at runtime.
+When either side of the conditional branch finishes executing, a \texttt{POP\_CFLABEL} instruction at the control flow join restores the pc-label to its state before the branch was encountered.
+
+
+
+
+
+
+
 \subsection{Function Calls}
 
 JavaScript supports first-class functions, meaning that, just like Objects, references to functions carry a label.
@@ -280,7 +368,6 @@ Because JavaScript doesn't support the \code{public}, \code{private}, and \code{
 
 When the VM executes a function, the label on the reference used to make the call is used as the initial program counter label upon entry into the function.
 
-
 it's too early to provide code samples of the labeling
   have to introduce both the attached label syntax
   and the first-class labeling framework
@@ -299,9 +386,6 @@ In addition to the principals joined during computation, the label on the value 
         label={list:label-function-reference}}
 \begin{jscode}
 \end{jscode}
-
-
-
 
 todo: describe what happens on entry
 todo: describe what happens on return
@@ -358,20 +442,14 @@ property access and creation
 %%%%%%%%%%%%%%%%%%%%%%%%%
 % From 2011 acsac.tex
 
-Although dynamically typed languages present many difficulties for ensuring information flow, we find that JavaScript uses structured control flow constructs.
-As a result, we can use a static analysis which calculates exactly at which points our security instructions should be inserted into the instruction stream.
-This modification allows our system to prevent implicit information flow leaks by tracking the security label of the program counter at runtime, using the control flow stack.
-%Because local variables cannot leak information, allowing them to automatically upgrade still complies with the intention of non-interference security~\cite{goguen1982security}.
-%Variables which can leak information are subject to the \textit{no sensitive upgrade} check (see Section~\ref{sec:sensitive-upgrade-check}), and are prevented from automatic upgrade.
-%Using these principles, we demonstrate the labeling strategy for several control flow structures defined in the JavaScript language~\cite{ecma}.
+DONE Although dynamically typed languages present many difficulties for ensuring information flow, we find that JavaScript uses structured control flow constructs.
+DONE As a result, we can use a static analysis which calculates exactly at which points our security instructions should be inserted into the instruction stream.
+DONE This modification allows our system to prevent implicit information flow leaks by tracking the security label of the program counter at runtime, using the control flow stack.
+DONE %Because local variables cannot leak information, allowing them to automatically upgrade still complies with the intention of non-interference security~\cite{goguen1982security}.
+DONE %Variables which can leak information are subject to the \textit{no sensitive upgrade} check (see Section~\ref{sec:sensitive-upgrade-check}), and are prevented from automatic upgrade.
+DONE %Using these principles, we demonstrate the labeling strategy for several control flow structures defined in the JavaScript language~\cite{ecma}.
 
 \subsection{Conditional Branches}
-Conditional branches begin with a \texttt{DUP\_CFLABEL} instruction that marks the beginning of a secure code region by cloning the current pc-label.
-The conditional value itself may be the result of an arbitrary expression, which could include function calls and shortcut evaluation of logical operators.
-Consequently, its label is not predictable at compile time, so we emit a \texttt{JOIN\_CFLABEL} instruction immediately following the conditional evaluation.
-This instruction upgrades the top of the control flow stack using the label of the conditional value computed at runtime.
-When either side of the conditional branch finishes executing, a \texttt{POP\_CFLABEL} instruction at the control flow join restores the pc-label to its state before the branch was encountered.
-
 \subsection{Loops}
 
 Because of the implied backwards branch, loops require more care than conditional branches.
