@@ -54,17 +54,37 @@ def latexEscape(s):
     s = s.replace('$', '\\$')
     return s
 
+class Line:
+  """A line of JSC dump that's non-bytecode"""
+
+  def __init__(self, line):
+    self.text = line.strip()
+
+  def toNode(self, name=None, option=None):
+    s = '\\node'
+    if name:
+      s += '(%s)'%name
+    if option:
+      s += '[%s]'%option
+    s += '{%s};'%latexEscape(self.text)
+    return s
+
 class CodeLine:
   """A line of JSC Bytecode dump"""
+  BYTECODE_PAT = re.compile('\[( +\d+)\]')
   OFFSET_PAT = re.compile('\d+')
   OPCODENAME_PAT = re.compile('[A-Za-z_]+')
   TARGET_PAT = re.compile('\(->\d+')
+
+  @classmethod
+  def isValid(cls, line):
+    return bool(CodeLine.BYTECODE_PAT.search(line))
 
   def __init__(self, line):
     self.line = line.rstrip()
     self.byteOffset = int(CodeLine.OFFSET_PAT.search(self.line).group(0))
     self.opcodeName = CodeLine.OPCODENAME_PAT.search(self.line).group(0)
-    self.args = self.line.split(self.opcodeName)[1].lstrip()
+    self.args = self.line.split(self.opcodeName, 1)[1].lstrip()
 
     self.source = self.byteOffset
     self.target = CodeLine.TARGET_PAT.search(self.line)
@@ -82,7 +102,7 @@ class CodeLine:
       s += '[%s]'%option
     s += '{%s};'%latexEscape(text)
     return s
-    
+
   def byteOffsetStr(self):
     # 2 char wide, right aligned, fill with "0"
     return '[{0:{1}>2}]'.format(self.byteOffset, "0")
@@ -263,7 +283,8 @@ class LinearAllocator:
 
 def tikz_picture(asmdump):
 
-  codelines = [CodeLine(x) for x in asmdump]
+  codelines = [CodeLine(x) for x in asmdump if CodeLine.isValid(x)]
+  non_codelines = [Line(x) for x in asmdump if not CodeLine.isValid(x)]
   intervals = Intervals(codelines)
   # caution, to toLatex required to be called here
   #          because arrow allocation calculates latexRightSize value
@@ -275,8 +296,9 @@ def tikz_picture(asmdump):
   print "   offset/.style = {font=\\color{black!50}\\ttfamily},"
   print "   opcode/.style = {font=\\ttfamily},"
   print "   args/.style = {font=\\ttfamily},"
+  print "   line/.style = {font=\\ttfamily},"
   print "]"
-  print '\\matrix ['
+  print '\\matrix (codelines) ['
   print '  column 1/.style = {column sep=%s},'%intervals.latexRightSize()
   print '  column 2/.style = {anchor=west},'
   print '  column 3/.style = {anchor=west},'
@@ -289,6 +311,17 @@ def tikz_picture(asmdump):
     print line.toNode(line.argumentsStr(), option='args'),
     print '\\\\'
   print '};'
+
+  if non_codelines:
+    print '\\matrix ['
+    print '  matrix anchor=north west,'
+    print '  right=0pt of codelines.south west,'
+    print '  column 1/.style = {anchor=west},'
+    print '] {'
+    for line in non_codelines:
+      print line.toNode(option='line'),
+      print '\\\\'
+    print '};'
 
   print paths
 
