@@ -259,6 +259,14 @@ This modification allows \FlowCore\ to prevent certain categories of information
 
 This section presents a high-level motivation followed by the information flow instruction instrumentation for each type of control flow construct offered by JavaScript.
 
+\subsection{Function Calls}
+
+- begin with dup_cflabel
+- end popping scope with popj_cflabel
+- return value is tainted, though not necessarily with the union of all arguments (depend on their use)
+
+from this point forward, all of the following example bytecode dumps are encapsulated in their own function
+
 \subsection{Conditional Branches}
 
 The conditional branch and the jump instructions that implement it, forms the foundation of many of the control flow constructs offered in JavaScript.
@@ -312,8 +320,6 @@ bytecodeformatter.tikz_picture(j.instructions())
   \caption{\FlowCore\ instruction stream represting the code snippet in \autoref{list:2branch}.}
   \label{fig:2branch-bytecode}
 \end{figure}
-
-
 
 Ordinary label propagation through straight-line code ensures that the predicate has an attached label.
 \FlowCore\ uses this label to upgrade the label on the program counter and then pushes the new pc-label on the control flow stack, marking the entrance of a new program region that corresponds to the taken branch.
