@@ -3,7 +3,7 @@
 \label{ch:system-design}
 
 Designing the labeling system supporting information flow tracking took special consideration.
-\FlowCore could have been written using one of two possible implementations of security types (Section~\ref{sec:implementation}): (1) extending of the tagged pointer representation and (2) introducing a security wrapper object.
+\FlowCore\ could have been written using one of two possible implementations of security types (Section~\ref{sec:implementation}): (1) extending of the tagged pointer representation and (2) introducing a security wrapper object.
 Before choosing one implementation over the other, we first examine how each option affects the labeling of primitive values and interned objects and how the labeling mechanism will impact memory requirements (Section~\ref{sec:analysis}).
 %We corroborate this analysis with a report on our experience during implementation (Section~\ref{sec:experience}).
 Finally, we show how this work compares with that of others (Section~\ref{sec:related-work}), and finish with a recommendation that an extension of the tagged pointer representation meets the requirements of a dynamic information flow security type system and has the least implementation effort (Section~\ref{sec:conclusion}).
@@ -310,7 +310,7 @@ When we compare the fat value approach to the cloak approach, an interesting sem
 In the fat value approach, we attach the security type to the primitive value or object reference, as part of the tagged pointer encoding.
 In the cloak approach, each object receives an internal field to store its security label, while primitives are cloaked with an extra layer of indirection.
 
-\todo{I haven’t fully explored the difference between having a labeled reference vs having a labeled object, but I think the difference is analogous to having an Access Control Listing by columns vs Object Capabilities by rows, as discussed in Capability Myths Demolished.}
+% \todo{I haven’t fully explored the difference between having a labeled reference vs having a labeled object, but I think the difference is analogous to having an Access Control Listing by columns vs Object Capabilities by rows, as discussed in Capability Myths Demolished.}
 % At this point I am in favor of the fat value approach, because I’m liking the reference semantics, and the transparency with which primitives can be labeled. I’m also willing to accept the cost of having fatter values.
 
 \subsection{Interned Objects}\label{sec:interned-objects}
@@ -557,8 +557,20 @@ Security Semantics  & Labeled reference & Labeled value \\
 
 \section{Related Implementations}\label{sec:related-work}
 
-\todo{rewriting approach of Jang}
-\todo{DO: DOM interaction + channels}
+As part of a large-scale investigation into privacy-violating information flows that occur on the Alexa global top 50,000 websites, Jang~et~al.~\cite{jang.etal+10} implemented a rewriting-based JavaScript information flow engine within the Chrome browser.
+The system uses a source-to-source rewriting approach that injects taints, propagates them, and blocks tainted flows within the rewritten code, with an average execution overhead between 2.5$\times$ and 3$\times$.
+In contrast to \FlowCore, their system required understanding only the browser's AST data structures, and none of the complexity of the JavaScript runtime, and therefore tracks flows at a coarser granularity.
+Nevertheless, they detected four types of privacy-violating flows, cookie stealing, location hijacking, history sniffing, and behavior tracking, used by very popular sites (Alexa top-100) that exfiltrate information about users' browsing behavior.
+
+Chudnov and Naumann~\cite{chudnov.naumann+10} implement runtime-inline monitoring, based on its applicability to dynamically-typed, interpreted languages, featuring \code{eval}, such as JavaScript.
+They argue that inlining should occur at the source code level, because of the widespread practice of delivering JavaScript source code to browsers and the non-portability of any VM-level implementation across browsers.
+Their proposal relies on the JIT to maintain acceptable performance, but they provide no implementation, only a proof of correctness for the inlined monitor.
+\FlowCore\ modifies the VM-runtime in order to maintain performance in a time when browser vendors heavily market their execution speend.
+Additionally, their proof rests on a small abstract syntax that does not fully represent the complexity of JavaScript.
+
+Magazinius~et~al.~\cite{magazinius.etal+12} implement the ability to inlinine monitors on the fly, with an overhead between 2$\times$ and 3$\times$.
+They propose a framework for creating shadow variables that track the security label of the original.
+As with \FlowCore, they include a mechanism for labeling the program counter and tracking the security context.
 
 \section{Chosen Implementation for \FlowCore}\label{sec:conclusion}
 \label{sec:chosen-implementation}
