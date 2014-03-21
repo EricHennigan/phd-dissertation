@@ -2,9 +2,9 @@
 \chapter{JavaScript Feature Catalog}
 
 JavaScript, like many scripting languages, agglomerates different programming paradigms and provides a large number of built-in convenience functions.
-In order to provide a comprehensive treatment of the labeling semantics, this chapter gives implementation details of the labeling system for language features present in JavaScript.
+In order to provide a comprehensive treatment of the labeling semantics and tracking provided by \FlowCore, this chapter gives examples and explanation of tracking in the covered JavaScript language features.
 
-\section{Data Structures}
+\section{Data Flow Tracking}
 
 JavaScript offers some built-in data types such as Date, String, Array, and Object which programmers use to compose larger data structures.
 For reasons of efficient implementation JavaScript breaks down these data types into two categories: primitives, which fit into a 64-bit machine integer (according to the encoding in Chapter~\ref{sec:existing-type-system}), and objects, which function as generic key-value hash tables stored in the garbage-collected heap.
@@ -26,7 +26,7 @@ The JavaScript Specification~\cite{ecma} defines the following primitive types:
 
 WebKit's JavaScriptCore implementation adjusts the specification in some subtle ways.
 
-First, the \code{Number}s are separated into two different classes: 32-bit integers and IEEE 754 doubles, which includes the special values NaN, positive infinity, and negative infinity.
+First, it separates \code{Number}s into two different classes: 32-bit integers and IEEE 754 doubles, which includes the special values NaN, positive infinity, and negative infinity.
 Internally, this separation allows for JavaScriptCore (and its Just-in-Time compiler) to distinguish between floating point and integer numerical data types so that the interpreter uses the appropriate machine arithmetic operations.
 
 Second, each of the boolean types receives its own primitive encoding (Figure~\ref{fig:base-encoding}).
@@ -52,8 +52,7 @@ The specification-defined \code{null} and \code{undefined} values have non-zero 
 \FlowCore\ tags all of these primitive values, including the additional ones specific to JavaScriptCore's implementation, by extending the base representation, \code{JSValue}, with an additional 32-bits.
 This design allows for \FlowCore\ to tag all representable values within the JavaScriptCore interpreter, regardless of its mapping back to the JavaScript specification.
 The most evident side-effect of tagging primitive pointer values rather than extending objects with an internal label field implies that \FlowCore\ follows the reference semantics discussed in Chapter~\ref{sec:impacts-on-security-semantics}.
-
-%As a side-effect of tagging all representable values within the interpreter, \FlowCore\ sometimes evaluates operations using a more conservative label than necessary.
+As a side-effect of tagging all representable values within the interpreter, \FlowCore\ sometimes evaluates operations using a more conservative label than necessary.
 %For example, iteration over an array with holes proceeds to use labels attached to the hole values, in spite of the language specification claiming holes should be skipped over entirely.
 
 \subsection{Variables}
@@ -64,7 +63,7 @@ Within a called function, the activation record acts as the current context.
 At the JavaScript console, the built-in global object acts as the current context.
 And within WebKit's debugging console, the context defaults to the built-in window object.
 
-Given JavaScript stores all variables as properties on an object, the semantics for accessing variables in JavaScript is the same as for accessing properties of objects.
+Given that JavaScript stores all variables as properties on an object, the semantics for accessing variables in JavaScript is the same as for accessing properties of objects.
 Listing~\ref{list:vardef} shows these semantics at the JavaScriptCore console, where the \code{this} keyword references the built-in global object that holds defined variables.
 
 \lstset{caption={Variable definition and access at the JavaScript console},
@@ -76,8 +75,9 @@ js> this.x
 7
 \end{jscode}
 
-In other contexts, such as within a function call, the object that stores declared variables (i.e. the activation record object) is not necessarily accessible to the JavaScript programmer.
-For example, in Listing~\ref{list:funcdef}, the \code{this} keyword does not refer to the activation record object, but to the object holding the method definition, the built-in global object.
+In other contexts, such as within a function call, the JavaScript programmer may not have access to the object that stores declared variables (i.e. the activation record object).
+For example, in Listing~\ref{list:funcdef}, the \code{this} keyword does not refer to the activation record object.
+Rather, it refers to the object holding the method definition, i.e., the built-in global object.
 
 \lstset{caption={Variable definition and access in a JavaScript function.},
         label={list:funcdef}}
@@ -129,7 +129,7 @@ The resulting object reference \code{obj} then carries a tag representing the un
 In the bracket form, the interpreter first coerces the \code{key} into a string via the internal \code{ToString} function.
 This coercion happens for all accesses, including numerical indexing on an array.
 Assuming that the \brackdbl{ToString} method has not been overridden by the programmer, the result of the coercion carries the same label as the given \code{key}, otherwise it carries the label of the returned result from the overloaded method call.
-In contrast, The dot notation contains the \code{key} as an embedded code string (requiring no coercion) that carries the label of the code source.
+In contrast, the dot notation contains the \code{key} as an embedded code string (requiring no coercion) that carries the label of the code source.
 
 Once the object instance \code{obj} has been retrieved and the \code{key} calculated, the interpreter performs a hash-table lookup on the properties of that object.
 In the event that an object does not itself have a value associated with the requested \code{key}, the lookup proceeds recursively through objects in the prototype chain following \brackdbl{Prototype} references.
@@ -187,8 +187,8 @@ Figure~\ref{fig:prototype-chain} shows this access path for a generic property l
 As shown in Figure~\ref{fig:prototype-chain}, property access begins with two labeled items: the object \code{obj} carrying label \code{O} and the stringified property name \code{key} carries label \code{K}.
 The target value \code{valueK} ultimately found via the lookup chain also carries its own label \code{G}.
 At minimum, the final label on the value resulting from the lookup incorporates labels from the starting object, the key, and the value found.
-However, the lookup chain also involves labeled prototype references, so \FlowCore\ incorporates this chain into the label of the resulting value.
-Additionally, \FlowCore\ tracks direct implicit flows (Chapter~\ref{sec:implicit-flow}) and joins in the label on the current program counter (Chapter~\ref{sec:control-flow-stack}).
+However, the lookup chain also involves labeled prototype references, so the label of the resulting value should incorporate the label of each object reference walked in the chain.
+Additionally, tracking of direct implicit flows demands in joining the label of the current program counter to incorporate the current security context (Chapter~\ref{sec:control-flow-stack}).
 
 In summary, the resulting value carries a label formed by the union of
 \begin{itemize}
@@ -199,9 +199,20 @@ In summary, the resulting value carries a label formed by the union of
   \item and the label of the current program counter.
 \end{itemize}
 
-Implementation of \FlowCore\ required modification of helper methods internal to the JavaScriptCore interpreter to join in each component in union of labels applied to the resulting value of the lookup.
 Note that, as a side-effect of joining in the label of each prototype reference along the lookup path, the \code{undefined} value that results from lookup of a non-existent property might have a label very high in the security lattice.
 Consequently, we identify flagrant use of values taken from extended reference chains (explicit via syntax or implicit via lookup rules) yet another source of label creep in a JavaScript program.
+
+As a prototype implementation of information flow, \FlowCore\ did not modify all of JavaScriptCore's internal helper methods to join in each component label.
+Consequently, a lookup operation returns the labeled value directly.
+This omission both simplifies implementation, omits a source of label creep, improves runtime performance by eliding label joins, and permits a prototype implementation in WebKit's JIT (Chapter~\ref{sec:jitflow}).
+A literature search did not reveal any other research work claiming to have implemented full prototype-chain labeling semantics. % with enough detail to retain believability.
+
+\subsection{Simple Math Operations}
+
+\FlowCore\ focuses its capabilities on labeling 
+
+TODO: also take a look at the unit tests to see what statements are covered.
+TODO: grab the jitflow paper and read what it says about implementing math operations.
 
 \subsection{Functions}
 
@@ -245,6 +256,20 @@ In this manner, \FlowCore\ tracks the influence that an unexpected override may 
 Although the implementation of \FlowCore\ does not cover every aspect of the JavaScript specification, the parts remaining are of only a practical concern.
 This dissertation focuses on the implementation of a labeling framework that would support such effort and on the ramifications of attaching labels to values in a dynamic language.
 
+\subsubsection{Arrays}
+
+All objects accept the bracket notation for field-lookup, however, JavaScript arrays come equipped with specific semantics.
+
+
+JavaScript arrays derive their functionality from 
+
+\FlowCore\
+
+
+\subsubsection{Date}
+\subsubsection{Interned Strings (And Other Things)}
+
+
 \section{Control Flow}
 
 Dynamically typed languages such as JavaScript present difficulties for tracking information flow.
@@ -261,8 +286,8 @@ This section presents a high-level motivation followed by the information flow i
 
 \subsection{Function Calls}
 
-- begin with dup_cflabel
-- end popping scope with popj_cflabel
+- begin with dup\_cflabel
+- end popping scope with popj\_cflabel
 - return value is tainted, though not necessarily with the union of all arguments (depend on their use)
 
 from this point forward, all of the following example bytecode dumps are encapsulated in their own function
