@@ -185,6 +185,26 @@ semi-persist |          |         |                   |
               defines partial order (hierarchy) of principals
               role = restriction on user authority
 
+:jitflow: review what operations the jitflow paper implements
+
+* UnitTest coverage of FlowCore
+** Basic
+  - label a variable
+  - gc doesn't collect labels
+  - label join works
+  - label subsumption
+  - apply upgrades
+**Control Flow
+  - for loop: exit condition has label, assignment to variable acquires it
+  - while loop: exit expression has label, ++ in body acquires it
+  - if-then-else: taken assignments (if and else cases)
+**Operators
+  - binary math, + - * /
+  - string concat,
+  - pre and post inc and dec
+  - unary minus and plus
+  - comparisons: integer==, string==, integer!=, string !=, strict ===, strict !==, <, <=, >, >=
+  - bitwise: shift left, shift right, right with 0 fill, and, or, xor, not
 
 
      

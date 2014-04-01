@@ -203,16 +203,10 @@ Note that, as a side-effect of joining in the label of each prototype reference 
 Consequently, we identify flagrant use of values taken from extended reference chains (explicit via syntax or implicit via lookup rules) yet another source of label creep in a JavaScript program.
 
 As a prototype implementation of information flow, \FlowCore\ did not modify all of JavaScriptCore's internal helper methods to join in each component label.
-Consequently, a lookup operation returns the labeled value directly.
-This omission both simplifies implementation, omits a source of label creep, improves runtime performance by eliding label joins, and permits a prototype implementation in WebKit's JIT (Chapter~\ref{sec:jitflow}).
+Instead \FlowCore\ takes only label of the target (post-lookup) value under operation and the label of the current program counter.
+This omission accomplishes several goals simultaneously.
+It simplifies implementation, omits a source of label creep, improves runtime performance by eliding label joins, and permits a prototype implementation in WebKit's JIT (Chapter~\ref{sec:jitflow}).
 A literature search did not reveal any other research work claiming to have implemented full prototype-chain labeling semantics. % with enough detail to retain believability.
-
-\subsection{Simple Math Operations}
-
-\FlowCore\ focuses its capabilities on labeling 
-
-TODO: also take a look at the unit tests to see what statements are covered.
-TODO: grab the jitflow paper and read what it says about implementing math operations.
 
 \subsection{Functions}
 
@@ -232,11 +226,11 @@ Unlike the current context object (the target of the ThisBinding) described in S
 Just as \FlowCore\ labels values and object references, it also labels references to functions, supporting the first-class definitions offered by JavaScript.
 At the cite of storage, the label of a function depends on how it gets defined.
 Functions defined by loading source code have a label representing the domain from which the code was fetched.
-Functions defined during runtime execution, carry the label of the current program counter at the cite of definition.
+Functions defined during runtime execution carry the label of the current program counter at the cite of definition.
 When accessing a function in order to invoke a call, the label of function reference follows the same rules as provided earlier for the lookup of values (Section~\ref{sec:variables}).
 
 The practice of using closures for data encapsulation and variable hiding does not affect the implementation of \FlowCore.
-Instead it only affects the placement of the function and consequently the path of access a programmer uses to retrieve the function for invocation.
+Instead, it only affects the storage placement of the function and consequently the path of access a programmer uses to retrieve the function for invocation.
 Section~\ref{sec:function-calls} discusses the setup of the execution context prior to function evaluation and the mechanism for labeling the value resulting from the function call.
 
 \subsection{Built-ins}
@@ -249,26 +243,49 @@ Nor does \FlowCore\ provide special-case considerations for special attributes a
 Rather, the implementation acquires label propagation ability through modifications made to the base \code{JSValue} datatype.
 
 All programs, including malicious ones, retain the ability to override the built-ins by simply replacing that property on the Global Object.
-However, because of its construction at runtime, the new item carries a label dependent on a later execution context, which necessarily differs from the bottom label.
+For example, a running program may replace the built-in values \code{undefined} and \code{NaN} with its own definitions.
+However, because of its construction at runtime, the new item carries a label dependent on the execution context, which necessarily differs from the bottom label assigned at start-up.
 The presence of this label affects all later uses of the overridden item within the program.
-In this manner, \FlowCore\ tracks the influence that an unexpected override may have on the rest of a JavaScript program.
+In this manner, \FlowCore\ tracks the influence that an unexpected override may have on the rest of a JavaScript program, providing a mechanism to detect and track the influence of a malicious hijacking.
 
 Although the implementation of \FlowCore\ does not cover every aspect of the JavaScript specification, the parts remaining are of only a practical concern.
 This dissertation focuses on the implementation of a labeling framework that would support such effort and on the ramifications of attaching labels to values in a dynamic language.
 
-\subsubsection{Arrays}
+\subsection{Expressions}
 
-All objects accept the bracket notation for field-lookup, however, JavaScript arrays come equipped with specific semantics.
+JavaScript, like any other computer language, supports the ability to create new values through the composition of existing values.
+For example, a new numerical value, \code{x}, can be derived from the sum of two other values, \code{a} and \code{b}.
+
+\lstset{caption={Value composition},
+        label={list:value-composition}}
+\begin{jscode}
+var x = a + b;
+// labelof(x) === label.join(labelof(a), labelof(b), labelof(pc))
+\end{jscode}
+
+An expression's resulting value depends not only on the input values, but also on the current execution context.
+As a consequence of direct data-dependence in expressions, \FlowCore\ labels the result value using the join of all labels of values together with the label of the program counter.
+
+To accomplish this task, we edited the C++ implementation of many of the operators within the JavaScriptCore interpreter to explicitly pull off the labels and perform the join as part of the computation.
+Fortunately, the syntactically recursive nature of JavaScript expressions and the virtual register-machine based implementation of JavaScriptCore, permits updating each operator independently and rely on the compositional nature of the language for propagation.
+
+As a prototype implementation, \FlowCore\ handles:
+\begin{description}
+  \item[Unary Math:] pre-increment, pre-decrement, post-increment, post-decrement, unary minus, and unary plus.
+  \item[Binary Math:] addition, subtraction, multiplication, and division, string concatenation
+  \item[Comparison:] equality, inequality, strict equality, strict inequality, less than, less than or equal to, greater than, and greater than or equal to, each for both numbers and strings.
+  \item[Bitwise Operators:] shift left, shift right, shift right with zero fill, and, or, xor, and not.
+\end{description}
+
+Although the idea behind dataflow tracking through expression seems simple, \FlowCore\ derives much of its tracking capabilities through this feature.
+After all, data structures comprise half of what makes a program\cite{wirth+76}.
+
+\section{Control Flow}
+
+\FlowCore\ focuses its capabilities on labeling expressions and tracking basic control-flow structures.
 
 
-JavaScript arrays derive their functionality from 
-
-\FlowCore\
-
-
-\subsubsection{Date}
-\subsubsection{Interned Strings (And Other Things)}
-
+TODO: review the jitflow paper on implementing math operations
 
 \section{Control Flow}
 
