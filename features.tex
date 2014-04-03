@@ -282,32 +282,17 @@ After all, data structures comprise half of what makes a program\cite{wirth+76}.
 
 \section{Control Flow}
 
-\FlowCore\ focuses its capabilities on labeling expressions and tracking basic control-flow structures.
-
-
-TODO: review the jitflow paper on implementing math operations
-
-\section{Control Flow}
-
-Dynamically typed languages such as JavaScript present difficulties for tracking information flow.
-Dependence on runtime input, the automatic type coercion of values, and the ability to use first-class functions as a runtime dispatch, all conspire to increase the difficulty of static flow analysis.
-Consequently, \FlowCore\ performs label propagation during program execution.
+Dynamically typed languages, such as JavaScript, present difficulties for tracking information dependence through control flow.
+Although the automatic type coercion of values can be handled via dataflow mechanisms, the ability to dynamically dispatch on runtime input, the presence of first-class functions, and the presence of \code{eval} all conspire to increase the difficulty and decrease the scope of statically performed control flow analysis.
+Consequently, \FlowCore\ undertakes only enough static control-flow analysis to instrument additional instructions (\autoref{ch:instructions}) that assist in performing label propagation during program execution.
 
 Fortunately, JavaScript uses structured control flow constructs.
 This language feature permits the use of a static analysis that calculates exactly at which point the information flow instructions introduced in \autoref{ch:instructions} need insertion into a program's instruction stream.
 
-\FlowCore\ modifies the instruction generator of JavaScriptCore, so that it instruments security instructions at parse time.
-This modification allows \FlowCore\ to prevent certain categories of information flow leaks (\autoref{sec:tracking-capabilities}) by using a control flow stack to track the security label of the program counter (\autoref{sec:control-flow-stack}) at runtime.
+\FlowCore\ modifies the instruction generator of JavaScriptCore to instrument security instructions at parse time.
+This modification allows \FlowCore\ to prevent certain categories of control-flow based information leaks (\autoref{sec:tracking-capabilities}) by using a control flow stack that tracks the security label of the program counter (\autoref{sec:control-flow-stack}) at runtime.
 
-This section presents a high-level motivation followed by the information flow instruction instrumentation for each type of control flow construct offered by JavaScript.
-
-\subsection{Function Calls}
-
-- begin with dup\_cflabel
-- end popping scope with popj\_cflabel
-- return value is tainted, though not necessarily with the union of all arguments (depend on their use)
-
-from this point forward, all of the following example bytecode dumps are encapsulated in their own function
+%This section presents a high-level motivation followed by the information flow instruction instrumentation for each type of control flow construct offered by JavaScript.
 
 \subsection{Conditional Branches}
 
@@ -374,8 +359,13 @@ Consequently, its label is not predictable at compile time, so we emit a \texttt
 This instruction upgrades the top of the control flow stack using the label of the conditional value computed at runtime.
 When either side of the conditional branch finishes executing, a \texttt{POP\_CFLABEL} instruction at the control flow join restores the pc-label to its state before the branch was encountered.
 
+\subsection{Function Calls}
 
+- begin with dup\_cflabel
+- end popping scope with popj\_cflabel
+- return value is tainted, though not necessarily with the union of all arguments (depend on their use)
 
+from this point forward, all of the following example bytecode dumps are encapsulated in their own function
 
 
 
