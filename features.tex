@@ -295,10 +295,12 @@ This modification allows \FlowCore\ to prevent certain categories of control-flo
 %This section presents a high-level motivation followed by the information flow instruction instrumentation for each type of control flow construct offered by JavaScript.
 
 \subsection{Conditional Branches}
+\label{sec:conditional-branch}
 
-The conditional branch and the jump instructions that implement it, forms the foundation of many of the control flow constructs offered in JavaScript.
+We begin the discussion on control-flow tracking with the simplest example possible: the conditional branch.
+This control-flow structure, particularly its reduction to jump instructions, provides a useful guideline for the complexity that comes with loops and function calls.
 
-As exhibited by \autoref{list:2branch}, a conditional branch consists of three parts:
+As exhibited by \autoref{list:2branch}, a conditional branch consists of four parts:
 \begin{description}
   \item [The predicate.] \hfill \\
     A boolean that determines which branch to execute.
@@ -306,17 +308,32 @@ As exhibited by \autoref{list:2branch}, a conditional branch consists of three p
     A block of code that executes when the conditional evaluates True.
   \item [The false-branch.] \hfill \\
     An optional block of code that executes when the conditional evaluates False.
+  \item [The join point.] \hfill \\
+    The common end of both branches.
 \end{description}
 
-\lstset{caption={Example conditional branch.},
+\lstset{caption={Parts of a conditional branch.},
         label=list:2branch}
 \begin{jscode}
     if (cond) {      // the predicate
-        x = 233;     // the true-branch
+        x = 333;     // the true-branch
     } else {
-        y = 377;     // the false-branch
+        y = 777;     // the false-branch
     }
+    // the join point
 \end{jscode}
+
+%The conditional branch possesses a useful logical constraint that guides the tracking mechanism: only one of the two available paths executes.
+No matter which branch executes, all of its instructions inferentially depend on the runtime value of the boolean predicate, so \FlowCore\ treats them as a code region.
+That region ends at the join point of the \code{if}-statement, where the two branches merge control flow, and the instruction following no longer have execution dependence on the predicate.
+
+The predicate my itself depend on input not supplied until runtime, so a static analysis cannot track the flow of information from predicate to branch instruction prior to execution.
+However, the region of instructions that comprises a branch, in the simplest case, consists of a block of straight line code.
+In the complex cases, the branch may contain arbitrary statements, but the JavaScript language definition limits the structure to syntactically nest in a recursive manner.
+Conveniently, this property allows \FlowCore\ to use a stack data structure, that pushes up at each predicated branch and pops off at each control-flow join, to track the begin and end of each code region.
+
+Based on the code syntax, the parser has knowledge of the begin and end points for each region, enabling it to emit instructions that the \FlowCore\ interpreter uses to track information flow dependence within either branch at execution time.
+To illustrate the instrumentation of these instructions, \autoref{fig:2branch-bytecode} shows the instruction stream that results from parsing \autoref{list:2branch}.
 
 \begin{figure}[h]
 \begin{python}
@@ -326,9 +343,9 @@ function mybranch() {
   var x;
   var y;
   if (cond) {
-    x = 233;
+    x = 333;
   } else {
-    y = 377;
+    y = 777;
   }
 }
 
@@ -344,20 +361,32 @@ j.run()
 import bytecodeformatter
 bytecodeformatter.tikz_picture(j.instructions())
 \end{python}
-  \caption{\FlowCore\ instruction stream represting the code snippet in \autoref{list:2branch}.}
+  \caption{\FlowCore\ instruction stream representing the code snippet in \autoref{list:2branch}.}
   \label{fig:2branch-bytecode}
 \end{figure}
 
-Ordinary label propagation through straight-line code ensures that the predicate has an attached label.
-\FlowCore\ uses this label to upgrade the label on the program counter and then pushes the new pc-label on the control flow stack, marking the entrance of a new program region that corresponds to the taken branch.
+Ordinary label propagation through straight-line code ensures that the predicate value itself has an attached label.
+\FlowCore\ uses this label to upgrade the program counter's label.
+It then pushes the new pc-label on the control flow stack, marking the entrance of a new program region.
+Although the new pc-label only affects instructions evaluated in the taken branch, the marking of the region applies to both branches.
 
-
-
-Conditional branches begin with a \texttt{DUP\_CFLABEL} instruction that marks the beginning of a secure code region by cloning the current pc-label.
+The modified parser emits a \dup instruction (line~\code{01}) to clone the current pc-label and mark the beginning of the secure code region.
+Next instructions for evaluating the conditional value appear, so that they execute under the cloned pc-label.
 The conditional value itself may be the result of an arbitrary expression, which could include function calls and shortcut evaluation of logical operators.
-Consequently, its label is not predictable at compile time, so we emit a \texttt{JOIN\_CFLABEL} instruction immediately following the conditional evaluation.
-This instruction upgrades the top of the control flow stack using the label of the conditional value computed at runtime.
-When either side of the conditional branch finishes executing, a \texttt{POP\_CFLABEL} instruction at the control flow join restores the pc-label to its state before the branch was encountered.
+\FlowCore\ cannot predict its label at parse time, so a \join instruction (line~\code{02}) immediately follows the conditional evaluation.
+The example in \autoref{fig:2branch-bytecode} the \join instruction immediately follows the \dup instruction because the conditional value already exists in a register (\code{r0}) and does not require computation.
+
+Prior to selecting a branch for execution (line~\code{04}), the \join instruction (line~\code{02}) upgrades the top of the control flow stack using the label of the conditional value computed at runtime.
+All instructions in the chosen branch then execute under the new pc-label.
+The data-flow propagation rules then ensure that the information dependence from the conditional predicate propagates to values computed within that branch, via the pc-label as an intermediary.
+\FlowCore\ does not need to instrument additional instructions in either the true-branch (lines~\code{07}--\code{10}) or the false-branch (line~\code{12}), because it already applies data-flow propagation from the pc-label to label the value output from each instruction.
+When either side of the conditional branch finishes executing, a \popj instruction (line~\code{15}) at the control flow join restores the pc-label to its state prior to branching, by popping the label pushed at the beginning of the region (line~\code{01}).
+
+
+Prior to selecting a branch for execution, the \join instruction upgrades the top of the control flow stack using the label of the conditional value computed at runtime.
+All instructions in the chosen branch then execute under the new pc-label, propagating the information dependence from the conditional predicate to values computed within that branch.
+When either side of the conditional branch finishes executing, a \popj instruction at the control flow join restores the pc-label to its state prior to branching.
+
 
 \subsection{Function Calls}
 
