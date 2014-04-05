@@ -482,10 +482,87 @@ This implementation detail permits later iterations to carry a higher pc-label t
 As soon as the loop condition fails to hold, \FlowCore\ executes a \popj instruction that restores the control-flow stack height to its previous level before the loop.
 This action allows subsequent code to execute under the same pc-label as existed before encountering the loop, regardless of how many loop iterations executed.
 
+\subsection{Break and Continue}
+\label{sec:break-and-continue}
 
-Prior to selecting a branch for execution, the \join instruction upgrades the top of the control flow stack using the label of the conditional value computed at runtime.
-All instructions in the chosen branch then execute under the new pc-label, propagating the information dependence from the conditional predicate to values computed within that branch.
-When either side of the conditional branch finishes executing, a \popj instruction at the control flow join restores the pc-label to its state prior to branching.
+JavaScript allows the \code{break} and \code{continue} statements to specify which loop they apply to.
+This complicates the maintenance of the control-flow stack, because they cause control flow to jump out of an arbitrarily nested loop.
+Such jumps can bypass the normal exit criteria of nested loops, thereby causing the control-flow stack to be out of alignment at the target location.
+To maintain correct runtime-behavior \FlowCore\ handles this issue by ensuring that the instruction emitter generates the correct number of control flow pops for any nested loops prematurely exit.
+A static analysis in the parser performs this computation and provides the resulting number as a parameter to the \popj instruction.
+
+\autoref{list:break-leak} demonstrates the use of a break in control flow to construct a value identity, \code{i~==~pin}, between an loop index, \code{i}, and a secret variable, \code{pin}, with a higher label in the security lattice.
+Without special consideration of the \code{break} and \code{continue} statements, malicious code could construct such identities without direct assignment, successfully avoiding detection from a data-flow propagation mechanism.
+However, making use of these identities requires that the loop index, \code{i}, remains available outside of the control-flow region that constructed the equality.
+
+\lstset{caption={Leaking a value via a break in control flow.},
+        label=list:break-leak}
+\begin{jscode}
+function leak_global_pin() {
+  var i = 0;
+  while (i < 10000) {
+    if (i == pin) {   // compare with secret pin
+      break;
+    }
+    ++i;
+  }
+  return i; // knowing that i == pin
+}
+\end{jscode}
+
+Notice that, in \autoref{list:break-leak}, no data-flow assignment modifies the loop index variable \code{i}.
+Even the comparison with the secret variable \code{pin} (line~\code{3}) does not change the label attached to the index, \code{i}.
+The scope of the \code{if}-statement ends prior to incrementing the index, preventing any data-flow propagation that would influence the label on the index variable \code{i}.
+
+To combat the use of contrived control flow as a side-channel to data-flow propagation, \FlowCore\ raises the security context of the \emph{function} scope in which the \code{break} or \code{continue} statement occurs.
+This action causes code following the unexpected change in control flow to execute under the same pc-label as the \code{break} statement itself.
+Any later use of the loop index \code{i} (line~\code{8}) then occurs under the raised security context.
+The rules for data-flow propagation incorporate the pc-label, so the result of such later computations carry the label of the condition (line~\code{3}) which controlled the break.
+
+\begin{figure}[h]
+\begin{python}
+code = r'''
+function leak() {
+  var i = 0;
+  while (i < 10000) {
+    if (i == pin)
+      break;
+    ++i;
+  }
+  return i;
+}
+print(debug(leak))
+'''
+import sys
+sys.path.append('..')
+
+import jsc
+j = jsc.jsc(code)
+j.run()
+
+import bytecodeformatter
+bytecodeformatter.tikz_picture(j.instructions())
+\end{python}
+  \caption{\FlowCore\ instruction stream representing the code snippet in \autoref{list:break-leak}.}
+  \label{fig:break-leak-bytecode}
+\end{figure}
+
+The arrow diagram in \autoref{fig:break-leak-bytecode} gives a visual layout of the nested control-flow structure in \autoref{list:break-leak}.
+The nested \code{if}-statement (lines~\code{07}--\code{27}) scopes the break in control flow (line~\code{25}).
+As explained previously (\autoref{sec:conditional-branch}), it begins with a \dup instruction (line~\code{07}) and ends with a \popj instruction (line~\code{27}).
+Instructions within the body of the true-branch occur under the pc-label upgraded by the loop condition, handled by the \join instruction (line~\code{17}).
+
+In this example, the body of the true-branch contains a \code{break} statement that disrupts the ordinary control flow, resulting in the placement of a \code{jmp} instruction (line~\code{25}) that moves control to the loop exit.
+Prior to this break, \FlowCore\ places a \popj instruction (line~\code{22}) that pops the label corresponding to the \code{if}-statement off the top of the control-flow stack (argument~\code{pop:1}).
+The target of the break coincides with the natural end of the loop, which takes care of popping off the label (\popj instruction on line~\code{41}) that corresponds to the code region of the loop.
+
+The \popj instruction corresponding to the break (line~\code{22}) differs from the other \popj instructions that handle the closing of the code regions corresponding to the \code{if}-statement (line~\code{27}) and \code{while}-loop (line~\code{41}).
+It has an additional parameter that causes an upgrade of the function scope (argument~\code{join:2}).
+In this case, the function has only one level of scope beyond the nested \code{if}-statement.
+
+The \popj instruction for the break pops one label for the \code{if}-statement and upgrades two labels beneath, one for the \code{while}-loop and one for the function.
+After the breaking the control flow, all following instructions scoped to the current function execute under the upgraded pc-label.
+The use of the pc-label makes the data-flow propagation rules (\autoref{sec:data-flow-tracking}) context-aware, enabling \FlowCore\ to track the information dependence that values constructed outside of the interrupted loop have on the break condition.
 
 
 \subsection{Function Calls}
@@ -617,19 +694,6 @@ DONE %Variables which can leak information are subject to the \textit{no sensiti
 DONE %Using these principles, we demonstrate the labeling strategy for several control flow structures defined in the JavaScript language~\cite{ecma}.
 
 \subsection{Conditional Branches}
-\subsection{Break and Continue}
-\label{sec:break-and-continue}
-JavaScript allows the \texttt{break} and \texttt{continue} statements to specify which loop they apply to.
-This complicates the maintenance of a control flow stack, because such statements may jump out of an arbitrarily nested loop.
-Such jumps can bypass the normal exit criteria of nested loops, thereby causing the control flow stack to be out of alignment at the target location.
-To maintain correct runtime-behavior we must handle this issue by ensuring that the instruction emitter generates the correct number of control flow pops for any nested loops that are exited.
-A static analysis in the parser performs this computation and provides the resulting number as a parameter to the \texttt{POPJ\_CFLABEL} instruction.
-
-Loop index variables, which are commonly bound to the function scope\footnote{JavaScript binds variables declared with \texttt{var} to the function scope, and did not have a block level scope prior to the introduction of \texttt{let} in version~1.7.} can be used for an implicit information leak if they are not all upgraded to the current pc-label at the time a \texttt{break} or \texttt{continue} statement is encountered.
-Our system prevents potential implicit information leaks by emitting a \texttt{POPJ\_CFLABEL} instruction that not only pops the correct number of control flow labels, but also takes care to upgrade the control flow stack for the current function.
-Upgrading the control flow stack in this manner upgrades all the values present on the operand stack at the time the interruption in control flow occurred.
-Any later computations performed by the function are then considered to be influenced by the security context in effect at the time the \texttt{break} or \texttt{continue} statement was encountered.
-
 \subsection{Exceptions}
 \label{sec:exceptions}
 Exceptions represent a substantial challenge to information flow security, because a \texttt{throw} permits any called function to create an early return that crosses multiple function boundaries.
