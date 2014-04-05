@@ -5,6 +5,7 @@ JavaScript, like many scripting languages, agglomerates different programming pa
 In order to provide a comprehensive treatment of the labeling semantics and tracking provided by \FlowCore, this chapter gives examples and explanation of tracking in the covered JavaScript language features.
 
 \section{Data Flow Tracking}
+\label{sec:data-flow-tracking}
 
 JavaScript offers some built-in data types such as Date, String, Array, and Object which programmers use to compose larger data structures.
 For reasons of efficient implementation JavaScript breaks down these data types into two categories: primitives, which fit into a 64-bit machine integer (according to the encoding in Chapter~\ref{sec:existing-type-system}), and objects, which function as generic key-value hash tables stored in the garbage-collected heap.
@@ -290,7 +291,7 @@ Fortunately, JavaScript uses structured control flow constructs.
 This language feature permits the use of a static analysis that calculates exactly at which point the information flow instructions introduced in \autoref{ch:instructions} need insertion into a program's instruction stream.
 
 \FlowCore\ modifies the instruction generator of JavaScriptCore to instrument security instructions at parse time.
-This modification allows \FlowCore\ to prevent certain categories of control-flow based information leaks (\autoref{sec:tracking-capabilities}) by using a control flow stack that tracks the security label of the program counter (\autoref{sec:control-flow-stack}) at runtime.
+This modification allows \FlowCore\ to prevent certain categories of control-flow based information leaks (\autoref{sec:tracking-capabilities}) by using a control-flow stack that tracks the security label of the program counter (\autoref{sec:control-flow-stack}) at runtime.
 
 %This section presents a high-level motivation followed by the information flow instruction instrumentation for each type of control flow construct offered by JavaScript.
 
