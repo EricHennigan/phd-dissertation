@@ -76,13 +76,17 @@ class CodeLine:
   OPCODENAME_PAT = re.compile('[A-Za-z_]+')
   TARGET_PAT = re.compile('\(->\d+')
 
+  byteOffsetWidth = 1
+
   @classmethod
   def isValid(cls, line):
     return bool(CodeLine.BYTECODE_PAT.search(line))
 
   def __init__(self, line):
     self.line = line.rstrip()
-    self.byteOffset = int(CodeLine.OFFSET_PAT.search(self.line).group(0))
+    self.byteOffset = CodeLine.OFFSET_PAT.search(self.line).group(0)
+    CodeLine.byteOffsetWidth = max(len(self.byteOffset), CodeLine.byteOffsetWidth)
+    self.byteOffset = int(self.byteOffset)
     self.opcodeName = CodeLine.OPCODENAME_PAT.search(self.line).group(0)
     self.args = self.line.split(self.opcodeName, 1)[1].lstrip()
 
@@ -104,8 +108,7 @@ class CodeLine:
     return s
 
   def byteOffsetStr(self):
-    # 2 char wide, right aligned, fill with "0"
-    return '[{0:{1}>2}]'.format(self.byteOffset, "0")
+    return '[{0:{fill}>{width}}]'.format(self.byteOffset, fill="0", width=CodeLine.byteOffsetWidth)
 
   def opcodeStr(self):
     return '{0:s}'.format(self.opcodeName)
