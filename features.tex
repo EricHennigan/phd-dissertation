@@ -383,6 +383,105 @@ The data-flow propagation rules then ensure that the information dependence from
 \FlowCore\ does not need to instrument additional instructions in either the true-branch (lines~\code{07}--\code{10}) or the false-branch (line~\code{12}), because it already applies data-flow propagation from the pc-label to label the value output from each instruction.
 When either side of the conditional branch finishes executing, a \popj instruction (line~\code{15}) at the control flow join restores the pc-label to its state prior to branching, by popping the label pushed at the beginning of the region (line~\code{01}).
 
+\subsection{Loops}
+
+We address the loop control-flow structure by following the pattern established in analysis of the conditional branch.
+When reducing the loop control-flow structure to jump instructions, we notice that it contains an implied backwards branch for repeating a block of instructions.
+This pattern means that loops require additional care compared to conditional branches.
+
+As exhibited by \autoref{list:for-loop}, a loop consists of four parts:
+\begin{description}
+  \item [The initialization.] \hfill \\
+    Declarations of any variables or beginning state prior to the loop.
+    These may occur as general instructions prior to the loop declaration or, in the case of a \code{for}-loop, as a syntactically obvious convenience.
+  \item [The condition.] \hfill \\
+    A boolean value that determines when the loop exits.
+  \item [The loop body.] \hfill \\
+    A block of code that executes for as long as the predicate holds True.
+    The \code{for}-loop provides a convenient \emph{afterthought} that appears at the end of the loop body, usually used for incrementing or decrementing a loop index variable.
+  \item [The loop exit.] \hfill \\
+    Code that follows the loop body, executing after the loop exit.
+\end{description}
+
+\lstset{caption={Parts of a \code{for}-loop.},
+        label=list:for-loop}
+\begin{jscode}
+  for (var x=0;      // initialization
+       x < 1000;     // condition
+       ++x) {        // afterthought
+    print(x);        // loop body
+  }
+  // loop exit
+\end{jscode}
+
+Again the reduction of the loop control-flow structure to jump instructions
+Because of the implied backwards branch, loops require additional care compared to conditional branches.
+Specifically, \FlowCore\ must commit to a single push/pop pair surrounding the loop code region, and avoid pushing on the control-flow stack every time it evaluates the loop condition (i.e. every iteration).
+
+As with the conditional branch, ordinary data-flow propagation through straight-line code ensures that the initialization values construct with attached labels.
+Next, the loop conditional predicate executes to determine whether the loop body will run.
+The predicate executes at the end of each loop iteration to control subsequent iterations of the loop body.
+Conceptually, that behavior places the loop condition within the same code region as the loop body.
+So the code region defining the loop begins with the initialization code, covers the loop condition and body, and ends at the loop exit.
+
+Because the predicate of the loop may depend on runtime-supplied input, a static analysis cannot track the flow of information from predicate to loop body.
+Instead, \FlowCore\ establishes a region around the loop condition and body, relying on data-flow propagation to track the dependence at runtime, by propagating the region's current pc-label to labels on values generated within the loop body.
+The recursively nested syntactic structure of the JavaScript language permits tracking the region with a label stack.
+
+When \FlowCore\ evaluates the loop condition it sets the label for the code region that defines the loop.
+But the loop condition controls execution of each loop body iteration.
+So \FlowCore\ upgrades the label of the code region after each evaluation of the condition.
+Due to the monotonicity of the join operation used to upgrade the pc-label on the code region, this behavior has an interesting side-effect.
+Later iterations of the loop body my execute under a label higher in the security lattice than earlier iterations of the loop body.
+Naturally, successive iterations depend on earlier iterations, implying an information flow between iterations, which \FlowCore\ tracks.
+
+Unfortunately, \FlowCore\ does have a powerful enough analyzer to determine if subsequent iterations actually possess an information flow dependence between iterations.
+The programmer may intend that each iteration be logically independent, such that a more powerful language would execute all iterations in parallel, with some loop body executions under conditionals with a high label, and others under a lower label.
+In JavaScript, logically-independent iterations meant to execute under a lower label will unfortunately happen to inherit a higher label, when they occur subsequent to the execution of an iteration with a higher label.
+This side-effect occurs as a result of expressing parallel logic in a single-threaded manner and forms a potential source a label creep that \FlowCore\ cannot avoid.
+
+\begin{figure}[h]
+\begin{python}
+code = r'''
+function mybranch() {
+  for (var x=0;      // initialization
+       x < 1000;     // condition
+       ++x) {        // afterthought
+    print(x);        // loop body
+  }
+}
+print(debug(mybranch))
+'''
+import sys
+sys.path.append('..')
+
+import jsc
+j = jsc.jsc(code)
+j.run()
+
+import bytecodeformatter
+bytecodeformatter.tikz_picture(j.instructions())
+\end{python}
+  \caption{\FlowCore\ instruction stream representing the code snippet in \autoref{list:for-loop}.}
+  \label{fig:for-loop-bytecode}
+\end{figure}
+
+Prior to the loop initialization code, \FlowCore\ marks the beginning the loop region with a \dup instruction (line~\code{01}).
+Because the \dup instruction changes only the height of the control-flow stack, and not the value of the label on top of the stack, the loop initialization instructions (line~\code{02}) execute under an unmodified security context.
+For performance optimization reasons, JavaScriptCore places the loop condition (lines~\code{24}--\code{30}) after the loop body (lines~\code{07}--\code{18}).
+Both \code{for}-loops and \code{while}-loops follow this convention, permitting only a single example (\autoref{fig:for-loop-bytecode}) to show the security instruction placement.
+
+Each time \FlowCore\ evaluates the loop condition, it executes a \join instruction (line~\code{28}) that upgrades the current security context for the next iteration.
+Naturally, the placement of the loop condition at the tail end of the loop body causes an upgrade in every iteration.
+The \join instruction does not affect the height of the control-flow stack, successfully avoiding unwanted stack growth each iteration.
+
+The presence of the \join instruction in the conditional results in a monotonically increasing label on the loop body.
+This implementation detail permits later iterations to carry a higher pc-label than earlier iterations, even when these iterations do not influence each other.
+\FlowCore\ makes no attempt to analyze the loop body for independence of iterations, so it cannot downgrade the loop context.
+
+As soon as the loop condition fails to hold, \FlowCore\ executes a \popj instruction that restores the control-flow stack height to its previous level before the loop.
+This action allows subsequent code to execute under the same pc-label as existed before encountering the loop, regardless of how many loop iterations executed.
+
 
 Prior to selecting a branch for execution, the \join instruction upgrades the top of the control flow stack using the label of the conditional value computed at runtime.
 All instructions in the chosen branch then execute under the new pc-label, propagating the information dependence from the conditional predicate to values computed within that branch.
@@ -518,21 +617,6 @@ DONE %Variables which can leak information are subject to the \textit{no sensiti
 DONE %Using these principles, we demonstrate the labeling strategy for several control flow structures defined in the JavaScript language~\cite{ecma}.
 
 \subsection{Conditional Branches}
-\subsection{Loops}
-
-Because of the implied backwards branch, loops require more care than conditional branches.
-Prior to entering the loop a \texttt{DUP\_CFLABEL} instruction clones the current pc-label.
-
-Again, because the condition is a runtime evaluated expression, only a dynamic analysis can identify the correct label to apply to the loop body.
-The possibility of an earlier iteration influencing a later iteration complicates the situation.
-Our implementation emits a \texttt{JOIN\_CFLABEL} instruction at the end of the conditional, despite the fact that this forces the current pc-label to be re-upgraded at each iteration.
-Upon exiting the loop, a \texttt{POPJ\_CFLABEL} instruction restores the pc-label to its state before the loop was encountered.
-
-One caveat of this solution is that it allows a monotonically increasing label on the loop body.
-It is unfortunately possible that later iterations may carry a higher pc-label than earlier iterations, even when these iterations do not influence each other.
-For example, an array might contain a sequence of completely unrelated values, each cloaked with a different security label.
-When looping over such a construction, our implementation does not downgrade the loop context, even if independence of iterations could be proven.
-
 \subsection{Break and Continue}
 \label{sec:break-and-continue}
 JavaScript allows the \texttt{break} and \texttt{continue} statements to specify which loop they apply to.
