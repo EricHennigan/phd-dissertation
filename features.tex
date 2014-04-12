@@ -236,6 +236,13 @@ Section~\ref{sec:function-calls} discusses the setup of the execution context pr
 
 \subsection{Built-ins}
 
+\begin{comment}
+ - what to do with arrays, or does this fit better in design considerations?
+   : Can coalesce labels on arrays?
+   : label bounds checking?
+ - object poisoning attack
+\end{comment}
+
 The JavaScript specification~\cite{ecma} provides numerous built-in functions and values, defined on the built-in Global Object.
 Some of these built-ins have attributes that behave in a way that cannot be emulated in pure JavaScript, such as the \code{length} property of an \code{Array} object.
 
