@@ -744,41 +744,24 @@ As a result of passing through the parser, this stream contains all of the secur
 That instruction stream then executes inside a code region constructed by the \FlowCore\ interpreter.
 The parameter string passed into the \code{eval} provides the initial pc-label for the new execution context.
 
-\subsection{With}
-property access and creation
+\section{Verification}
 
+In addition to the modifications made to JavaScriptCore, the \FlowCore\ projects also contains private test cases that ensure that correct label propagation for each of the control-flow structures mentioned in \autoref{sec:control-flow-tracking}, and the data-flow operations mentioned in \autoref{sec:data-flow-tracking}.
+\FlowCore\ correctly identifies active implicit flows represented in the test suite, including the ``leak pin'' examples, \autoref{list:2branch}, \autoref{list:for-loop}, and \autoref{list:break-leak}.
+Although this effort does not substitute for a proof of correctness, it does give us confidence that our implementation faithfully follows the approach outlined in this thesis.
 
- - what to do with arrays, or does this fit better in design considerations?
-   : Can coalesce labels on arrays?
-   : label bounds checking? 
- - obj literals
-   how they interact with obj poisoning attack
- - retrieval
-   indexing syntax [] vs .
-   prototype chain
- - Seth Just Information flow analysis for JS has a good discussion about control flow structures.
- - early returns (out of nested loops)
- - break/continue (in nested loops)
+To ensure that \FlowCore\ places all of the security instructions appropriately, the development version also executes an abstract interpreter that tracks the control-flow stack height at every instruction of a compiled method.
+This analysis covers \emph{all} possible executions paths for every method parsed, ensuring that \FlowCore\ never instruments security instructions that might cause a runtime misalignment of the control-flow stack.
+\FlowCore\ can run this verification over all of the more than 2,000 tests in the SpiderMonkey testing suite, which Mozilla uses to detect regressions for every code change.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%
-% From 2011 acsac.tex
-
-DONE Although dynamically typed languages present many difficulties for ensuring information flow, we find that JavaScript uses structured control flow constructs.
-DONE As a result, we can use a static analysis which calculates exactly at which points our security instructions should be inserted into the instruction stream.
-DONE This modification allows our system to prevent implicit information flow leaks by tracking the security label of the program counter at runtime, using the control flow stack.
-DONE %Because local variables cannot leak information, allowing them to automatically upgrade still complies with the intention of non-interference security~\cite{goguen1982security}.
-DONE %Variables which can leak information are subject to the \textit{no sensitive upgrade} check (see Section~\ref{sec:sensitive-upgrade-check}), and are prevented from automatic upgrade.
-DONE %Using these principles, we demonstrate the labeling strategy for several control flow structures defined in the JavaScript language~\cite{ecma}.
-
-%===============================================================================
 
 \section{Evaluation}
 \label{sec:evaluation}
 
-%
-%To evaluate our claims we modified SpiderMonkey, the JavaScript VM used in the Mozilla Firefox browser.
-%We examine the bytecode overhead introduced by the inclusion of the secure bytecodes, as well as its affect on usability.
-%Based on our results from browsing real websites, we give some insight into the architectural changes website authors might have to make to support information flow security.
+\todo[inline] performance benchmarks
+%\todo{address reviewer comment: Performance overhead is reasonable, some benchmarks using real-world applications would be useful to estimate the actual impact on a system}
+\todo[inline] bytcode counts ??
+
 
 Our implementation focuses mainly on the creation of a fully functional and correct information flow tracking system.
 We would like to note that, to the best of our knowledge, no standard set of tests for information flow frameworks currently exists.
@@ -852,18 +835,6 @@ For our approach to be adopted in a working environment, web site authors clearl
   \label{fig:eval_falsepositives}
 \end{figure}
 \end{comment}
-
-\subsection{Verification}
-
-In addition to the evaluations presented above, we also implement 173 private test cases to ensure that we generate the correct labels for each of the control flow structures mentioned in Section~\ref{sec:program-control-structures}.
-Our system is correctly able to identify both explicit and implicit information flows represented in this test suite, including the two examples presented in Figure~\ref{fig:threat_if} and Figure~\ref{fig:threat_for}.
-Although this effort does not substitute for a proof of correctness, it does give us confidence that our implementation faithfully follows the approach we have outlined.
-
-Our system also runs an abstract interpreter that verifies the control flow stack height at every instruction of a method.
-This analysis covers \emph{all} possible executions paths for every method parsed, and ensures that we never introduce security instructions that might cause a runtime misalignment of the control flow stack.
-We are able to run this verification over all of the more than 2,000 tests in the SpiderMonkey testing suite, which Mozilla uses to detect regressions for every code change.
-
-%\todo{address reviewer comment: Performance overhead is reasonable, some benchmarks using real-world applications would be useful to estimate the actual impact on a system}
 
 %===============================================================================
 
