@@ -567,25 +567,24 @@ The \popj instruction for the break pops one label for the \code{if}-statement a
 After the breaking the control flow, all following instructions scoped to the current function execute under the upgraded pc-label.
 The use of the pc-label makes the data-flow propagation rules (\autoref{sec:data-flow-tracking}) context-aware, enabling \FlowCore\ to track the information dependence that values constructed outside of the interrupted loop have on the break condition.
 
-
 \subsection{Function Calls}
+\label{sec:function-calls}
 
-- begin with dup\_cflabel
-- end popping scope with popj\_cflabel
-- return value is tainted, though not necessarily with the union of all arguments (depend on their use)
-
-from this point forward, all of the following example bytecode dumps are encapsulated in their own function
-
-
-
-
-\subsection{Function Calls}
-
-JavaScript supports first-class functions, meaning that, just like Objects, references to functions carry a label.
-Upon entry into a function, the VM joins the caller's current program counter label with the function reference label to set the callee's current program counter label.
-All operations within the function occur under the new program counter label.
-
+JavaScript supports first-class functions, meaning that references to functions carry a label, just like references to Objects.
 Entry into a function creates an \term{execution context}\cite{ecma}, beginning with an activation object that holds the function-local variables and an \code{arguments} object that gives array-like indexable access to the function's runtime arguments and caller.
+\FlowCore\ modifies the JavaScriptCore VM to establish a new code region surrounding the function body.
+
+As part of the preamble, \FlowCore\ pushes a label onto the control-flow stack at the time it creates the execution context for the called function.
+\FlowCore\ then upgrades the pc-label for the function by joining in The label of the function reference, ensuring that the results of all operations within the function occur under the label of the function reference.
+Finally, control transfers to the newly established function frame.
+
+\FlowCore\ does not emit the \dup and \join instructions into the instruction stream to establish the beginning of the function's code region.
+Rather, it accomplishes the same effect by direct modification of JavaScriptCore's internal stack manipulation routines.
+
+During execution, \FlowCore\ applies the current pc-label to the result of all operations, following the control-flow and data-flow implementation given previously.
+\FlowCore\ makes no special consideration for function-local variables, because they behave as fields stored on the activation object.
+The labeling rules also apply to implicitly defined local values, such as the function's return value, the \code{arguments} object, and any raised exception objects.
+%Additionally, the labeling applies to any variables accessed along the \brackdbl{scope} chain, using the same procedures for variable access on the \brackdbl{property} chain.
 
 \begin{comment}
 function foo() {
@@ -601,74 +600,142 @@ function foo() {
 foo(1,2,3,4)
 \end{comment}
 
-
-During execution, the \FlowCore\ applies the current program counter label to the result of all operations, including storage of function-local variables stored in the current activation object.
-In particular, this labeling applies to implicitly defined local values such as the function's return value, the \code{arguments} object, and any raised exception objects.
-Additionally, the labeling applies to any variables accessed along the \brackdbl{scope} chain, using the same procedures for variable access on the \brackdbl{property} chain.
-
 \subsubsection{Closures}
 
-Because JavaScript doesn't support the \code{public}, \code{private}, and \code{protected} access modifiers of class-based languages, programmers use closures for state encapsulation.
+%http://lostechies.com/derekgreer/2012/02/17/javascript-closures-explained/
+%http://javascript.info/tutorial/closures
+%\url{http://jibbering.com/faq/notes/closures/#clScCh}
 
-\url{http://jibbering.com/faq/notes/closures/#clScCh}
+Because JavaScript doesn't support the \code{public}, \code{private}, and \code{protected} access modifiers of class-based languages, programmers use closures to encapsulate variables with the methods that modify them.
+Douglas Crockford describes three patterns that emulate the behavior of these missing keywords~\cite{crockford+08}:
 
+\begin{description}
+  \item[Public:]
+    The members of an object are all public members. Any function can access, modify, or delete those members, or add new members.
+  \item[Privileged:]
+    A privileged method is able to access the private variables and methods, and is itself accessible to the public methods and the outside.
+    It is possible to delete or replace a privileged method, but it is not possible to alter it, or to force it to give up its secrets.
+  \item[Private:]
+    A private members are made by the constructor.
+    They are attached to the object, but they are not accessible to the outside, nor are they accessible to the object's own public methods.
+    They are accessible to private and privileged methods.
+\end{description}
 
-When the VM executes a function, the label on the reference used to make the call is used as the initial program counter label upon entry into the function.
+\autoref{list:closure-example} demonstrates the syntactical construction of these encapsulation patterns.
+Notice that the existing data-flow and control-flow rules handle label propagation for all assignments and accesses.
+The closure exists by virtue of JavaScriptCore's support for keeping the stack activation object alive for as long as the variables defined therein have a live reference.
+\FlowCore\ makes no special consideration for label propagation in closures and derives its support for this language feature as a result of composition from support for other features.
 
-it's too early to provide code samples of the labeling
-  have to introduce both the attached label syntax
-  and the first-class labeling framework
-instead we have to talk specifically about semantics
-  breaks up into two parts
-  1. calling and return value
-  2. local variables
-
-what to say about closures ?
-
-
-JavaScript supports first-class functions, meaning that references to functions carry a label.
-In addition to the principals joined during computation, the label on the value returned from a function also includes all principals in label on the reference used to make the call.
-
-\lstset{caption={Label of Function Return Depends on Label of Reference to the Function}
-        label={list:label-function-reference}}
+\lstset{caption={JavaScript closures emulating public, private, and privileged concepts.},
+        label={list:closure-example}}
 \begin{jscode}
+function Constructor(param) {
+    this.public_member = param;
+
+    var private_variable = param;
+    function private_method() {
+        return --private_variable > 0;
+    }
+
+    var private_self = this;
+    this.priviledged_method = function () {
+        return private_method() ? private_self.public_member : null;
+    }
+}
+
+// use at the JavaScript console
+> var obj = new Constructor(1)
+[object Object]
+> obj.public_member
+1
+> obj.priviledged_method()
+1
+> obj.privileged_method()
+null
 \end{jscode}
 
-todo: describe what happens on entry
-todo: describe what happens on return
-todo: show where the bytecodes get placed for 
+\subsubsection{Return Values}
 
-When calling a function, the label on the program counter at the site of the call joins with 
+As a result of data-flow label propagation, the return value already contains a conjunction of all labels on all data elements used in computation of the value.
+\FlowCore\ modifies the return instruction to apply the current pc-label to the value being returned.
+This additional step enables implicit return values\footnote{All JavaScript functions return \code{undefined} by default, if the function body does not have an explicit return value.} to posses a label at least as secure as the pc-label present at function exit.
+It also catches any upgrade to the code region of the function, such as that caused by a break in control flow (\autoref{sec:break-and-continue}).
+By modifying the implementation of the return instruction, \FlowCore\ does not need to instrument any security instructions at function return sites.
 
-JavaScripts offering of first-class functions means that \FlowCore\
-Source code definining function
-\FlowCore\ labels source code with the domain of origin, providing a label on the LexicalEnvironment.
-When the interpreter
+\FlowCore\ handles early returns in the same manner that it handles a break in control flow.
+The code region exits with an explicit \popj instruction that upgrades the pc-label of the function body, immediately before the \code{ret} instruction labels its argument with the current program counter label and returns to the calling function.
 
-\begin{enumerate}
- \item [The function is provided by a script.]
-  When the host environment hands a script to the JavaScript VM, it has the option of labeling that script with a security principal.
-  In this case, the function lookup process is responsible for retrieving the label of the function.
- \item [The function is an uncloaked first class value.]
-  The current program counter implicitly labels anonymous functions at the time of their creation.
-  As a result, the label of the function is always lower than that of the pc-label, and it is safe to call directly.
- \item [The function is a cloaked first class value.]
-  If a sensitive control flow computation resulted in the return of a function, the return specification (see Section~\ref{sec:returns}) cloaks the function.
-  In this case, the VM retrieves label of the function from its wrapper before the call.
-\end{enumerate}
+Just as it modified the stack manipulation routines to establish a code region at the callsite, \FlowCore\ also takes care to implicitly perform the equivalent of a \popj instruction to end the function's code region as part of the function's epilogue.
+This action occurs in all cases as part of transferring control to the caller function and does not engender instrumentation of the \popj instruction into the instruction stream.
 
-http://lostechies.com/derekgreer/2012/02/17/javascript-closures-explained/
-http://javascript.info/tutorial/closures
+\subsubsection{Labelling of the Function Reference}
+
+When used within a host application, such as the WebKit web browser, \FlowCore\ supports labeling of the function reference.
+The setting of this label breaks down into two cases:
+\begin{description}
+ \item [A script declares the function.]
+  When the host environment hands a script to the JavaScript VM, it has the option of labeling that script, and the function objects created from parsing it, with a security principal.
+  For example, a modified version of WebKit can tag scripts (and the objects described within) with a label that indicates their domain of origin.
+  During execution of the script, data-flow label propagation ensures that \FlowCore\ executes the functions with the label initially attached by the host application.
+ \item [Execution defines a function at run time.]
+   Just as with any object, the current program counter implicitly labels the \code{JSvalue} holding the function reference at the time of that function's creation.
+  Whether stored in a variable for a later call, anonymously passed around or returned, or immediately called, \FlowCore\ uses the attached label to establish the execution context at function invocation time.
+  All code within the function then executes under a label at least as secure as the pc-label at the time of the function's creation.
+  If the reference undergoes data-flow in a secure region, \FlowCore\ upgrades the attached label by the rules of control-flow propagation.
+\end{description}
 
 
-
-
-\subsubsection{Closures}
-\subsection{Early Return}
-\subsection{Break and Continue}
+\begin{comment} % web1/../jsc does not handle exceptions
 \subsection{Exceptions}
+\label{sec:exceptions}
+Exceptions represent a substantial challenge to information flow security, because a \code{throw} permits any called function to create an early return that crosses multiple function boundaries.
+To complicate security issues further, JavaScript supports the \code{try}, \code{catch}, \code{finally} triplet of keywords.
+
+\begin{figure}[h]
+\begin{python}
+code = r'''
+function leak() {
+  try {
+    print(beg);
+  } catch (ex) {
+    print(ex);
+  } finally {
+    print(fin);
+  }
+}
+print(debug(leak))
+'''
+import sys
+sys.path.append('..')
+
+import jsc
+j = jsc.jsc(code)
+j.run()
+
+import bytecodeformatter
+bytecodeformatter.tikz_picture(j.instructions())
+\end{python}
+  \caption{\FlowCore\ instruction stream representing the code snippet in \autoref{list:break-leak}.}
+  \label{fig:gorn}
+\end{figure}
+
+The exception handling region of the \code{try}-block begins with a \dup instruction.
+As a conservative precaution, when the interpreter encounters a \code{throw} statement, it takes care to first cloak the exception object that is to be returned to the exception handler using the current pc-label.
+Once the interpreter finds the appropriate handler, it pops all activation frames within the call chain.
+Control flow then transfers to the corresponding \code{catch}-block where a \code{POPJ\_CFLABEL} instruction upgrades the entire control flow stack of the handling function using the label taken from the exception object.
+Taking this action prevents implicit information leaks that might occur due to exiting the \code{try}-block early.
+Such leaks are analogous to the \code{break} and \code{continue} (see Section~\ref{sec:break-and-continue}).
+
+The \code{finally}-block always executes using the current pc-label, which is provided either by finishing the \code{try}-block or from catching an exception and executing the \code{catch}-block.
+\end{comment}
+
 \subsection{Eval}
-property access and creation
+\label{sec:eval}
+\FlowCore\ treats the \code{eval} feature in a manner similar to other function calls.
+A call to \code{eval} first calls the parser, which compiles the string into an instruction stream.
+As a result of passing through the parser, this stream contains all of the security instructions just as a normal script would.
+That instruction stream then executes inside a code region constructed by the \FlowCore\ interpreter.
+The parameter string passed into the \code{eval} provides the initial pc-label for the new execution context.
 
 \subsection{With}
 property access and creation
@@ -695,57 +762,6 @@ DONE This modification allows our system to prevent implicit information flow le
 DONE %Because local variables cannot leak information, allowing them to automatically upgrade still complies with the intention of non-interference security~\cite{goguen1982security}.
 DONE %Variables which can leak information are subject to the \textit{no sensitive upgrade} check (see Section~\ref{sec:sensitive-upgrade-check}), and are prevented from automatic upgrade.
 DONE %Using these principles, we demonstrate the labeling strategy for several control flow structures defined in the JavaScript language~\cite{ecma}.
-
-\subsection{Conditional Branches}
-\subsection{Exceptions}
-\label{sec:exceptions}
-Exceptions represent a substantial challenge to information flow security, because a \texttt{throw} permits any called function to create an early return that crosses multiple function boundaries.
-To complicate security issues further, JavaScript supports the \texttt{try}, \texttt{catch}, \texttt{finally} triplet of keywords.
-
-The exception handling region of the \texttt{try}-block begins with a \texttt{DUP\_CFLABEL} instruction.
-As a conservative precaution, when the interpreter encounters a \texttt{throw} statement, it takes care to first cloak the exception object that is to be returned to the exception handler using the current pc-label.
-Once the interpreter finds the appropriate handler, it pops all activation frames within the call chain.
-Control flow then transfers to the corresponding \texttt{catch}-block where a \texttt{POPJ\_CFLABEL} instruction upgrades the entire control flow stack of the handling function using the label taken from the exception object.
-Taking this action prevents implicit information leaks that might occur due to exiting the \texttt{try}-block early.
-Such leaks are analogous to the \texttt{break} and \texttt{continue} (see Section~\ref{sec:break-and-continue}).
-
-The \texttt{finally}-block always executes using the current pc-label, which is provided either by finishing the \texttt{try}-block or from catching an exception and executing the \texttt{catch}-block.
-
-\subsection{Function calls}
-\label{sec:function-calls}
-We found it unnecessary to introduce additional instructions to handle function calls.
-Instead, we instrument the existing routine for a function call to lookup the label of a function at call time.
-When a function call occurs, our system first duplicates the top of control flow stack then joins it with the label of that function.
-This action makes all operations which occur within the body of that function safe.
-The location of this label breaks down into three cases:
-\begin{description}
- \item [The function is provided by a script.]
-  When the host environment hands a script to the JavaScript VM, it has the option of labeling that script with a security principal.
-  In this case, the function lookup process is responsible for retrieving the label of the function.
- \item [The function is an uncloaked first class value.]
-  The current program counter implicitly labels anonymous functions at the time of their creation.
-  As a result, the label of the function is always lower than that of the pc-label, and it is safe to call directly.
- \item [The function is a cloaked first class value.]
-  If a sensitive control flow computation resulted in the return of a function, the return specification (see Section~\ref{sec:returns}) cloaks the function.
-  In this case, the VM retrieves label of the function from its wrapper before the call.
-\end{description}
-
-\subsection{Returns}
-\label{sec:returns}
-A returned value needs to carry information indicating the security context under which the value was produced.
-Our system achieves this by explicitly cloaking the return value with the current pc-label using \texttt{CLOAK} instruction.
-%\todo{more? if value is already cloaked...}
-
-\subsection{Eval}
-\label{sec:eval}
-Our system treats \texttt{eval} similar to other function calls.
-In this case, the parameter string passed into the \texttt{eval} provides the label for the new execution context.
-A call to \texttt{eval} first compiles this string into an instruction stream.
-As a result of passing through the parser, this stream contains all of the security instructions as would a normal script.
-
-%The \texttt{eval} frame performs variable access using dynamic lookup.
-%The bytecodes emitted for these lookups are the same as the bytecodes emitted for a parent lexical scope (equiv. to global) accesses.
-%Our system already mediates the modification of such variables using the \textit{no sensitive upgrade} check (see Section~\ref{sec:sensitive-upgrade-check}), so no extra precautions are necessary for securing the \texttt{eval} construct.
 
 %===============================================================================
 
