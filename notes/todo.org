@@ -206,5 +206,7 @@ semi-persist |          |         |                   |
   - comparisons: integer==, string==, integer!=, string !=, strict ===, strict !==, <, <=, >, >=
   - bitwise: shift left, shift right, right with 0 fill, and, or, xor, not
 
+Formality:
+  - Do I want to talk about the no-sensitive-upgrade rule, or non-interference security?
+    if so, grep the jsflows for those terms
 
-     
