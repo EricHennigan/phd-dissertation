@@ -1,5 +1,5 @@
 
-\chapter{JavaScript Feature Catalog}
+\chapter{Label Tracking in JavaScript}
 
 JavaScript, like many scripting languages, agglomerates different programming paradigms and provides a large number of built-in convenience functions.
 In order to provide a comprehensive treatment of the labeling semantics and tracking provided by \FlowCore, this chapter gives examples and explanation of tracking in the covered JavaScript language features.
@@ -108,7 +108,7 @@ In the event that the property is absent, the lookup proceeds by recursively sca
 \subsubsection{Property Access}
 
 Objects in JavaScript resemble hash tables, with property name-to-value bindings created, updated, and removed at runtime.
-Three different syntaxes allow a programmer to access an object's properties\footnote{The presence of \code{eval} and \code{with}-blocks can the path of access by naming the current context object, but their presence does not change the syntax of access.}.
+Three different syntaxes allow a programmer to access an object's properties\footnote{The presence of \code{eval} and \code{with}-blocks can modify the path of access by naming the current context object, but their presence does not change the syntax of access.}.
 As shown in Listing~\ref{list:property-access-notation} the first form does not explicitly name the object being accessed, while in the other two forms a dot or square bracket follows the name of the target object.
 
 \lstset{caption={Syntax for Property Access},
@@ -281,7 +281,8 @@ As a prototype implementation, \FlowCore\ handles:
 Although the idea behind dataflow tracking through expression seems simple, \FlowCore\ derives much of its tracking capabilities through this feature.
 After all, data structures comprise half of what makes a program\cite{wirth+76}.
 
-\section{Control Flow}
+\section{Control Flow Tracking}
+\label{sec:control-flow-tracking}
 
 Dynamically typed languages, such as JavaScript, present difficulties for tracking information dependence through control flow.
 Although the automatic type coercion of values can be handled via dataflow mechanisms, the ability to dynamically dispatch on runtime input, the presence of first-class functions, and the presence of \code{eval} all conspire to increase the difficulty and decrease the scope of statically performed control flow analysis.
