@@ -134,49 +134,13 @@ We eagerly await further research in this direction, so that we may identify and
 
 %===============================================================================
 
-\section{Conclusion and Outlook}
-\label{sec:conclusion}
-
-We have presented a framework for tracking information flow within a JavaScript virtual machine with the goal of preventing information leaks.
-Achieving this objective required a hybrid analysis, combining a static analysis to insert security instructions at compile time and a dynamic analysis that actively checks for security violating commands at runtime.
-We demonstrated these techniques for some of the more difficult control-flow features of JavaScript.
-Furthermore, we have successfully demonstrated that our framework is able to cope with control-flow found on real world sites, and inform the host environment of information flow violations.
-
-To the best of our knowledge, no other research explicitly presents a collection of security instructions which are (1) orthogonal to existing instructions within the VM, (2) general enough to be incorporated in other language runtimes, (3) handle tricky control-flow structures common among dynamically typed programming languages, and (4) capable of providing instruction level information flow security.
-We successfully add these instructions to an existing, heavily used, real-world implementation of a popular language, i.e. the JavaScript interpreter, SpiderMonkey.
-We also justify that introducing such instructions is necessary (see Section~\ref{sec:bytecodes-are-necessary}) and observe that no other research has discusses such details (see Section~\ref{sec:relatedwork-security-stack}).
-
-We discovered that introducing security instructions causes a moderate increase in the size of the instruction stream, and that cloaking increases the number of objects.
-Both of these measures incur a substantial performance decrease, mostly because of the overhead from allocating cloak objects.
-However, we remain optimistic that a combination of sparse labeling to reduce the number of security wrapper objects together with improvements to the garbage collector can reduce this overhead to a manageable level (see Section~\ref{sec:evaluation-performance}).
-
-Adopting our framework will require some effort on the part of web developers.
-Current web site organization, such as the use of separate content distribution servers, causes our system to raise false positives.
-Before our approach can be adopted, script authors will need a policy specification language for expressing allowed information flows (see Section~\ref{sec:policy_specification}).
-
-\begin{comment}
-\begin{jscbytecode}
-|\tikzmark{mylabelStart1}|[   0] enter|\tikzmark{mylabelEnd1}|
-|\tikzmark{mylabelStart2}|[   0] enter|\tikzmark{mylabelEnd2}|
-|\tikzmark{mylabelStart3}|[   0] enter|\tikzmark{mylabelEnd3}|
-|\tikzmark{mylabelStart4}|[   0] enter|\tikzmark{mylabelEnd4}|
-|\tikzmark{mylabelStart5}|[   0] enter|\tikzmark{mylabelEnd5}|
-\end{jscbytecode}
-
-\begin{tikz}[overlay, remember picture] {
-  \draw[->, thick] ($(mylabelStart1)$) -- ($(mylabelEnd5)$);
-}
-\end{tikz}
-\end{comment}
 
 
-In keeping with our goal of not exposing the labeling system to the JavaScript programmer, we modify the semantics of the JavaScript language to provide secrecy, but do not introduce a language-level declassification mechanism.
-We remain optimistic that introducing such a mechanism may not be necessary to prevent label creep introduced by the monotonicity of the control flow stack (see Section~\ref{sec:monotonicity})
-Instead, we suggesting that this phenomenon can be successfully combatted with a combination of detailed information about the violation provided to the host environment and policies capable of expressing fine-grained flows.
 
-%\appendix
-%\section{Appendix Title}
-%This is the text of the appendix, if you need one.
 
-%\acks
+
+
+
+
+
 
