@@ -20,7 +20,6 @@
 \usepackage{boxedminipage}
 \usepackage{bold-extra}
 \usepackage{graphicx}
-\usepackage{natbib}
 \usepackage{path}
 \usepackage{psfrag}
 \usepackage{relsize}
@@ -32,6 +31,7 @@
 
 \usepackage{python}   % have to pre-process the jsc bytecode dump
 \usepackage{courier}  % need a bfseries ttfamily
+
 
 \usepackage{url}
 \usepackage{todonotes}
@@ -45,6 +45,7 @@
 \newtheorem{definition}{Definition}
 
 \newcommand{\FlowCore}[0]{\textsc{FlowCore}}
+\newcommand{\JitFlow}[0]{\textsc{JitFlow}}
 \newcommand{\superscript}[1]{\ensuremath{^{\textrm{#1}}}}
 \newcommand{\subscript}[1]{\ensuremath{_{\textrm{#1}}}}
 
@@ -133,7 +134,6 @@
   tabsize=2,
   showspaces=false,
   showtabs=false,
-  tabsize=2,
   frame=tb,
   captionpos=b,
   aboveskip={1.5\baselineskip},
@@ -162,6 +162,8 @@
 
 % plainpages=false fixes the "duplicate ignored" error with page counters
 % Set pdfborder to 0 0 0 to disable colored borders around PDF hyperlinks
+\usepackage[numbers]{natbib}
+%\usepackage{mycite}
 \usepackage[plainpages=false,pdfborder={0 0 0}]{hyperref}
 \renewcommand*{\chapterautorefname}{Chapter}
 \renewcommand*{\sectionautorefname}{Section}
@@ -274,7 +276,8 @@ findings. No graphs, charts, or tables may be included.
 \clearpage
 \phantomsection
 
-\bibliographystyle{abbrv}
+%\bibliographystyle{abbrv}
+\bibliographystyle{amsalpha}
 \bibliography{strdefs,refs,procs}
 
 \appendix
