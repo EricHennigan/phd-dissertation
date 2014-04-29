@@ -18,6 +18,7 @@
 \usepackage{array}
 \usepackage{bm}
 \usepackage{boxedminipage}
+\usepackage{bold-extra}
 \usepackage{graphicx}
 \usepackage{natbib}
 \usepackage{path}
@@ -25,6 +26,9 @@
 \usepackage{relsize}
 \usepackage{subfigure}
 \usepackage{textcomp}
+\usepackage{caption}
+\usepackage{enumitem}
+\usepackage{fixltx2e}
 
 \usepackage{python}   % have to pre-process the jsc bytecode dump
 \usepackage{courier}  % need a bfseries ttfamily
@@ -97,6 +101,15 @@
   tabsize=2,
 }}{}
 
+\lstnewenvironment{snippet} {\lstset{
+  caption=,
+  language=JavaScript,
+  frame=tb,
+  basicstyle=\small\ttfamily,
+  captionpos=b,
+  aboveskip={1\baselineskip},
+}}{}
+
 \lstnewenvironment{jscode} {\lstset{
   language=JavaScript,
   basicstyle=\small\ttfamily,
@@ -127,6 +140,24 @@
   float=h,
   escapeinside=||,
 }}{}
+
+\lstnewenvironment{asmcode} {\lstset{
+  keywords={MOV,AND,ADD,OR},
+  basicstyle=\small\ttfamily,
+  comment=[l]{//},
+  commentstyle=\color{gray}\ttfamily,
+  showspaces=false,
+  showtabs=false,
+  frame=tb,
+  captionpos=b,
+  aboveskip={1.5\baselineskip},
+  float=h,
+  numbers=left,
+  stepnumber=1,
+  numberstyle=\tiny,
+  numbersep=2pt,
+}}{}
+
 
 
 % plainpages=false fixes the "duplicate ignored" error with page counters
