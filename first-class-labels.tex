@@ -112,7 +112,7 @@ To prevent attack code from removing or downgrading the labels applied to values
 
     \begin{scope}
     \matrix[nodes={force}, column sep=1cm, ampersand replacement=\&] {
-        \node (ex) {\codestringdbl{example.com}\\ \code{0001}}; \&w
+        \node (ex) {\codestringdbl{example.com}\\ \code{0001}}; \&
         \node (mp) {\codestringdbl{pwd}\\ \code{0010}}; \&
         \node (ad) {\codestringdbl{ad.com}\\ \code{0100}}; \\
     };
@@ -308,7 +308,7 @@ Figure~\ref{fig:labelof} presents the entire grammar rule, including boldface em
 
 To permit the enforcement of policies written in JavaScript, the browser-hosted JavaScript environment includes one additional change.
 Within WebKit, all network traffic conveniently passes through a single network interface class.
-We wrap this class with a network monitor interface and reveal it through a function, \code{registerSendMonitor(fn)}, on the hosted \code{navigator} object.
+A network monitor interface wraps this class and reveals in through a function, \code{registerSendMonitor(fn)}, on the hosted \code{navigator} object.
 Using this feature, the web developer can phrase application specific security policies concerning allowed network communication as a JavaScript function within the web application itself.
 Once registered, these functions act as network monitors that inspect the payload of all resource requests before being sent over the network.
 
@@ -716,12 +716,12 @@ The labeling system provides dynamic creation of security principals, supporting
 
 \FlowCore\ introduces a new built-in \FlowLabelObject\ class to the hosted environment, which the developer uses to selectively label JavaScript values.
 The developer creates \FlowLabelObject\ instances using existing JavaScript values as security principals or by composition with other \FlowLabelObject\ instances via the lattice \join\ method.
-%Exposing this labeling framework to the developer, so that they may use their domain knowledge to selectively label JavaScript values, incurs no additional runtime cost compared to automatic labeling systems.
 The \msubsumes\ method allows comparison of all \FlowLabelObject\ instances reporting their subset relation within the label lattice, while the strict equality operator (\code{===}) allows unique identification of labels by their internal bit vector representation.
 Together with the ability to retrieve labels attached to values via the new built-in \mlabelof\ operator, \FlowCore\ gives the developer the means to implement security policies in JavaScript.
 
-The first-class labeling system introduces no additional slowdown beyond that of an information flow VM, enabling its use in a testing environment for sites that have large amounts of JavaScript code.
-By leveraging their domain knowledge and existing JavaScript experience, developers can focus on identifying and debugging application specific information flows.
+Because of the shared underlying data-structures, exposing the labeling framework as first-class language objects to the developer incurs no additional runtime cost compared to automatic labeling systems.
+It allows developers to leverage their domain knowledge and existing JavaScript experience and direct their focus on identifying and debugging application specific information flows.
+For sites that have large amounts of JavaScript code, the system can be used in a testing environment.
 First-class labels allow developers to improve the security of their applications by writing policies in JavaScript that selectively ignore the high quantity of reports produced by automatically attached labels.
 
 %========================================================================
