@@ -1,0 +1,142 @@
+
+\chapter{Conclusion}
+\label{ch:conclusion}
+
+The dynamic approach to information flow tracking in general still has some remaining challenges.
+In the case of \JitFlow\ and \FlowCore, these challenges spring from the lack of static analysis available in dynamically typed languages.
+For example, when using information flow in the web browser, the security principles do not become known until execution time.
+Although, the dynamic approach to information flow approach remains the most suitable option available, some outstanding issues concerning a path to adoption and the details about implementation need addressing.
+
+\section{Adoption of Information Flow in JavaScript}
+
+I identify three roadblocks to the adoption of dynamic information flow systems.
+First, the dynamic label upgrading leads to the intrinsic side-effect of label creep~\cite{sabelfeld.myers+03,denning+82}, which results in an unsatisfactory number of policy violations.
+Second, web application vary considerably, and no default policy could ever fit the diversity.
+Third, users expect all web applications to be responsive to input, no matter how complex the underlying operations.
+My experience implementing information flow in JavaScript offers some suggestions to combat label creep, the addition of a feature that helps developers author application specific policies, and an implementation that meets user performance expectations.
+
+\subsection{Addressing Label Creep}
+
+As a JavaScript program executes, labels attached to program values monotonically upgrade through the security principal lattice.
+Neither \FlowCore\ nor \JitFlow\ make a strong attempt to stop this behavior.
+As observed when surfing the web, \JitFlow\ reported an unsatisfactorily high number of false positive flow violations.
+
+Experience with these systems suggests more research on removing the conservative assumptions through more powerful code analysis.
+A strong enough emphasis on security may compel programmers to adopt a language subset.
+For example, performance concerns have led to the adoption of asmjs~\cite{asmjs}, a low-level target subset of JavaScript for compilers.
+A similar concern for data security within web applications may lead to the adoption of secure subsets such as Caja~\cite{caja}.
+
+Alternatively, any mechanisms that reduce the initial source of high labels ought also to be considered.
+Developer may have to consider structuring their programs differently.
+After initial release, a later implementation of Jif~\cite{jif} added first-class labels as part of the Java statically-checked type system.
+\FlowCore\ and \JitFlow\ also feature a similar mechanism, though without the support for label declassification.
+
+\subsection{Expressing Security Constraints}
+
+In the context of JavaScript and the Web, research lacks strong guidelines for what policies to enforce.
+We fully expect that the vast majority web users will find it too difficult to write their own policies to protect their data, and those that can will have little interest in spending the time.
+Shipping the browser with a built-in default policy might not be feasible either because web applications vary extensively in both purpose and architecture.
+Reports on information leakage~\cite{jang.etal+10,nikiforakis.etal+12,kerschbaumer.etal+13} suggest that, at this time, most sites use visitor data for web site analytics and marketing.
+
+Since I do not have the capacity to know the best security practices for every web application, I can only promote tools that assist the developers.
+For example, \JitFlow\ uses a first-class labeling system that allows enforcement any network monitor policy, written by the developer.
+The tracking engine can be customized to enforce any policy, so I leave questions of policy creation to other researchers.
+
+\subsection{Reducing Performance Overhead}
+
+Background research into the performance of information flow systems (\autoref{tab:jitflow-perfcomparison}) revealed a substantial overhead.
+The development of a control-flow stack and the security instructions that manipulate it during the implementation of \FlowCore\ naturally enabled a faster implementation to follow.
+By implementing the dynamic tracking logic and control flow stack manipulation in a JIT compiler, \JitFlow\ specifically attacks the performance overhead.
+Although the percentual slowdown is still similar to other systems, \JitFlow\ starts from a much faster baseline: the JIT compiled code.
+By establishing a new status quo for the implementation of information flow, I hope that more users will be willing to adopt information flow as part of their web browsing experience.
+
+\section{Artifacts Resulting from Implementation}
+
+The implementation of the security data structures that support dynamic information flow tracking result in several limitations that affect the capability of the system.
+First, the language itself restricts the types of code analysis that can be used, imposing a fundamental limitation on the kinds of information flow that they system can track.
+Second, the bit-vector implementation of labels restricts the number of unique security principals representable in the security lattice.
+Finally, the use of a control-flow stack and introduction of new instructions enabled rapid development of \JitFlow\ after implementation of \FlowCore.
+
+\subsection{Flow Tracking Capabilities}
+
+The dynamic information flow tracking used in both \FlowCore\ and \JitFlow\ does not implement implicit indirect flow tracking (\autoref{ch:label-propagation}).
+Tracking this type of flow requires propagation of control-flow influences through values in non-executed paths and remains an open research question for dynamic languages such as JavaScript.
+\FlowCore\ and \JitFlow\ only track information flows through a subset of the JavaScript language definition.
+The development effort required for these prototypes implies that covering all language features would require expertise from a JS vendor and a dedicated team of engineers.
+
+\subsection{Representation of Security Principals}
+
+The repurposing of bits within \jsvalues\ limits the \JitFlow\ framework to tracking at most 16 different security principals within a label, while the fat value approach limits the \FlowCore\ framework to 64 different security principles.
+The limitation can be overcome in both tracking engines by reserve one or more label bits as a flag to reference a larger label space.
+This solution requires a more complex label framework, but offers support for more security principals and a larger lattice~\cite{kerschbaumer.etal+13}.
+Results from the web crawler indicate that a limitation on total number of representable security principals is not fundamental.
+
+\subsection{Handoff between the Interpreter and JIT compiler}
+
+The design of the security instructions that manipulate the control-flow stack support all the different control structures (switch-case, specialized iteration, exceptions, with statement).
+Neither \FlowCore\ nor \JitFlow\ issue these instructions for any structures beyond the basic \code{for} and \code{while} loops, \code{break}, \code{continue}, and \code{if} statements.
+
+An industrial strength implementation requires supporting native data structures (array, string, date, regex, etc.) and property lookup paths (by name, by value, user-overloadable getters/setters, etc.).
+The prototypes, \FlowCore\ and \JitFlow\ cover enough operations to demonstrate that the approach to implementation works for both the interpreter and the JIT compiler.
+
+Enough features overlap that the system can be made to support JITting only after the interpreter determines hot code fragments.
+I would not expect an on-the-fly translation between interpreter and JIT-compiled code to be a problem, as long as the trampoline mechanism updates the supporting data structures (label lattice and control-flow stack) appropriately.
+Indeed, the introduction of the control-flow stack maintenance instructions makes this process easier.
+
+\section{Executive Summary}
+
+\autoref{ch:motivation} gives overview of web architecture and its negative effects on security.
+The structure of HTML, dynamic typing of JavaScript, and the textual inclusion of third-party code and data, each contribute to an infrastructure that puts casual web user's data at risk for surreptitious information theft through a code injection attack known as Cross-Site Scripting.
+Widespread practice of dynamically creating strings later treated as HTML code defeats static analysis techniques.
+To detect and mitigate these attacks, I propose using dynamic information flow to track data propagation in a JavaScript VM, and call the resulting interpreter \FlowCore.
+
+\todo[inline]{related work is terrible, missing references, repeated paragraphs, mentions firefox}
+%\autoref{ch:related-work} provides the research setting in which the \FlowCore\ implementation took place.
+%It summarizes prior efforts to establish guidelines and best practices that have been shown to work, and highlights differences that make previous approaches inapplicable to JavaScript.
+%The approaches taken by other researchers 
+%It contrasts the approach taken by \FlowCore\ with approaches taken by other researchers.
+%The implementation 
+
+\autoref{ch:terminology} establishes and names different levels of information flow tracking detail.
+The categorization splits information flows between dataflow and control-flow based leaks and correlates each with a required minimum level of program analysis.
+Developing this categorization permits a clear definition of the information flow tracking capabilities \FlowCore.
+Through dynamic labeling of the program counter, \FlowCore\ can track up to implicit active information flows.
+
+\autoref{ch:system-design} outlines the different implementations \FlowCore\ might have used.
+It contrasts the implementation of labels between a fat value approach and a security wrapper approach.
+Each approach is assessed based on the provided labelling semantics, the difficulty of implementation,the ease of label access, and the impacts on the garbage collector and other runtime systems.
+Based on the outcome of this analysis, \FlowCore\ chooses to implement the fat values value approach for labelling because it (1) provides a reference semantics, (2) does not impact the garbage collector, and (3) easily labels both primitives and object references.
+
+\autoref{ch:label-propagation} describes implementation details that support labeling values within the JavaScript VM.
+\FlowCore\ adds a \FlowLabelRegistry\ that stores a lattice over security principals.
+The host web browser can dynamically create a security principal for each web domain, accomidating the common practice of loading code and resources from many different domains in one page of a web application.
+Each element of the lattice forms a bit-vector that maps to a label.
+\FlowCore\ extends the internal representation of JavaScript values to include space for a label.
+Propagating information influence from control flow predicates to instructions within the code branch requires the addition of a label stack that tracks changes to the label on the program counter.
+As a JavaScript program executes, the labels attached to program values monotonically rise through the lattice, leading to label creep.
+
+\autoref{ch:instructions} introduces three new instructions that maintain the control flow label stack.
+A parse-time analysis instruments these instructions into the instruction stream.
+In debug mode, an abstract interpretation that explores all control flow paths of the instruction stream ensures correct instrumentation for each method.
+During execution, the instructions push, pop, and upgrade the stack according to branches, joins, and loops in the control flow.
+The development of these instructions enables a transition in implementation from the interpreter (\FlowCore) to the JIT compiler (\JitFlow).
+The instructions are generic enough that they support the grafting of information flow tracking into both register-based (WebKit) and stack-based (Firefox) VM implementations.
+\todo[inline]{The eval section needs work, as it mentions firefox}
+
+\autoref{ch:label-tracking} outlines the semantics and implementation of label propagation that occurs in \FlowCore.
+It specifies the label inputs and outputs for mathematical, comparison, and bitwise operations, that occur during data flow operations.
+Through illustrative examples, it gives the implementation of label prapagation for JavaScript control-flow features, \code{for} and \code{while} loops, including \code{break} and \code{continue} statements.
+These examples demonstrate the placement of the control flow stack instructions.
+It describes the label propagation rules for function calls, including the implementation details that affect the control flow stock during function prologue and epilogue.
+
+\autoref{ch:first-class-labels} describes an extension of the labeling framework that gives JavaScript developers access to the labeling system.
+\FlowCore\ reflects labels stored in the \FlowLabelRegistry\ as first-class objects into the host environment.
+The new \FlowLabelObject\ prototype class enables the creation, comparison, composition of labels, while a new \mlabelof\ keyword enables inspection of labeled variables.
+When used with a modified web browser, a network monitor hook allows the writing of a security policy within JavaScript.
+Using first-class labels developers can tag specific values with their own labels, decreasing the sources of label creep and using the propagation and inference rules as a security debugging system.
+Additionally, the first-class label feature proved invaluable for implementing unittests of the propagation rules and buttressing confidence in the correctness of the implementation.
+
+\autoref{ch:jitflow} demonstrates that the framework developed for the \FlowCore\ interpreter readily supports transition to a JIT compiler.
+The new tracking engine, \JitFlow, implements the control-flow stack instructions in assembly, caches the top of the control flow stack in a virtual register, and pre-allocates space for the control flow stack itself.
+These optimization lead to a vast performance improvement, that approximately halves the execution time of the flow tracking interpreter.
+
