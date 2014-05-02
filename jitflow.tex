@@ -800,6 +800,23 @@ Groef~et~al.~\cite{groef.etal+12} report a similar phenomenon when evaluating th
 
 The evaluation does not distinguish between malicious flows and detected flow violations due to the presence of Content Distribution Networks (CDNs), which modern web pages use for performance reasons to serve content to their users.
 Before \JitFlow\ can be adopted, web site authors need a way to express allowed information flows and whitelist requests to their own CDNs (\autoref{sec:jitflow-pathtoadoption}).
+\section{Summary}
+
+Today, web users miss out on the increased protection afforded by information flow tracking.
+All major browsers include a just-in-time compiler and vendors advertise their performance compared to competitors.
+Under these circumstances, implementations of information flow tracking in the JavaScript interpreter are no longer suitable.
+
+\JitFlow\ directly addresses the performance overhead of information flow by implementing the tracking logic in JIT-compiled code.
+In spite of the prior work and analysis done to develop \FlowCore, \JitFlow\ does not ``just'' transplant interpretative tracking techniques to a JIT compiler.
+Rather, it uses a different encoding that inlines the label for more efficiency with respect to space and time.
+To achieve even better performance it (i) optimizes the allocation of the control flow stack to track implicit flows, (ii) it caches the top label of the control flow stack to optimize frequent accesses, and (iii) it inlines the assembly code that maintains the control flow stack to avoiding costly trampoline jumps.
+Without these optimizations, a good part of the speedup from JIT compilation would have been lost.
+
+\JitFlow\ has an average tracking overhead of 73\% relative to a baseline JIT compiler on CPU-intensive benchmarks.
+On absolute terms, its performance measures more than twice as fast as the fastest known JavaScript information flow tracking interpreter.
+In practice, steps such as DNS lookup, parsing and rendering, and content transmission also factor into the browser performance equation.
+Consequently, using information flow tracking for realistic web browsing affects the user experience far less than CPU-intensive benchmarks may suggest.
+I consider the overhead more than acceptable --- especially since users benefit from substantially increased security in return.
 
 %xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 \todo[inline]{feedback the motivation and thirdpartycode sections of 2013.taco into thesis motivation (pick up more cites)}
