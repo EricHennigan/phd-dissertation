@@ -1,0 +1,117 @@
+
+\section{Detailed Benchmark Results}
+\label{app:jitflow-detailedresults}
+
+\subsection{Sunspider Benchmark}
+
+\begin{table}[h!]
+\centering
+\resizebox{\columnwidth}{!}{
+\begin{tabular}{l|rr|rr|rr|rr}
+\textit{Benchmark} & \textit{Base-JIT} & \textit{\%} & \textit{Base-Int} & \textit{\%} & \FlowCore\ & \textit{\%} & \JitFlow\ & \textit{\%} \\
+\toprule
+3d&&&&&&&& \\
+\quad cube & 12.6 & (0.0) & 28.1 & (123.02) & 73.4 & (482.54) & 18.3 & (45.24) \\
+\quad morph & 10.0 & (0.0) & 31.1 & (211.0) & 114.0 & (1040.0) & 13.1 & (31.0) \\
+\quad raytrace & 11.3 & (0.0) & 34.1 & (201.77) & 70.4 & (523.01) & 17.0 & (50.44) \\
+access&&&&&&&& \\
+\quad binary-trees & 3.1 & (0.0) & 10.0 & (222.58) & 32.1 & (935.48) & 8.0 & (158.06) \\
+\quad fannkuch & 14.1 & (0.0) & 68.1 & (382.98) & 195.0 & (1282.98) & 44.6 & (216.31) \\
+\quad nbody & 8.0 & (0.0) & 29.8 & (272.5) & 64.0 & (700.0) & 11.0 & (37.5) \\
+\quad nsieve & 4.0 & (0.0) & 14.3 & (257.5) & 50.1 & (1152.5) & 10.0 & (150.0) \\
+bitops&&&&&&&& \\
+\quad 3bit-bits-in-byte & 2.4 & (0.0) & 22.0 & (816.67) & 68.8 & (2766.67) & 8.3 & (245.83) \\
+\quad bits-in-byte & 6.0 & (0.0) & 22.3 & (271.67) & 95.7 & (1495.0) & 21.1 & (251.67) \\
+\quad bitwise-and & 4.0 & (0.0) & 24.1 & (502.5) & 77.8 & (1845.0) & 10.0 & (150.0) \\
+\quad nsieve-bits & 6.0 & (0.0) & 32.0 & (433.33) & 108.3 & (1705.0) & 13.2 & (120.0) \\
+controlflow&&&&&&&& \\
+\quad recursive & 2.8 & (0.0) & 12.2 & (335.71) & 61.8 & (2107.14) & 12.5 & (346.43) \\
+crypto&&&&&&&& \\
+\quad aes & 9.0 & (0.0) & 25.3 & (181.11) & 67.1 & (645.56) & 18.9 & (110.0) \\
+\quad md5 & 3.0 & (0.0) & 16.0 & (433.33) & 51.7 & (1623.33) & 7.1 & (136.67) \\
+\quad sha1 & 2.0 & (0.0) & 15.0 & (650.0) & 50.1 & (2405.0) & 7.0 & (250.0) \\
+date&&&&&&&& \\
+\quad format-tofte & 15.1 & (0.0) & 20.9 & (38.41) & 48.9 & (223.84) & 22.9 & (51.66) \\
+\quad format-xparb & 11.0 & (0.0) & 16.1 & (46.36) & 39.9 & (262.73) & 16.0 & (45.45) \\
+math&&&&&&&& \\
+\quad cordic & 8.0 & (0.0) & 33.6 & (320.0) & 105.5 & (1218.75) & 20.7 & (158.75) \\
+\quad partial-sums & 13.0 & (0.0) & 37.9 & (191.54) & 74.5 & (473.08) & 13.4 & (3.08) \\
+\quad spectral-norm & 5.0 & (0.0) & 21.0 & (320.0) & 61.4 & (1128.0) & 10.0 & (100.0) \\
+regexp&&&&&&&& \\
+\quad dna & 15.0 & (0.0) & 158.5 & (956.67) & 161.6 & (977.33) & 15.0 & (0.0) \\
+string&&&&&&&& \\
+\quad base64 & 8.0 & (0.0) & 20.4 & (155.0) & 58.3 & (628.75) & 10.2 & (27.5) \\
+\quad fasta & 9.1 & (0.0) & 22.7 & (149.45) & 53.9 & (492.31) & 16.1 & (76.92) \\
+\quad tagcloud & 16.0 & (0.0) & 33.3 & (108.12) & 47.1 & (194.38) & 19.0 & (18.75) \\
+\quad unpack-code & 26.1 & (0.0) & 47.7 & (82.76) & 59.2 & (126.82) & 31.1 & (19.16) \\
+\quad validate-input & 9.1 & (0.0) & 18.5 & (103.3) & 45.6 & (401.1) & 12.1 & (32.97) \\
+\hline
+Total (geo mean.) & 233.7 & (0.0) & 815.0 & (248.74) & 1936.2 & (728.5) & 406.6 & (73.98) \\
+\bottomrule
+\end{tabular}
+}
+\caption{Detailed performance numbers for Sunspider benchmarks normalized by the unmodified JavaScriptCore JIT compiler.}
+\label{tab:jitflow-performance-sunspider}
+\end{table}
+
+\newpage
+\subsection{V8 Benchmark}
+
+\begin{table}[h!]
+\centering
+\resizebox{\columnwidth}{!}{
+\begin{tabular}{l|rr|rr|rr|rr}
+\textit{Benchmark} & \textit{Base-JIT} & \textit{\%} & \textit{Base-Int} & \textit{\%} & \FlowCore\ & \textit{\%} & \JitFlow\ & \textit{\%} \\
+\toprule
+%v8&&&&&&&& \\
+\quad crypto & 239.9 & (0.0) & 1856.2 & (673.74) & 4716.4 & (1865.99) & 482.9 & (101.29) \\
+\quad deltablue & 378.7 & (0.0) & 1326.8 & (250.36) & 3362.9 & (788.01) & 932.1 & (146.13) \\
+\quad earley-boyer & 171.6 & (0.0) & 427.6 & (149.18) & 1216.5 & (608.92) & 336.5 & (96.1) \\
+\quad raytrace & 105.0 & (0.0) & 249.8 & (137.9) & 531.8 & (406.48) & 181.5 & (72.86) \\
+\quad regexp & 201.0 & (0.0) & 903.3 & (349.4) & 916.1 & (355.77) & 197.7 & (-1.64) \\
+\quad richards & 309.3 & (0.0) & 1637.6 & (429.45) & 4415.4 & (1327.55) & 1015.4 & (228.29) \\
+\quad splay & 238.9 & (0.0) & 305.1 & (27.71) & 595.6 & (149.31) & 280.6 & (17.46) \\
+\hline
+Total (geo. mean) & 1644.4 & (0.0) & 6706.4 & (307.83) & 15754.7 & (858.08) & 3426.7 & (108.39) \\
+\bottomrule
+\end{tabular}
+}
+\caption{Detailed performance numbers for V8 benchmarks normalized by the unmodified JavaScriptCore JIT compiler.}
+\label{tab:jitflow-performance-v8}
+\end{table}
+
+\subsection{Kraken Benchmark}
+
+\begin{table}[h!]
+\centering
+\resizebox{\columnwidth}{!}{
+\begin{tabular}{l|rr|rr|rr|rr}
+\textit{Benchmark} & \textit{Base-JIT} & \textit{\%} & \textit{Base-Int} & \textit{\%} & \FlowCore\ & \textit{\%} & \JitFlow\ & \textit{\%} \\
+\toprule
+ai&&&&&&&& \\
+\quad astar & 1567.7 & (0.0) & 2499.4 & (59.43) & 6893.4 & (339.71) & 2484.4 & (58.47) \\
+audio&&&&&&&& \\
+\quad beat-detection & 648.0 & (0.0) & 2091.1 & (222.7) & 4970.4 & (667.04) & 793.3 & (22.42) \\
+\quad dft & 652.5 & (0.0) & 1708.9 & (161.9) & 4357.2 & (567.77) & 807.8 & (23.8) \\
+\quad fft & 482.3 & (0.0) & 2035.8 & (322.1) & 4870.5 & (909.85) & 542.3 & (12.44) \\
+\quad oscillator & 427.1 & (0.0) & 1177.4 & (175.67) & 3650.1 & (754.62) & 561.4 & (31.44) \\
+imaging&&&&&&&& \\
+\quad gaussian-blur & 2441.3 & (0.0) & 16186.3 & (563.02) & 51855.2 & (2024.08) & 3298.5 & (35.11) \\
+\quad darkroom & 701.7 & (0.0) & 2398.1 & (241.76) & 6309.1 & (799.12) & 1116.2 & (59.07) \\
+\quad desaturate & 691.8 & (0.0) & 4249.0 & (514.19) & 9205.9 & (1230.72) & 785.1 & (13.49) \\
+json&&&&&&&& \\
+\quad parse-financial & 85.1 & (0.0) & 83.5 & (-1.88) & 89.4 & (5.05) & 84.8 & (-0.35) \\
+\quad stringify-tinderbox & 102.0 & (0.0) & 107.7 & (5.59) & 108.9 & (6.76) & 104.9 & (2.84) \\
+stanford&&&&&&&& \\
+\quad crypto-aes & 215.6 & (0.0) & 723.6 & (235.62) & 1923.0 & (791.93) & 322.6 & (49.63) \\
+\quad crypto-ccm & 168.8 & (0.0) & 544.9 & (222.81) & 1322.1 & (683.23) & 235.6 & (39.57) \\
+\quad crypto-pbkdf2 & 533.1 & (0.0) & 1746.4 & (227.59) & 4287.2 & (704.2) & 869.3 & (63.07) \\
+\quad crypto-sha256-iterative & 166.4 & (0.0) & 547.3 & (228.91) & 1401.9 & (742.49) & 260.5 & (56.55) \\
+\hline
+Total (geo. mean) & 8883.4 & (0.0) & 36099.4 & (306.37) & 101244.3 & (1039.7) & 12266.7 & (38.09) \\
+\bottomrule
+\end{tabular}
+}
+\caption{Detailed performance numbers for Kraken benchmarks normalized by unmodified JavaScriptCore JIT compiler.}
+\label{tab:jitflow-performance-kraken}
+\end{table}
