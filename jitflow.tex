@@ -629,7 +629,7 @@ none reported     & JS Interpreter (1~bit label)       & Vogt~et~al.~\cite{vogt.
 \end{tabular}
 }
 \caption{Performance Comparison of other Information Flow Frameworks}
-\label{tab:perfcomparison}
+\label{tab:jitflow-perfcomparison}
 \end{table}
 
 %------------------------------------------------------------------------------------------------------
@@ -642,8 +642,8 @@ A dual Quad Core Intel Xeon E5462 2.80~GHz with 9.8~GB RAM running Ubuntu~11.10 
 After running each suite once for warm-up, the test software executes 10 repetitions for each benchmark get stable results and reports the geometric mean of these repetitions to discount outliers.
 Note that the results for these benchmarks do not include the overhead for JIT compiling the code since this happens during the warm-up run.
 
-Previous implementations of information flow (\autoref{tab:perfcomparison}) experience a handicap by beginning with an unmodified interpreter that is already an average of 287\% slower than JIT-compiled code.
-On a relative basis, \JitFlow\ outperforms all of the previous work listed in \autoref{tab:perfcomparison}.
+Previous implementations of information flow (\autoref{tab:jitflow-perfcomparison}) experience a handicap by beginning with an unmodified interpreter that is already an average of 287\% slower than JIT-compiled code.
+On a relative basis, \JitFlow\ outperforms all of the previous work listed in \autoref{tab:jitflow-perfcomparison}.
 \JitFlow\ also outperforms on an absolute basis because it is measured with respect to much faster JIT-compiled code.
 
 \begin{figure}[ht]
