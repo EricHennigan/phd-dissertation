@@ -1,3 +1,15 @@
+\begin{comment}
+\todo{categorize XSS?}
+\begin{itemize}
+    \item say that js handles sensitive info
+    \item delineate injection
+    \item categorize xss
+    \item pound-include problem
+    \item scare-monger prevalence as `buffer overflow'
+    \item sandbox + same origin policy
+    \item have to setup an attacker model?
+\end{itemize}
+\end{comment}
 
 \chapter{Motivation}
 \label{ch:motivation}
@@ -5,11 +17,17 @@
 Many industrial and commercial institutions employ dynamically typed languages in systems which process sensitive information.
 Programmers often find the high-level nature of these languages convenient for rapidly developing prototypes that meet the business need for quick deployment.
 For example, Web applications have de facto standardized on JavaScript for client-side logic, which includes secure authentication.
-In spite of the increasing demand for secure processing and communications, the semantics of dynamically typed languages, such as JavaScript, interferes static analysis techniques which could be used to verify application security~\cite{robertson.vigna+09}.
+
+Since its inception, the World Wide Web has experienced explosive growth and has evolved from an initial collection of static pages to a global network of dynamic and interactive content.
+As critical business functions become increasingly Web-based, the amount of sensitive information traversing the Web increases correspondingly.
+Personal information, used in sensitive online transactions (e.g., banking, tax filing, shopping, etc.), now possesses a black-market value that continues to draw the attention of criminals and fraudsters.
+Because early designers of the Web did not consider these uses, nor did they have an explicit focus on security, the resulting architecture contains inherent weaknesses that permit criminals to steal credit card numbers, identification credentials, and other personal information.
+In spite of the increasing demand for secure processing and communications, the semantics of dynamically typed languages, such as JavaScript, interferes with static analysis techniques that would otherwise be used to verify application security~\cite{robertson.vigna+09}.
+
 
 In today's architecture, the web server delivers HTML and JavaScript to the client as an untyped string.
 Web~2.0 applications contain server-side processing that injects user generated content and syndicated advertisements into pages assembled on demand.
-Popular code frameworks which perform this composition are not themselves statically typed (as in the case of PHP, Ruby on Rails, Django).
+Popular code frameworks that perform this composition do not themselves have static typing (as in the case of PHP, Ruby on Rails, and Django).
 The practice of including foreign content as an unsafe string provides attackers the opportunity to inject malicious code into a web page, in an attack known as Cross-Site Scripting (XSS).
 The prevalence, persistence, scope, and danger~\cite{whitehat, cwe} of such attacks has given XSS the infamous moniker: ``buffer overflow of the web.''
 
@@ -21,16 +39,16 @@ The site stores this content in a server-side database, so that it may be retrie
 When a malicious user bypasses textual filters and injects JavaScript into a forum posting, the site saves the script and inserts it into all pages that contain the post.
 To become a victim, an innocent user needs only to view a page with the malicious post.
 
-Many of the victims viewing the forum are simultaneously logged in to other more sensitive services (such as email, shopping, banking or brokerage accounts).
+Many of the victims viewing the forum have their browser simultaneously logged in to other more sensitive services (such as email, shopping, banking or brokerage accounts).
 For most users, the web browser stores more personally identifying information about individual habits and interests than any other single application.
 Additionally, web browsers also conveniently store login credentials for banking sites, webmail services, and many shopping sites, as well as form information containing your real name, address, phone number, and credit card numbers.
-The potential for harvesting of sensitive user credentials via a forum post with malicious JavaScript presents a serious threat.
+The potential for harvesting of sensitive user credentials via a forum post with malicious JavaScript presents a serious threat to the privacy of the average web user.
 
 \section{Difficulties of Filtering User Input}
 
 Currently, the most promoted mechanism for preventing script injection attacks is to filter out HTML and JavaScript code from user input.
 Though user input filtering forms the first line of security defense of any website, not every malicious script can be deterministically identified.
-Web frameworks which lack strong static typing further compound the problem because they cannot provably verify that all strings pass through a filter function before placement into the resulting page.
+Web frameworks that lack strong static typing further compound the problem because they cannot provably verify that all strings pass through a filter function before placement into the resulting page.
 
 \subsection{HTML Identification}
 \label{subsec:html-encoding}
@@ -105,29 +123,27 @@ The architectural problems underlying these attacks have not been solved.
 
 \subsection{Preventing Malicious Action}
 
-\begin{comment}
-\todo{categorize XSS?}
+Based on the observation that the execution of code within the JavaScript VM and browser sandbox can cause no harm as long as it does not generate external signals (such as network traffic), I advocate allowing the malicious code to execute under new semantics that track the information dependence of runtime values.
+Rather than rely entirely on string filtration that attempts to identify and reject attacker supplied code, the advocated approach tracks the flow of information through a chain of JavaScript program values.
+The JavaScript code becomes categorized as malicious only when it attempts to communicate sensitive information to an unauthorized third party.
+At that point, a network hook enforcing information flow policies in the browser intervenes and prevents the information leak.
 
-\begin{itemize}
-    \item say that js handles sensitive info
-    \item delineate injection
-    \item categorize xss
-    \item pound-include problem
-    \item scare-monger prevalence as `buffer overflow'
-    \item sandbox + same origin policy
-    \item have to setup an attacker model?
-\end{itemize}
+\section{Summary}
 
-\end{comment}
+This work implements \FlowCore, an interpreter-level information flow framework written for WebKit's JavaScriptCore virtual machine, and \JitFlow, a JIT-compiled improvement that provides increased performance with respect to the interpreter.
+Both of these systems tag program values and the program counter with labels that convey data ownership by one or more security principals.
+These labels propagate during program execution, and a network monitor implements a security policy by inspecting the label attached data in a network request.
 
-Rather than rely entirely on filtration that attempts to identify and reject attacker supplied code, this work allows the malicious code to execute under new semantics which track the information dependence of runtime values.
-We assume that without generating external signals (network traffic) the execution of code within the browser sandbox results in no harm.
-This work implements \FlowCore, interpreter-level information flow framework written for WebKit's JavaScriptCore virtual machine.
 
-\FlowCore\ introduces a general set of information flow bytecodes (Section~\ref{sec:bytecodes}) applicable to any interpreter for a dynamically typed language.
-The bytecodes provide runtime instructions for manipulating information flow data structures (Section~\ref{sec:f-stack}) for each of the control flow structures (Section~\ref{sec:control-flow}) in the JavaScript language.
-Additionally, the VM tags every JavaScript value with a label (Section~\ref{sec:tagging}) that records the principals which have influenced the value.
-A network monitor within the web browser prevents malicious program behavior at runtime by enforcing a policy shipped with the web page (Section~\ref{sec:policy}).
+To clarify the information flow tracking capabilities of \FlowCore\ and \JitFlow, \autoref{ch:terminology} establishes terminology for the different levels of information flow.
+\autoref{ch:system-design} outlines different implementation strategies and their effects on performance, implementation difficulty, and security label semantics.
+\autoref{ch:label-propagation} describes the underlying data structures that support the label framework.
+As explained in \autoref{ch:instructions}, tracking information dependence through control-flow requires instrumentation of new instructions that manipulate the information flow data structures.
+\autoref{ch:label-tracking} specifies the label propagation strategy used by the framework and illustrates placement of the new instructions through code examples.
+
+To implement unittests of the label propagation logic, an extension of the browser-hosted JavaScript environment exposes the security labels as first-class program objects (\autoref{ch:first-class-labels}).
+The new instructions provide a versatile architecture that permitted a rapid update of the label propagation system to support JIT compilation (\autoref{ch:jitflow}).
+\autoref{ch:conclusion} summarizes the work involved and lessons learned.
 
 \begin{comment}
 on using information flow techniques which can detect and prevent malicious behavior of executing programs.
