@@ -152,7 +152,7 @@ By handing back label information on values used in construction of a network re
 However, to prevent information leak to third parties, the browser ultimately remains responsible for enforcing a security policy on network traffic.
 
 The syntax of JavaScript programs allows for points where the control flow branches due to the evaluation of a runtime conditional.
-At each of these points, the security context of any code executed within the token branch needs to reflect its dependence on the conditional.
+At each of these points, the security context of any code executed within the taken branch needs to reflect its dependence on the conditional.
 To accomplish this task, we augment the JavaScript interpreter with a stack of labels, called the \term{control flow stack}.
 As shown in Figure~\ref{fig:cf-stack}, the labels on this stack are in a 1-1 correspondence with the branches in control flow taken at runtime.
 %This correspondence allows for tagging newly assigned values and function frames with the current security context.
@@ -206,7 +206,7 @@ We use two guidelines for maintaining the control flow stack:
  \item Whenever a control flow joins, the VM pops and discards the top of the control flow stack, restoring the pc-label to the value it had before the branch in control flow occurred.
 \end{enumerate}
 
-Of conspicuous absence in our guidelines (and the complete list of security bytecodes in Section~\ref{ch:security-bytecodes}) is an operation for pushing a specific security label onto the control flow stack.
+Of conspicuous absence in our guidelines (and the complete list of security bytecodes in \autoref{ch:instructions}) is an operation for pushing a specific security label onto the control flow stack.
 According to the first guideline, the stack grows via successive duplications.
 When the VM enters a secure code region it first duplicates the pc-label and then joins it with the label attached to the condition which cause the control flow branch.
 This execution directly implies an important theoretical result:
@@ -238,3 +238,58 @@ All of the operations that our system performs on the control flow stack either 
 Because all labels attached to values incorporate the current program counter label, which lies at the top of the control flow stack, it is important not to elevate the pc-label unless absolutely necessary.
 Otherwise, an overly-conservative pc-label leads to the creation of values with unnecessarily elevated security labels.
 This work therefore recognizes the monotonicity of the control flow stack to be the primary source of label creep.
+
+Austin and Flanagan~\cite{austin.flanagan+12} give an example of indirect information flow and compare the published mitigation strategies.
+Unfortunately, none of these solutions offers a silver bullet.
+Two of the strategies~\cite{zdancewic+02,austin.flanagan+10} degrade user experience by halting execution to prevent implicit indirect flows.
+The third strategy~\cite{vogt.etal+07} uses a conservative labeling strategy that leads to label creep~\cite{sabelfeld.myers+03} in all but trivial cases.
+
+\section{Formal Semantics}
+
+\FlowCore\ tracks information flows across both kinds of explicit flows and implicit direct flows.
+When \FlowCore\ evaluates an expression, it tags the resulting value with a label indicating the principals that influenced its creation.
+
+Guha et al.~\cite{guha.etal+10} reduce JavaScript to a succinct, small-step operational semantics that helps clarify \FlowCore's tracking capabilities.
+I extend their notation to include security labels such that $x:l$ denotes an expression or value $x$ with the label $l$ and $l_1 \sqcup l_2$ represents the join (union) of principals represented by $l_1$ and $l_2$ respectively.
+
+\subsection{Labeling Data Flow}
+
+For all of the operations that it tracks (\autoref{ch:label-tracking}), \FlowCore\ labels the resulting value with a join over all of the labels on the input values.
+The addition of two numbers constitutes an explicit information flow, as shown in \autoref{eqn:formal-addition}
+
+\begin{equation}
+\label{eqn:formal-addition}
+  e_1:l_1 + e_2:l_2 \hookrightarrow v:l_1 \sqcup l_2
+\end{equation}
+
+\subsection{Labeling Control Flow}
+\label{sec:formal-semantics}
+
+Attackers can also generate implicit flows from confidential to public variables using the control-flow structures in JavaScript~\cite[p.~135]{guha.etal+10}.
+The label of a statement within a branch acquires all the principals of the predicate controlling the branch in addition to the principals affecting the expression.
+When the predicate evaluates to true, we have:
+
+\newcommand{\kw}[1]{\text{\small\textsf{\textbf{#1}}}}
+
+\begin{equation}
+  \kw{if}\;(e_{true}:l_{pred})\;\{\;e_1:l_1\;\}\;\kw{else}\;\{\;e_2:l_2\;\} \hookrightarrow e_1:l_{pred} \sqcup l_1
+\end{equation}
+
+Since the tracking mechanism operates at runtime, it does not track implicit indirect flows arising from control-flow branches that are not executed.
+
+Loops act as a sequence of if-else branches, with each iteration dependant on a different predicate value during execution.
+
+\begin{equation}
+\begin{split}
+  \kw{while}\;(e_1:l_1)\;\{\;e_2:l_2\;\} \hookrightarrow
+  e_2:l_1 \sqcup l_2 ;\; &\kw{if}\;(e_1:l_1)\;\{\;
+  \kw{while}\;(e_1:l_1)\;\{\;e_2:l_2\;\}\;\}  \\
+  &\kw{else}\;\{\;\kw{undefined}:\bot\;\}
+\end{split}
+\end{equation}
+
+Just as the value of the loop predicate may change between iterations, so also can the attached label.
+However, the incorporation of the program counter as an implicit input to the loop predicate expression together with the absence of a declassification operation cause a monotonic increase on the label attached to the expression controlling the loop exit.
+Consequently, each iteration executes under a label at least as high as the iteration preceding it.
+Loop predicate expressions also act as a source of label creep.
+
