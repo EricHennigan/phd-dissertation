@@ -15,8 +15,8 @@ Each object created or modified via the confluence of separate scripts bears a l
 
 Figure~\ref{fig:browserinteraction} illustrates the interaction between the browser and the JavaScript engine.
 Before the browser hands a script and its input data to the JavaScript VM, it first labels the script to indicate the domain of origin.
-The VM then compiles the script source into an internal bytecode representation.
-During this process, static analysis enables the instrumentation of additional bytecodes that allow information flow tracking during execution.
+The VM then compiles the script source into an internal bytecode instruction representation.
+During this process, static analysis enables the instrumentation of additional instructions that allow information flow tracking during execution.
 
 \section{Label Lattice}
 \label{sec:label-lattice}
@@ -206,7 +206,7 @@ We use two guidelines for maintaining the control flow stack:
  \item Whenever a control flow joins, the VM pops and discards the top of the control flow stack, restoring the \pclabel\ to the value it had before the branch in control flow occurred.
 \end{enumerate}
 
-Of conspicuous absence in our guidelines (and the complete list of security bytecodes in \autoref{ch:instructions}) is an operation for pushing a specific security label onto the control flow stack.
+Of conspicuous absence in our guidelines (and the complete list of security instructions in \autoref{ch:instructions}) is an operation for pushing a specific security label onto the control flow stack.
 According to the first guideline, the stack grows via successive duplications.
 When the VM enters a secure code region it first duplicates the \pclabel\ and then joins it with the label attached to the condition which cause the control flow branch.
 This execution directly implies an important theoretical result:

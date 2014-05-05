@@ -601,7 +601,7 @@ WebKit contains an interpreter, JavaScriptCore (JSC), that executes a bytecode i
 In March 2012, JavaScriptCore changed to a low-level interpreter, implemented via a custom language that generates the assembly for a direct threaded interpreter.
 The benchmarks shown here measure the performance of the C++ version of JSC that predates this change.
 }.
-The WebKit project also contains a template JIT compiler that compiles the bytecode stream and an optimizing JIT compiler based on a program's data-flow graph.
+The WebKit project also contains a template JIT compiler that compiles the bytecode instruction stream and an optimizing JIT compiler based on a program's data-flow graph.
 \JitFlow\ builds upon the template JIT and does not implement information flow in the optimizing JIT compiler, which operates only on Macintosh operating systems.
 All of the following benchmarks compare information flow implementations of interpreter-only and JIT-only execution modes.
 

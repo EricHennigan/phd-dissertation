@@ -442,7 +442,7 @@ Each technique features design trade-offs concerning development effort, runtime
 The fat value technique extends the tagged pointer representation of the core value type of the interpreter.
 By embedding the security label into the core representation, the VM has fast and convenient access to the label on each piece of data involved in a computation.
 In contrast, the cloak approach introduces a wrapper object which holds both the primitive value and the security label, requiring an additional step when accessing either the value or label.
-Because the VM manipulates labels in many of the underlying opcodes and JavaScript programmers expect primitives to be performant, access to both the label and value should be kept as direct as possible.
+Because the VM manipulates labels in many of the underlying instruction opcodes and JavaScript programmers expect primitives to be performant, access to both the label and value should be kept as direct as possible.
 
 The security labels constitute their own security type system, orthogonal to the existing JavaScript value types.
 The fat value approach modifies the representation of the interpreter's core datatype to add labels.
