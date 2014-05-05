@@ -13,16 +13,16 @@ Side-effects of this prioritization can be seen in today's web ecosystem.
 
 Because of an early and rapid rise in electronic commerce, web browsers now often manipulate, process, and relay sensitive information, including personal financial data.
 A browser's support for JavaScript means that it is possible for malicious code to steal the valuable information stored by the browser.
-Recall that web browser architecture lacks (and sometimes impedes) important security properties (Section~\ref{ch:motivation}).
+Recall that web browser architecture lacks (and sometimes impedes) important security properties (\autoref{ch:motivation}).
 This state of affairs makes web sites a prime target for injected code attacks.
 Consequently, the combination of historically poor security practices and the popularity of the web makes web browsers an ideal case study for retrofitting security into embedded language platforms.
 
 Rather than fret over distinguishing between legitimate and malicious code (or buggy legitimate code), \FlowCore\ performs information tracking on all executed code.
-This approach catches all malicious behavior defined by some security policy (Section~\ref{policy}), forcing conformance even on trusted code.
+This approach catches all malicious behavior defined by some security policy, forcing conformance even on trusted code.
 \FlowCore\ adds information flow tracking infrastructure to JavaScriptCore.
 The retrofitting of security into an established and mature VM occurs as two components:
-(1) labeling of the data types (Section~\ref{ch:system-design}) and
-(2) the instrumentation of instructions for managing runtime data structures such as the control flow stack (Section~\ref{sec:control-flow-stack}).
+(1) labeling of the data types (\autoref{ch:system-design}) and
+(2) the instrumentation of instructions for managing runtime data structures such as the control flow stack (\autoref{sec:control-flow-stack}).
 This chapter addresses the design of the instrumented instructions.
 
 \section{The Necessity for New Instructions}
@@ -32,7 +32,7 @@ However, this approach met with several obstacles which motivate the introductio
 These obstacles are not specific to either JavaScriptCore or SpiderMonkey, but originate from fall-through execution paths common to many languages.
 The technique of extending the instruction set generalizes to other dynamically typed language runtimes.
 
-When examining the instruction stream, the merge point of an \texttt{if-then-else} construct has no special distinguishing feature.
+When examining the instruction stream, the merge point of an \code{if-then-else} construct has no special distinguishing feature.
 In some paths, a jump instruction targets the merge point, while in other paths execution arrives at the merge point via a fall-through.
 Additionally, the instruction present at the merge point could be any of the existing instructions implemented by the VM.
 Neither the instructions comprising the arrival path nor the instruction at the merge point itself can serve as a unique marker for identifying a merge point.
@@ -80,7 +80,7 @@ function steal_pin() {
 }
 \end{jscode}
 
-The code sample in Listing~\ref{list:steal-pin} contains control flow structures, such as a \texttt{for}-loop, \texttt{break} statement, and \texttt{return} statement which allows us to examine the placement of the security instructions in greater detail.
+The code sample in \autoref{list:steal-pin} contains control flow structures, such as a \texttt{for}-loop, \texttt{break} statement, and \texttt{return} statement which allows us to examine the placement of the security instructions in greater detail.
 An attacker manages to inject the \code{steal\_pin} function, manufactured so that, at the end of execution, the local variable \code{i} contains the same value as the secret variable \code{pin}.
 
 Despite the fact that other, more direct mechanisms can achieve this relationship, the example highlights lesser used control flow constructs, such as the \texttt{break} statement, and the impact these constructs have on maintaining the control flow stack height.
@@ -107,7 +107,7 @@ j.run()
 import bytecodeformatter
 bytecodeformatter.tikz_picture(j.instructions())
 \end{python}
-  \caption{\FlowCore\ instruction stream representing the code snippet in Listing~\ref{list:steal-pin}.}
+  \caption{\FlowCore\ instruction stream representing the code snippet in \autoref{list:steal-pin}.}
   \label{fig:steal-pin-bytecode}
 \end{figure}
 
@@ -127,7 +127,7 @@ The \dup instruction duplicates the top of the control flow stack.
 In many cases, this instruction pairs with a \join instruction which then upgrades the top of the control flow stack after evaluating the boolean condition of the branch.
 In all cases, a corresponding \popj instruction later delineates the end of the secure region.
 
-As shown in Figure~\ref{fig:steal-pin-bytecode}, the loop header occurs after the loop body.
+As shown in \autoref{fig:steal-pin-bytecode}, the loop header occurs after the loop body.
 A \dup instruction at offset~\code{01} occurs prior to evaluation of the loop initialization code.
 The presence of this instruction prepares the control flow stack for the secure region delineated by the loop.
 A corresponding \popj instruction at offset~\code{41} occurs on a fallthrough out of the loop restoring the control flow stack height.
@@ -162,7 +162,7 @@ A side effect of this design means that the evaluation of last iteration in a \c
 For example, this situation occurs when the array consists of heterogeneously labeled fields.
 Although finding ways to prevent such joins is worthy of further research, I speculate that doing so safely would require analysis proving non-interference between successive iterations.
 
-In the running example (Figure~\ref{fig:steal-pin-bytecode}, the \join instruction at offset~\code{36} takes care of upgrading the current execution context at each iteration of the \texttt{for}-loop.
+In the running example (\autoref{fig:steal-pin-bytecode}), the \join instruction at offset~\code{36} takes care of upgrading the current execution context at each iteration of the \texttt{for}-loop.
 For the simple loop given in the example, upgrading the top of the control flow stack is wasteful, because every iteration occurs under the same security context.
 \FlowCore\ does not currently perform a more extensive analysis that would help identify this situation and optimize the join away.
 Inside the \texttt{for}-loop, a \join instruction at offset~\code{17} upgrades the program counter based on the condition of the \texttt{if}-statement.
@@ -191,27 +191,27 @@ In its primary role, the \popj instruction marks the position of every control f
 In the event that many control flow paths merge at the same point, the \popj instruction carries a parameter $p$, which indicates how may merges coincide.
 For example, this situation may occur during an early return from within a nested loop.
 
-In the example shown in Listing~\ref{list:steal-pin}, both the \code{for}-loop and the \code{if}-statement each require only a single label to be popped from the control flow stack.
+In the example shown in \autoref{list:steal-pin}, both the \code{for}-loop and the \code{if}-statement each require only a single label to be popped from the control flow stack.
 The \popj instruction at offset~\code{41} marks the end of the \code{for}-loop and the \popj instruction at offset~\code{27} marks the merge point of the \code{if}-statement.
-Both of these occurrences pop a single secure lexical region from the current control flow stack, restoring it to the height it had prior to entry of the control structure, according to the rules in Section~\ref{sec:control-flow-stack}.
+Both of these occurrences pop a single secure lexical region from the current control flow stack, restoring it to the height it had prior to entry of the control structure, according to the rules in \autoref{sec:control-flow-stack}.
 
 The presence of the second argument, $j$, which gives a depth of how many further control flow scopes should be upgraded after popping, enables \FlowCore\ to correctly handle \code{break} and \code{continue} statements.
 These statements cause a divergence in control flow from within a nested scope out to a lexical outer scope.
-As shown in the example in Listing~\ref{list:steal-pin}, the \code{break} statement enforces a equality of the secret variable, \code{pin} and the loop index variable, \code{i}.
+As shown in the example in \autoref{list:steal-pin}, the \code{break} statement enforces a equality of the secret variable, \code{pin} and the loop index variable, \code{i}.
 Having established this relationship, the malicious code can pilfer information via the variable $i$ because JavaScript semantics cause loop index variables declared with the \code{var} keyword to be promoted to function-level scope.
 As a result, \FlowCore\ conservatively upgrades the entire function context via the joining operation incorporated into the \popj instruction.
 
-When the nested \code{break} statement executes (Listing~\ref{list:steal-pin}), the control flow stack contains three labels: one for the function, one for the \code{for}-loop, and one for the \code{if}-statement.
-As shown in Figure~\ref{fig:steal-pin-bytecode}, prior to exiting the loop due to the \code{break} statement, a \popj instruction at offset~\code{22} adjusts the control flow stack by popping the label of the \code{if}-statement (parameter $p$=1) and upgrades both the \code{for} loop and the current function scope (parameter $j$=2).
+When the nested \code{break} statement executes (\autoref{list:steal-pin}), the control flow stack contains three labels: one for the function, one for the \code{for}-loop, and one for the \code{if}-statement.
+As shown in \autoref{fig:steal-pin-bytecode}, prior to exiting the loop due to the \code{break} statement, a \popj instruction at offset~\code{22} adjusts the control flow stack by popping the label of the \code{if}-statement (parameter $p$=1) and upgrades both the \code{for} loop and the current function scope (parameter $j$=2).
 The \code{for}-loop then exits and the interpreter pops one label from the control stack (offset \code{41}), leaving only the label for the function scope left on the stack.
 
 As noted previously, the inner \code{if}-statement does not directly influence the label attached to the loop index variable,~\code{i}.
-Without upgrading this label, the \code{return} at line~\code{5} of Listing~\ref{list:steal-pin-bytecode} leaks the information of the secret variable \code{pin}.
+Without upgrading this label, the \code{return} at line~\code{5} of \autoref{list:steal-pin} leaks the information of the secret variable \code{pin}.
 However, the \popj instruction at offset~\code{22} upgrades the entire function context.
 So any operations taking place after the occurrence of the \code{break} statement execute under a label at least as secure as the scope in which the \code{break} resides.
 In particular, the \code{ret} instruction at offset~\code{44} executes under the upgraded label.
 \FlowCore\ modifies the \code{ret} instruction to upgrade the label of the returned value by joining it with the label of the current execution context.
-This action tracks the information flow demonstrated by Listing~\ref{list:steal-pin}.
+This action tracks the information flow demonstrated by \autoref{list:steal-pin}.
 
 
 
