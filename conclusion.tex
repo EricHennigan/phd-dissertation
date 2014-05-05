@@ -59,7 +59,7 @@ Finally, the use of a control-flow stack and introduction of new instructions en
 
 \subsection{Flow Tracking Capabilities}
 
-The dynamic information flow tracking used in both \FlowCore\ and \JitFlow\ does not implement implicit indirect flow tracking (\autoref{ch:label-propagation}).
+The dynamic information flow tracking used in both \FlowCore\ and \JitFlow\ does not implement passive implicit flow tracking (\autoref{ch:label-propagation}).
 Tracking this type of flow requires propagation of control-flow influences through values in non-executed paths and remains an open research question for dynamic languages such as JavaScript.
 \FlowCore\ and \JitFlow\ only track information flows through a subset of the JavaScript language definition.
 The development effort required for these prototypes implies that covering all language features would require expertise from a JS vendor and a dedicated team of engineers.
@@ -100,7 +100,7 @@ To detect and mitigate these attacks, I propose using dynamic information flow t
 \autoref{ch:terminology} establishes and names different levels of information flow tracking detail.
 The categorization splits information flows between dataflow and control-flow based leaks and correlates each with a required minimum level of program analysis.
 Developing this categorization permits a clear definition of the information flow tracking capabilities \FlowCore.
-Through dynamic labeling of the program counter, \FlowCore\ can track up to implicit active information flows.
+Through dynamic labeling of the program counter, \FlowCore\ can track up to active implicit information flows.
 
 \autoref{ch:system-design} outlines the different implementations \FlowCore\ might have used.
 It contrasts the implementation of labels between a fat value approach and a security wrapper approach.

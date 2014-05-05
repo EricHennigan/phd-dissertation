@@ -387,7 +387,7 @@ As shown in \autoref{list:jitflow-stealpin-source}, an attacker can use this fea
 Once the loop has terminated early, the attacker returns the induction variable (still labeled lower in the lattice) and leaks the value of the confidential variable.
 
 \lstset{
-  caption={Inferring the value of the variable \code{secret} by observing the change in control flow using an implicit direct information flow.},
+  caption={Inferring the value of the variable \code{secret} by observing the change in control flow using an active implicit information flow.},
   label={list:jitflow-stealpin-source}
 }
 \begin{jscode}

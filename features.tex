@@ -190,7 +190,7 @@ As shown in Figure~\ref{fig:prototype-chain}, property access begins with two la
 The target value \code{valueK} ultimately found via the lookup chain also carries its own label \code{G}.
 At minimum, the final label on the value resulting from the lookup incorporates labels from the starting object, the key, and the value found.
 However, the lookup chain also involves labeled prototype references, so the label of the resulting value should incorporate the label of each object reference walked in the chain.
-Additionally, tracking of direct implicit flows demands in joining the label of the current program counter to incorporate the current security context (Chapter~\ref{sec:control-flow-stack}).
+Additionally, tracking of active implicit flows demands in joining the label of the current program counter to incorporate the current security context (Chapter~\ref{sec:control-flow-stack}).
 
 In summary, the resulting value carries a label formed by the union of
 \begin{itemize}

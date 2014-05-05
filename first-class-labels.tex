@@ -190,7 +190,7 @@ Both the JavaScript developer and any potential JavaScript attack code can only 
 During computation, these labels may walk their way monotonically up the label lattice.
 
 \lstset{
-  caption={Password sniffing via implicit direct information flow.},
+  caption={Password sniffing via active implicit information flow.},
   label={list:sniffPassword}
 }
 \begin{jscode}
@@ -210,7 +210,7 @@ function sniffPassword(pw) {
 \autoref{list:sniffPassword} gives an example of an attacker provided function which attempts to drop any label attached to the argument~\code{pw}.
 \FlowCore's label framework can track the control-flow dependence of the return variable (\code{spw}) on the argument (\code{pw}) at both the loop condition (\code{pw.length}) and the switch condition (\code{pw[i]}).
 By performing such tracking, the returning variable~\code{spw} subsumes the same set of principals as the incoming function argument~\code{pw}.
-The tracking and propagation rules enforced by \FlowCore\ prevent the attacker from dropping labels through implicit direct information leaks in exfiltration code.
+The tracking and propagation rules enforced by \FlowCore\ prevent the attacker from dropping labels through active implicit information leaks in exfiltration code.
 
 \subsection{Information Flow in the Browser}
 
@@ -488,7 +488,7 @@ The resulting \FlowLabelObject\ can then be used to apply a label to other value
 \label{subsec:network-monitor}
 
 We now assume that the attacker injects code using \code{sniffPassword} (\autoref{list:sniffPassword}) in an attempt to drop the label of the user's password.
-Because \FlowCore\ tracks labels inter- and intra-procedurally with respect to both data and implicit direct control flows (\autoref{ch:terminology}), the label on the resulting sniffed password carries both the attacker's principal and the user's password principal.
+Because \FlowCore\ tracks labels inter- and intra-procedurally with respect to both data and active implicit control flows (\autoref{ch:terminology}), the label on the resulting sniffed password carries both the attacker's principal and the user's password principal.
 The first-class labeling system exposes the network object to JavaScript, allowing interception of the information leak at the time of a network request.
 
 \lstset{
@@ -558,7 +558,7 @@ I also use the first-class labeling system to find and debug an XSS vulnerabilit
 
 \FlowCore, modifies WebKit's JavaScript engine JavaScriptCore (version~1.4.2) to attach labels to every value.
 Additionally, it contains a lattice data structure relevant for mapping bits within a label to security principals (the \FlowLabelRegistry), which the hosting web browser uses for mapping label bits to domains.
-\FlowCore\ also modifies the internal \JSValue\ representation to attach labels to program values, and a control flow stack that assists in propagating implicit direct information flow dependencies at runtime.
+\FlowCore\ also modifies the internal \JSValue\ representation to attach labels to program values, and a control flow stack that assists in propagating active implicit information flow dependencies at runtime.
 To evaluate the costs imposed by \FlowCore's labeling and tracking implementation, I test it against an unmodified JavaScriptCore of the same version.
 
 Because \FlowCore\ implements tracking only in the interpreter, I execute both JavaScript engines with just-in-time compilation disabled.
@@ -728,14 +728,14 @@ First-class labels allow developers to improve the security of their application
 \begin{comment}
 \section{Tracking JavaScript Information Flows}
 
-% Previous work~\cite{empirical-study} identifies history sniffing as the primary use of implicit active flows.
+% Previous work~\cite{empirical-study} identifies history sniffing as the primary use of active implicit flows.
 
 Label propagation within the JavaScript VM occurs at the construction of every temporary value.
 As shown in Listing~\ref{list:indirect-flows-functions}, it can track, at runtime, labels across multiple assignment statements and function calls.
 The example shows that temporary computed values (those not assigned to a variable) also carry a label.
 And that labels are propagated into, through, and from function calls.
 
-\begin{lstlisting}[caption={Example Explicit Indirect Flows in Functions},label={list:indirect-flows-functions}]
+\begin{lstlisting}[caption={Example Indirect Explicit Flows in Functions},label={list:indirect-flows-functions}]
 > labelGood = new FlowLabel("good");
 
 > function echoArgs(arg) {
@@ -763,11 +763,11 @@ And that labels are propagated into, through, and from function calls.
 \end{comment}
 
 \begin{comment}
-\subsection{Explicit Indirect Flows in Arrays}
+\subsection{Indirect Explicit Flows in Arrays}
 
 We also handle some special fields, such as Array.length, and other operations, such as indexing (also on strings).
 
-\begin{lstlisting}[caption{Example Explicit Indirect Flows in Array Objects},label={list:indirect-flows-arrays}]
+\begin{lstlisting}[caption{Example Indirect Explicit Flows in Array Objects},label={list:indirect-flows-arrays}]
 > labelGood = new FlowLabel("good.com")
 > myArray = labelGood([10,11,12,13,14]);
 
@@ -783,13 +783,13 @@ We also handle some special fields, such as Array.length, and other operations, 
 \end{comment}
 
 \begin{comment}
-\subsection{Implicit Active Flows}
+\subsection{Active Implicit Flows}
 
 An example of such an implicit flow can be seen in the password sniffing code in Listing~\ref{list:implicit-flow}.
 Both the stopping condition of the loop, and the argument to the switch statement label the program counter with \textsf{good.com}.
 Inside the switch, all assignments also carry the program counter label.
 
-\begin{lstlisting}[caption={Example Explicit Indirect Flow},label={list:implicit-flow}]
+\begin{lstlisting}[caption={Example Indirect Explicit Flow},label={list:implicit-flow}]
 > labelGood = new FlowLabel("good.com")
 > password = labelGood("o24sk09nk12")
 

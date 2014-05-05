@@ -147,7 +147,7 @@ The labels faithfully record the dependence of the assignment on the current sec
 \label{sec:control-flow-stack}
 
 In a dynamically typed language such as JavaScript, the techniques of static analysis that rely upon static typing (developed in languages such as Jif~\cite{jif}) are inapplicable.
-As a result, the information flow modifications to the JavaScript VM perform tracking up to implicit active information flows.
+As a result, the information flow modifications to the JavaScript VM perform tracking up to active implicit information flows.
 By handing back label information on values used in construction of a network resource request, the VM modifications increase the data available to the browser for making network policy enforcement decisions 
 However, to prevent information leak to third parties, the browser ultimately remains responsible for enforcing a security policy on network traffic.
 
@@ -241,12 +241,12 @@ This work therefore recognizes the monotonicity of the control flow stack to be 
 
 Austin and Flanagan~\cite{austin.flanagan+12} give an example of indirect information flow and compare the published mitigation strategies.
 Unfortunately, none of these solutions offers a silver bullet.
-Two of the strategies~\cite{zdancewic+02,austin.flanagan+10} degrade user experience by halting execution to prevent implicit indirect flows.
+Two of the strategies~\cite{zdancewic+02,austin.flanagan+10} degrade user experience by halting execution to prevent passive implicit flows.
 The third strategy~\cite{vogt.etal+07} uses a conservative labeling strategy that leads to label creep~\cite{sabelfeld.myers+03} in all but trivial cases.
 
 \section{Formal Semantics}
 
-\FlowCore\ tracks information flows across both kinds of explicit flows and implicit direct flows.
+\FlowCore\ tracks information flows across both kinds of explicit flows and active implicit flows.
 When \FlowCore\ evaluates an expression, it tags the resulting value with a label indicating the principals that influenced its creation.
 
 Guha et al.~\cite{guha.etal+10} reduce JavaScript to a succinct, small-step operational semantics that helps clarify \FlowCore's tracking capabilities.
@@ -275,7 +275,7 @@ When the predicate evaluates to true, we have:
   \kw{if}\;(e_{true}:l_{pred})\;\{\;e_1:l_1\;\}\;\kw{else}\;\{\;e_2:l_2\;\} \hookrightarrow e_1:l_{pred} \sqcup l_1
 \end{equation}
 
-Since the tracking mechanism operates at runtime, it does not track implicit indirect flows arising from control-flow branches that are not executed.
+Since the tracking mechanism operates at runtime, it does not track passive implicit flows arising from control-flow branches that are not executed.
 
 Loops act as a sequence of if-else branches, with each iteration dependant on a different predicate value during execution.
 
