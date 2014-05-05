@@ -207,8 +207,8 @@ Consequently, we identify flagrant use of values taken from extended reference c
 As a prototype implementation of information flow, \FlowCore\ did not modify all of JavaScriptCore's internal helper methods to join in each component label.
 Instead \FlowCore\ takes only label of the target (post-lookup) value under operation and the label of the current program counter.
 This omission accomplishes several goals simultaneously.
-It simplifies implementation, omits a source of label creep, improves runtime performance by eliding label joins, and permits a prototype implementation in WebKit's JIT (Chapter~\ref{sec:jitflow}).
-A literature search did not reveal any other research work claiming to have implemented full prototype-chain labeling semantics. % with enough detail to retain believability.
+It simplifies implementation, omits a source of label creep, improves runtime performance by eliding label joins, and permits a prototype implementation in WebKit's JIT compiler (\autoref{ch:jitflow}).
+A literature search did not reveal any other research work explicitly claiming to have implemented full prototype-chain labeling semantics. % with enough detail to retain believability.
 
 \subsection{Functions}
 
@@ -615,7 +615,7 @@ foo(1,2,3,4)
 %\url{http://jibbering.com/faq/notes/closures/#clScCh}
 
 Because JavaScript doesn't support the \code{public}, \code{private}, and \code{protected} access modifiers of class-based languages, programmers use closures to encapsulate variables with the methods that modify them.
-Douglas Crockford describes three patterns that emulate the behavior of these missing keywords~\cite{crockford+08}:
+Douglas Crockford describes three patterns that emulate the behavior of these missing keywords~\cite{crockford+01}:
 
 \begin{description}
   \item[Public:]
