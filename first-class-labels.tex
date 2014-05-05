@@ -19,7 +19,7 @@
 A modification of the ConDOM browser that randomly switches the information flow tracking capabilities on and off later formed a critical component of a system, called CrowdFlow~\cite{kerschbaumer.etal+13}, that gathers attack statistics across a crowd of users.
 
 These systems define an \emph{information leak} as the communication of any information to a web origin that differs from the flow-tracked derivation of that information.
-Through automated browsing, ConDOM and CrowdFlow discovered a high number of false positives, where the web application sourced much of its material from Content Distribution Networks that have different domains than the page itself.
+Through automated browsing, ConDOM and CrowdFlow discovered a high number of false positives, where the web application sourced much of its material from Content Distribution Networks (CDNs) that have different domains than the page itself.
 
 From these observations, I conclude that JavaScript program authors have more knowledge about the information-flow security needs of the application they develop than any automated system can assess~\cite{hennigan.etal+12, hennigan.etal+13}.
 To combat label creep and preempt the ex-post suggestion of applying a policy that whitelists CDNs, \FlowCore\ exposes some of the internal labeling operations through a first-class language feature.
