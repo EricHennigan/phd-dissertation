@@ -1,7 +1,34 @@
+\appendix
 
 \section{Detailed Benchmark Results}
 \label{app:jitflow-detailedresults}
 
+\subsection{V8 Benchmark}
+
+\begin{table}[h!]
+\centering
+\resizebox{\columnwidth}{!}{
+\begin{tabular}{l|rr|rr|rr|rr}
+\textit{Benchmark} & \textit{Base-JIT} & \textit{\%} & \textit{Base-Int} & \textit{\%} & \FlowCore\ & \textit{\%} & \JitFlow\ & \textit{\%} \\
+\toprule
+%v8&&&&&&&& \\
+\quad crypto & 239.9 & (0.0) & 1856.2 & (673.74) & 4716.4 & (1865.99) & 482.9 & (101.29) \\
+\quad deltablue & 378.7 & (0.0) & 1326.8 & (250.36) & 3362.9 & (788.01) & 932.1 & (146.13) \\
+\quad earley-boyer & 171.6 & (0.0) & 427.6 & (149.18) & 1216.5 & (608.92) & 336.5 & (96.1) \\
+\quad raytrace & 105.0 & (0.0) & 249.8 & (137.9) & 531.8 & (406.48) & 181.5 & (72.86) \\
+\quad regexp & 201.0 & (0.0) & 903.3 & (349.4) & 916.1 & (355.77) & 197.7 & (-1.64) \\
+\quad richards & 309.3 & (0.0) & 1637.6 & (429.45) & 4415.4 & (1327.55) & 1015.4 & (228.29) \\
+\quad splay & 238.9 & (0.0) & 305.1 & (27.71) & 595.6 & (149.31) & 280.6 & (17.46) \\
+\hline
+Total (geo. mean) & 1644.4 & (0.0) & 6706.4 & (307.83) & 15754.7 & (858.08) & 3426.7 & (108.39) \\
+\bottomrule
+\end{tabular}
+}
+\caption{Detailed performance numbers for V8 benchmarks normalized by the unmodified JavaScriptCore JIT compiler.}
+\label{tab:jitflow-performance-v8}
+\end{table}
+
+\newpage
 \subsection{Sunspider Benchmark}
 
 \begin{table}[h!]
@@ -55,31 +82,6 @@ Total (geo mean.) & 233.7 & (0.0) & 815.0 & (248.74) & 1936.2 & (728.5) & 406.6 
 \end{table}
 
 \newpage
-\subsection{V8 Benchmark}
-
-\begin{table}[h!]
-\centering
-\resizebox{\columnwidth}{!}{
-\begin{tabular}{l|rr|rr|rr|rr}
-\textit{Benchmark} & \textit{Base-JIT} & \textit{\%} & \textit{Base-Int} & \textit{\%} & \FlowCore\ & \textit{\%} & \JitFlow\ & \textit{\%} \\
-\toprule
-%v8&&&&&&&& \\
-\quad crypto & 239.9 & (0.0) & 1856.2 & (673.74) & 4716.4 & (1865.99) & 482.9 & (101.29) \\
-\quad deltablue & 378.7 & (0.0) & 1326.8 & (250.36) & 3362.9 & (788.01) & 932.1 & (146.13) \\
-\quad earley-boyer & 171.6 & (0.0) & 427.6 & (149.18) & 1216.5 & (608.92) & 336.5 & (96.1) \\
-\quad raytrace & 105.0 & (0.0) & 249.8 & (137.9) & 531.8 & (406.48) & 181.5 & (72.86) \\
-\quad regexp & 201.0 & (0.0) & 903.3 & (349.4) & 916.1 & (355.77) & 197.7 & (-1.64) \\
-\quad richards & 309.3 & (0.0) & 1637.6 & (429.45) & 4415.4 & (1327.55) & 1015.4 & (228.29) \\
-\quad splay & 238.9 & (0.0) & 305.1 & (27.71) & 595.6 & (149.31) & 280.6 & (17.46) \\
-\hline
-Total (geo. mean) & 1644.4 & (0.0) & 6706.4 & (307.83) & 15754.7 & (858.08) & 3426.7 & (108.39) \\
-\bottomrule
-\end{tabular}
-}
-\caption{Detailed performance numbers for V8 benchmarks normalized by the unmodified JavaScriptCore JIT compiler.}
-\label{tab:jitflow-performance-v8}
-\end{table}
-
 \subsection{Kraken Benchmark}
 
 \begin{table}[h!]
