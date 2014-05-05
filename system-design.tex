@@ -3,10 +3,10 @@
 \label{ch:system-design}
 
 Designing the labeling system supporting information flow tracking took special consideration.
-\FlowCore\ could have been written using one of two possible implementations of security types (Section~\ref{sec:implementation}): (1) extending of the tagged pointer representation and (2) introducing a security wrapper object.
-Before choosing one implementation over the other, we first examine how each option affects the labeling of primitive values and interned objects and how the labeling mechanism will impact memory requirements (Section~\ref{sec:analysis}).
-%We corroborate this analysis with a report on our experience during implementation (Section~\ref{sec:experience}).
-Finally, we show how this work compares with that of others (Section~\ref{sec:related-work}), and finish with a recommendation that an extension of the tagged pointer representation meets the requirements of a dynamic information flow security type system and has the least implementation effort (Section~\ref{sec:conclusion}).
+\FlowCore\ could have been written using one of two possible implementations of security types (\autoref{sec:implementation}): (1) extending of the tagged pointer representation and (2) introducing a security wrapper object.
+Before choosing one implementation over the other, we first examine how each option affects the labeling of primitive values and interned objects and how the labeling mechanism will impact memory requirements (\autoref{sec:analysis}).
+%We corroborate this analysis with a report on our experience during implementation (\autoref{sec:experience}).
+Finally, we show how this work compares with that of others (\autoref{sec:related-work}), and finish with a recommendation that an extension of the tagged pointer representation meets the requirements of a dynamic information flow security type system and has the least implementation effort (\autoref{sec:conclusion}).
 
 \section{Possible Implementations}
 \label{sec:implementation}
@@ -18,7 +18,7 @@ Before discussing the details of the two possible implementations of dynamic sec
 
 Many implementations of dynamically typed languages follow a common approach of using a tagged union to represent each possible primitive or object reference type~\cite{gudeman+93}.
 In JavaScriptCore, this union takes the form of a 64-bit word, within the class \code{JSValue}.
-Figure~\ref{fig:base-encoding} illustrates the union's fields as ordered on a big-endian\footnote{On a little-endian machine the order of the \code{tag} and \code{payload} fields are swapped.}, 64-bit machine.
+\autoref{fig:base-encoding} illustrates the union's fields as ordered on a big-endian\footnote{On a little-endian machine the order of the \code{tag} and \code{payload} fields are swapped.}, 64-bit machine.
 
 \begin{comment}
    1  2   3      4
@@ -151,7 +151,7 @@ JavaScriptCore also encodes two additional values, again at invalid pointer addr
 \subsection{Fat Value Technique}\label{sec:fat-values}
 We can achieve dynamic information flow security by attaching, onto each runtime value, additional bits which encode a pointer, handle, or taint value representing the security type.
 We term this technique the \term{fat value} approach, and extend the existing \code{JSValue} representation with an additional 64-bit word to hold the security type.
-As shown in Figure~\ref{fig:fat-encoding}, each value within the interpreter then becomes 128-bits and contains both the originally encoded value and its security tag.
+As shown in \autoref{fig:fat-encoding}, each value within the interpreter then becomes 128-bits and contains both the originally encoded value and its security tag.
 
 \begin{figure}[h]
 \begin{minipage}[h]{.7\textwidth}
@@ -216,7 +216,7 @@ Another mechanism, known as the security wrapper technique, can also achieve the
 In this mechanism, the VM labels JavaScript objects by extending them with an additional internal field.
 We introduce an internal security wrapper object which stores a primitive together with its label.
 Throughout our analysis, we shall refer to this wrapper object as a \term{cloak} and any value held within the wrapper as a \term{cloaked} value.
-Figure~\ref{fig:security-wrapper} provides a visualization of the cloak mechanism.
+\autoref{fig:security-wrapper} provides a visualization of the cloak mechanism.
 
 \begin{figure}[h]
  \centering
@@ -253,7 +253,7 @@ The wrapper must remain distinguishable to the VM, however, so that it can enfor
 Meeting this restriction is not presently possible using the existing wrapper framework.
 The primary goals of the existing wrapper class is to collect those datatypes (Date, String, Number, and Boolean) which can be stored within the space of a \code{JSValue}.
 As a result, the treatment of wrapped objects within the interpreter does not sufficiently take into account the behavioral differences between objects and primitives.
-For example, in Listing~\ref{list:boolean}, a Boolean object wrapping the primitive value \code{false} behaves according to the rules governing objects rather than those of the primitive boolean value.
+For example, in \autoref{list:boolean}, a Boolean object wrapping the primitive value \code{false} behaves according to the rules governing objects rather than those of the primitive boolean value.
 Consequently, the existing framework poses an imperfect fit for implementing information flow security, because it does not guarantee perfect transparency (from the perspective of a JavaScript program) when used to wrap primitives.
 
 \lstset{caption={JavaScript considers objects as `truthy' values.},
@@ -317,7 +317,7 @@ In the cloak approach, each object receives an internal field to store its secur
 
 The JavaScriptCore VM employs optimizations pioneered by earlier dynamically typed languages, such as Lisp and Scheme.
 To achieve better runtime performance and reduce memory footprint, the VM interns contents of type \code{string}.
-Figure~\ref{list:intern} clarifies the terminology we use to differentiate the storage aspects of JavaScriptCore's interning optimization.
+\autoref{list:intern} clarifies the terminology we use to differentiate the storage aspects of JavaScriptCore's interning optimization.
 Semantically, JavaScriptCore separates primitive strings from string objects.
 In order to permit the storage of properties, JavaScriptCore separately instantiates each string object, regardless of its contents.
 To enable fast comparison, equality, and identity operations, the VM implements string primitives as pointers to internal \code{JSString} objects which hold the string contents.
@@ -335,7 +335,7 @@ Specifically, we seek to prevent the sharing of a label across two string primit
 %As a side effect of interning, references to strings containing the same contents all point to the same string value.
 In one possible scheme, we could place the security label on the interned string content.
 This placement causes the label to be shared among all references.
-Under this scheme, an attacker could manufacture a JavaScript function that returns a string primitive carrying an incorrect label (see Listing~\ref{list:interned-string}).
+Under this scheme, an attacker could manufacture a JavaScript function that returns a string primitive carrying an incorrect label (\autoref{list:interned-string}).
 
 \lstset{caption={A function returning the value ``\code{String}'' which can carry one of two different security labels depending on runtime control flow.},
         label=list:interned-string}
@@ -434,9 +434,9 @@ Have abstract interpreter for stack label alignment [probably want to mention in
 
 \section{Summary}
 
-Given our analysis (Section~\ref{sec:analysis}), we can now achieve a high-level overview of the two techniques for introducing security types in an existing interpreter.
+Given our analysis (\autoref{sec:analysis}), we can now achieve a high-level overview of the two techniques for introducing security types in an existing interpreter.
 Each technique features design trade-offs concerning development effort, runtime costs, and security enforcement.
-%We discuss these trade-offs in the context of our implementation experience (Section~\ref{sec:experience}) with the SpiderMonkey JavaScript interpreter.
+%We discuss these trade-offs in the context of our implementation experience (\autoref{sec:experience}) with the SpiderMonkey JavaScript interpreter.
 
 \subsection{Impacts on Implementation}
 The fat value technique extends the tagged pointer representation of the core value type of the interpreter.

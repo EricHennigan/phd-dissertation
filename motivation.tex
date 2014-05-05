@@ -58,7 +58,7 @@ Each of these technologies has its own specification and set of allowed characte
 So many different character encodings exist that developers find it very difficult to track in what context a user-supplied string might appear on a page and how a browser interpret the string in that context.
 
 These many different encodings allow an attacker to formulate strings that are acceptable in one context, but nefarious in another.
-For example, characters such as `\texttt{<}', which has special meaning in the HTML specification, can be escaped in many different ways (see Table~\ref{tab:html-encoding}).
+For example, characters such as `\texttt{<}', which has special meaning in the HTML specification, can be escaped in many different ways (\autoref{tab:html-encoding}).
 Historic design philosophies such as `being liberal in what you accept from others'~\cite{rfc761}, have coerced browsers into allowing whitespace (\texttt{<scr ipt>}) or mixed-case (\texttt{<ScrIpT>}) when matching HTML tags.
 The acceptance of tags formatted in unconventional manners further contributes to the difficulty of identifying potentially malicious inputs.
 

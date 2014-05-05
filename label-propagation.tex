@@ -13,7 +13,7 @@ Each object created or modified via the confluence of separate scripts bears a l
   \label{fig:browserinteraction}
 \end{figure}
 
-Figure~\ref{fig:browserinteraction} illustrates the interaction between the browser and the JavaScript engine.
+\autoref{fig:browserinteraction} illustrates the interaction between the browser and the JavaScript engine.
 Before the browser hands a script and its input data to the JavaScript VM, it first labels the script to indicate the domain of origin.
 The VM then compiles the script source into an internal bytecode instruction representation.
 During this process, static analysis enables the instrumentation of additional instructions that allow information flow tracking during execution.
@@ -22,10 +22,10 @@ During this process, static analysis enables the instrumentation of additional i
 \label{sec:label-lattice}
 
 This work takes inspiration from the decentralized label model~\cite{myers.liskov+00}.
-Each web domain corresponds to a separate security principal, shown in the bottom row of Figure~\ref{fig:label-lattice}.
+Each web domain corresponds to a separate security principal, shown in the bottom row of \autoref{fig:label-lattice}.
 The information flow framework extends JavaScriptCore with a \code{LabelRegistry} which maps web domains to unique bit positions within the 64-bit label portion of a \code{JSValue}.
 This configuration allows labels to represent any element within the lattice over web domains.
-Figure~\ref{fig:label-lattice} depicts an example lattice for a page pulling JavaScript programs from three separate domains.
+\autoref{fig:label-lattice} depicts an example lattice for a page pulling JavaScript programs from three separate domains.
 
 \tikzset{arrow/.style={
   decoration={markings,mark=at position 1 with {\arrow[scale=2.5]{latex'}}},
@@ -154,7 +154,7 @@ However, to prevent information leak to third parties, the browser ultimately re
 The syntax of JavaScript programs allows for points where the control flow branches due to the evaluation of a runtime conditional.
 At each of these points, the security context of any code executed within the taken branch needs to reflect its dependence on the conditional.
 To accomplish this task, we augment the JavaScript interpreter with a stack of labels, called the \term{control flow stack}.
-As shown in Figure~\ref{fig:cf-stack}, the labels on this stack are in a 1-1 correspondence with the branches in control flow taken at runtime.
+As shown in \autoref{fig:cf-stack}, the labels on this stack are in a 1-1 correspondence with the branches in control flow taken at runtime.
 %This correspondence allows for tagging newly assigned values and function frames with the current security context.
 
 \begin{figure}[ht]

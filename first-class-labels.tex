@@ -170,13 +170,13 @@ Our first-class labeling system merely exposes this ability as a concise labelin
 As we shall see (\autoref{sec:using-first-class-labels}), the ability to use any JavaScript value as a principal gives web authors enough power to represent security principals as a native part of an application's code.
 
 The supporting information flow VM interns every JavaScript value used as a security principal in the \FlowLabelRegistry, mapping it to a unique bit position.
-Figure~\ref{fig:flowlabel-lattice} depicts the interning of three JavaScript string objects, \codestringdbl{example.com}, \codestringdbl{pwd}, and \codestringdbl{ad.com}, each representing a security principal in the \FlowLabelRegistry.
+\autoref{fig:flowlabel-lattice} depicts the interning of three JavaScript string objects, \codestringdbl{example.com}, \codestringdbl{pwd}, and \codestringdbl{ad.com}, each representing a security principal in the \FlowLabelRegistry.
 To minimize the attack surface on the system itself, the first-class extensions (\autoref{sec:first-class-implementation}) do not make this data structure accessible to the JavaScript programmer.
 
-As shown in Figure~\ref{fig:flowlabel-lattice}, the mapping held by the \FlowLabelRegistry\ allows a bit vector to represent each security label.
+As shown in \autoref{fig:flowlabel-lattice}, the mapping held by the \FlowLabelRegistry\ allows a bit vector to represent each security label.
 \FlowCore\ attaches a security label to every JavaScript value, representing an element from a powerset lattice over security principals.
 The current implementation of the underlying information flow framework does not support more than 64 unique principals, due to the bit vector representation of labels (\autoref{sec:existing-type-system} and \autoref{sec:label-storage}).
-However, experiments surfing the web have not found this limitation to be a problem in practice (Section~\ref{sec:first-class-evaluation}).
+However, experiments surfing the web have not found this limitation to be a problem in practice (\autoref{sec:first-class-evaluation}).
 
 \subsection{Attack Surface and Example Attack Code}
 \label{subsec:attack}
@@ -272,13 +272,13 @@ In the interest of clarity, I do not use any examples that exhibit the inherent 
 
 The first-class labeling system also introduces a singleton \FlowLabel\ prototype that both holds methods common to all \FlowLabelObject\ instances and provides an interface through which the JavaScript developer can construct \FlowLabelObject s.
 These first-class objects wrap the security labels propagated by \FlowCore\ and provide the developer an interface for label composition and application.
-Figure~\ref{fig:uml} uses UML to depict the relationship between the \FlowLabel\ prototype singleton and \FlowLabelObject\ instances.
+\autoref{fig:uml} uses UML to depict the relationship between the \FlowLabel\ prototype singleton and \FlowLabelObject\ instances.
 
 \subsection{JavaScript Syntax Extension to Retrieve Labels}
 
 The first-class labeling system implements a small change to the JavaScript language permitting JavaScript code to retrieve a label from a given value.
 It introduce the keyword \mlabelof, as a new case in the \UnaryExpression\ grammar rule of the ECMA~\cite{ecma} language standard.
-Figure~\ref{fig:labelof} presents the entire grammar rule, including boldface emphasis on the new language keyword.
+\autoref{fig:labelof} presents the entire grammar rule, including boldface emphasis on the new language keyword.
 
 \begin{figure}[ht]
   \centering
@@ -686,7 +686,7 @@ The new subgraph merges with the current information flow graph and the browser 
 In contrast, \FlowCore\ avoids delaying code execution and shifts analysis of information flows to runtime, enabling the developer to write application-specific policies in JavaScript itself.
 
 Jang et al.~\cite{jang.etal+10} employ a JavaScript rewriting-based information flow engine to document 43 cases of history sniffing within the Alexa~\cite{alexa} Global Top 50,000 sites.
-Because of access control restrictions on the History object, determining sites a user has visited can only be accomplished via an implicit control flow such as that in \ref{list:sniffPassword}.
+Because of access control restrictions on the History object, determining sites a user has visited can only be accomplished via an implicit control flow such as that in \autoref{list:sniffPassword}.
 Rather than employ rewriting, \FlowCore\ propagates labels at the interpreter level, increasing performance and preventing attackers from subverting the system.
 %Most websites that contained such flows were attempting to discern whether a user has visited pages of a competing site.
 
@@ -731,7 +731,7 @@ First-class labels allow developers to improve the security of their application
 % Previous work~\cite{empirical-study} identifies history sniffing as the primary use of active implicit flows.
 
 Label propagation within the JavaScript VM occurs at the construction of every temporary value.
-As shown in Listing~\ref{list:indirect-flows-functions}, it can track, at runtime, labels across multiple assignment statements and function calls.
+As shown in \autoref{list:indirect-flows-functions}, it can track, at runtime, labels across multiple assignment statements and function calls.
 The example shows that temporary computed values (those not assigned to a variable) also carry a label.
 And that labels are propagated into, through, and from function calls.
 
@@ -785,7 +785,7 @@ We also handle some special fields, such as Array.length, and other operations, 
 \begin{comment}
 \subsection{Active Implicit Flows}
 
-An example of such an implicit flow can be seen in the password sniffing code in Listing~\ref{list:implicit-flow}.
+An example of such an implicit flow can be seen in the password sniffing code in \autoref{list:implicit-flow}.
 Both the stopping condition of the loop, and the argument to the switch statement label the program counter with \textsf{good.com}.
 Inside the switch, all assignments also carry the program counter label.
 
@@ -818,7 +818,7 @@ Inside the switch, all assignments also carry the program counter label.
 
 \todo{this example doesn't really motivate first-class labels. How to change it? write checks around uses?}
 As documented by Chess et al.~\cite{js-hijacking} it is possible for attackers to hijack the getter and setter functions on native object prototypes such as \textsf{Object} and \textsf{Array}.
-For example, in Listing~\ref{list:prototype-hijacking} the attacker modifies \textsf{Object.prototype} such that it will run the \textsf{stealPassword} function whenever any object's \textsf{password} field is updated.
+For example, in \autoref{list:prototype-hijacking} the attacker modifies \textsf{Object.prototype} such that it will run the \textsf{stealPassword} function whenever any object's \textsf{password} field is updated.
 A real attack would have \textsf{stealPassword} communicate its argument back to an attacker controlled server, via a network request.
 Because attacker supplied code is used to perform the hijacking, our labeling system causes the \textsf{\_\_password} field to carry the attacker's label.
 

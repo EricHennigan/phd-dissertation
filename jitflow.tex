@@ -520,7 +520,7 @@ Without masking out the label, \JitFlow\ joins in the value (and label of) the r
 At this point, \code{R11} contains the join of the labels of both operands together with the bitwise-or of the values.
 
 The label on the result of the addition must also include the label from the current context.
-Because the top of the control flow stack provides the security context to every binary operation, \JitFlow\ caches it in the \code{JITStackFrame} (Section~\ref{sec:jitcontrolflow}).
+Because the top of the control flow stack provides the security context to every binary operation, \JitFlow\ caches it in the \code{JITStackFrame} (\autoref{sec:jitcontrolflow}).
 Line~6 retrieves the label from the cache into register \code{R12}.
 The VM joins in this context label using another bitwise or, accumulating the result in register \code{R11} (\codeline{7}).
 
@@ -549,7 +549,7 @@ Together, these properties allow \JitFlow\ to use bitwise-or to apply a label to
 
 The steps taken to increase JIT compiler performance for tracking control flow involved successive refinement.
 For example, JavaScriptCore's JIT compiler does not fully implement all of the bytecode instructions and often calls back into the interpreter to handle slow paths.
-At one stage during development, the \JitFlow\ compiler implemented our the new control-flow instructions (\ref{ch:instructions}) through a callback to C++.
+At one stage during development, the \JitFlow\ compiler implemented our the new control-flow instructions (\autoref{ch:instructions}) through a callback to C++.
 This stage of implementation naturally had a higher performance overhead than the final product.
 
 \JitFlow\ uses three techniques to enable fast tracking of control-flow influence:
@@ -746,7 +746,7 @@ Finally, on \codeline{12}, the test verifies that the label attached to the resu
 \subsection{Real World Applicability}
 \label{sec:realworldapplicability}
 
-Conforming to the capabilities of the attacker (Section~\ref{sec:jitflow-thirdpartycode}), this evaluation defines an information flow violation as the inequality of domains between a network data payload and the target.
+Conforming to the capabilities of the attacker (\autoref{sec:jitflow-thirdpartycode}), this evaluation defines an information flow violation as the inequality of domains between a network data payload and the target.
 When the label of the payload indicates that the data has been influenced by any origin other than the destination domain, the network request represents a communication to a foreign party, possibly an attacker-controlled server.
 
 To verify that \JitFlow\ detects information flow violations, a web crawler automatically visits web pages and stays on each web page for 60~seconds.

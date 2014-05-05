@@ -67,14 +67,14 @@ This work offers more precise and descriptive designations of the established ty
 For each flow identified, this work also illustrates the language mechanisms responsible for the information flow.
 Finally, I demonstrate the descriptive utility of the new terminology by mapping each flow to the program analysis required to detect it.
 
-This chapter refines the two categories of information flow established by Denning and Denning~\cite{denning.denning+77}, explicit flows (Section~\ref{sec:explicit-flow}) and implicit flows (Section~\ref{sec:implicit-flow}).
+This chapter refines the two categories of information flow established by Denning and Denning~\cite{denning.denning+77}, explicit flows (\autoref{sec:explicit-flow}) and implicit flows (\autoref{sec:implicit-flow}).
 
 \section{Explicit Information Flows}
 \label{sec:explicit-flow}
 
 Explicit information flows occur as a result of data flow dependence.
-This dependence can be either \emph{direct} or \emph{indirect} (see Table~\ref{table:explicitterminology}).
-Denning and Denning~\cite{denning.denning+77} establish both the definition of explicit information flows and the descriptors shown in Table~\ref{table:explicitterminology}.
+This dependence can be either \emph{direct} or \emph{indirect} (\autoref{table:explicitterminology}).
+Denning and Denning~\cite{denning.denning+77} establish both the definition of explicit information flows and the descriptors shown in \autoref{table:explicitterminology}.
 
 \begin{table*}[h]
 \centering
@@ -103,7 +103,7 @@ c = bar(_, b, _)
 \item{
 \textbf{Direct Explicit Flows} occur when a value is influenced as a result of direct data transfer, such as an assignment.
 A simple single-statement intra-procedural dataflow analysis can identify these flows.
-Table~\ref{table:explicitterminology} illustrates an intuitively clear example of this type of flow which occurs in the code sample: \texttt{var pub = secret}.
+\autoref{table:explicitterminology} illustrates an intuitively clear example of this type of flow which occurs in the code sample: \texttt{var pub = secret}.
 Subexpressions involving more than one argument also have a direct explicit information flow from all argument values to the operator's resulting value.
 Any labeling or tagging mechanism which propagates the security type information across direct explicit flows includes basic rules for each of the language's operators.
 }
@@ -111,7 +111,7 @@ Any labeling or tagging mechanism which propagates the security type information
 \item{
 \textbf{Indirect Explicit Flows} occur as the transitive closure of direct flows.
 Identification of indirect flows requires more powerful multi-statement or inter-procedural dataflow analysis.
-The code example for indirect flows in Table~\ref{table:explicitterminology} shows their transitive nature via a functional dependence.
+The code example for indirect flows in \autoref{table:explicitterminology} shows their transitive nature via a functional dependence.
 This paper preserves the use of the term ``indirect'' as originally defined by Denning and Denning~\cite{denning.denning+77} and not as overloaded by Jang~et~al.~\cite{jang.etal+10}.
 }
 \end{description}

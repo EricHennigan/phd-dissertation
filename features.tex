@@ -9,12 +9,12 @@ In order to provide a comprehensive treatment of the labeling semantics and trac
 \label{sec:data-flow-tracking}
 
 JavaScript offers some built-in data types such as Date, String, Array, and Object which programmers use to compose larger data structures.
-For reasons of efficient implementation JavaScript breaks down these data types into two categories: primitives, which fit into a 64-bit machine integer (according to the encoding in Chapter~\ref{sec:existing-type-system}), and objects, which function as generic key-value hash tables stored in the garbage-collected heap.
-As mentioned in Chapter~\ref{ch:system-design}, this breakdown affects \FlowCore's implementation of label attachment and propagation.
+For reasons of efficient implementation JavaScript breaks down these data types into two categories: primitives, which fit into a 64-bit machine integer (according to the encoding in \autoref{sec:existing-type-system}), and objects, which function as generic key-value hash tables stored in the garbage-collected heap.
+As mentioned in \autoref{ch:system-design}, this breakdown affects \FlowCore's implementation of label attachment and propagation.
 
 \subsection{Primitives}
 
-\FlowCore\ follows the fat value approach explored in the discussion on system design (Chapter~\ref{sec:chosen-implementation}).
+\FlowCore\ follows the fat value approach explored in the discussion on system design (\autoref{sec:chosen-implementation}).
 This approach directly tags all primitives within the virtual machine, providing the foundation on which to build the tagging propagation rules.
 
 The JavaScript Specification~\cite{ecma} defines the following primitive types:
@@ -31,11 +31,11 @@ WebKit's JavaScriptCore implementation adjusts the specification in some subtle 
 First, it separates \code{Number}s into two different classes: 32-bit integers and IEEE 754 doubles, which includes the special values NaN, positive infinity, and negative infinity.
 Internally, this separation allows for JavaScriptCore (and its Just-in-Time compiler) to distinguish between floating point and integer numerical data types so that the interpreter uses the appropriate machine arithmetic operations.
 
-Second, each of the boolean types receives its own primitive encoding (Figure~\ref{fig:base-encoding}).
+Second, each of the boolean types receives its own primitive encoding (\autoref{fig:base-encoding}).
 This decision speeds up the recognition of these primitive values, by providing a direct representation that avoids wrapper objects.
 
 Third, despite the designation of strings as primitives in the JavaScript specification~\cite{ecma}, JavaScriptCore implements them as native objects, interning the string values.
-Consequently, strings appear as object pointer values in the \code{JSValue} 64-bit encoding (Figure~\ref{fig:base-encoding}) that reference native String Objects.
+Consequently, strings appear as object pointer values in the \code{JSValue} 64-bit encoding (\autoref{fig:base-encoding}) that reference native String Objects.
 Additionally, all String Objects have a prototype reference to the String Prototype object that carries all of the specification-defined methods available for strings.
 Within the JavaScriptCore implementation, native String Objects always remain clearly distinguishable from user-defined objects, allowing the interpreter to treat strings according to the rules defined in the JavaScript specification~\cite{ecma}.
 
@@ -49,11 +49,11 @@ Finally, JavaScriptCore implements additional values not present within the spec
 Two of these values, \code{empty} and \code{deleted}, have bit patterns that distinguish them from each of the primitives defined in the JavaScript specification~\cite{ecma}.
 Within JavaScriptCore, no valid \code{JSValue} has the bit pattern of all zeros (the \code{empty} value), nor does any object reside at that address.
 The \code{deleted} value contains a bit pattern that violates the object alignment within the garbage-collected heap.
-The specification-defined \code{null} and \code{undefined} values have non-zero integral representation that distinguish them from the internal \code{empty} and \code{deleted} values (Figure~\ref{fig:base-encoding}).
+The specification-defined \code{null} and \code{undefined} values have non-zero integral representation that distinguish them from the internal \code{empty} and \code{deleted} values (\autoref{fig:base-encoding}).
 
 \FlowCore\ tags all of these primitive values, including the additional ones specific to JavaScriptCore's implementation, by extending the base representation, \code{JSValue}, with an additional 32-bits.
 This design allows for \FlowCore\ to tag all representable values within the JavaScriptCore interpreter, regardless of its mapping back to the JavaScript specification.
-The most evident side-effect of tagging primitive pointer values rather than extending objects with an internal label field implies that \FlowCore\ follows the reference semantics discussed in Chapter~\ref{sec:impacts-on-security-semantics}.
+The most evident side-effect of tagging primitive pointer values rather than extending objects with an internal label field implies that \FlowCore\ follows the reference semantics discussed in \autoref{sec:impacts-on-security-semantics}.
 As a side-effect of tagging all representable values within the interpreter, \FlowCore\ sometimes evaluates operations using a more conservative label than necessary.
 %For example, iteration over an array with holes proceeds to use labels attached to the hole values, in spite of the language specification claiming holes should be skipped over entirely.
 
@@ -66,7 +66,7 @@ At the JavaScript console, the built-in global object acts as the current contex
 And within WebKit's debugging console, the context defaults to the built-in window object.
 
 Given that JavaScript stores all variables as properties on an object, the semantics for accessing variables in JavaScript is the same as for accessing properties of objects.
-Listing~\ref{list:vardef} shows these semantics at the JavaScriptCore console, where the \code{this} keyword references the built-in global object that holds defined variables.
+\autoref{list:vardef} shows these semantics at the JavaScriptCore console, where the \code{this} keyword references the built-in global object that holds defined variables.
 
 \lstset{caption={Variable definition and access at the JavaScript console},
         label={list:vardef}}
@@ -78,7 +78,7 @@ js> this.x
 \end{jscode}
 
 In other contexts, such as within a function call, the JavaScript programmer may not have access to the object that stores declared variables (i.e. the activation record object).
-For example, in Listing~\ref{list:funcdef}, the \code{this} keyword does not refer to the activation record object.
+For example, in \autoref{list:funcdef}, the \code{this} keyword does not refer to the activation record object.
 Rather, it refers to the object holding the method definition, i.e., the built-in global object.
 
 \lstset{caption={Variable definition and access in a JavaScript function.},
@@ -110,7 +110,7 @@ In the event that the property is absent, the lookup proceeds by recursively sca
 
 Objects in JavaScript resemble hash tables, with property name-to-value bindings created, updated, and removed at runtime.
 Three different syntaxes allow a programmer to access an object's properties\footnote{The presence of \code{eval} and \code{with}-blocks can modify the path of access by naming the current context object, but their presence does not change the syntax of access.}.
-As shown in Listing~\ref{list:property-access-notation} the first form does not explicitly name the object being accessed, while in the other two forms a dot or square bracket follows the name of the target object.
+As shown in \autoref{list:property-access-notation} the first form does not explicitly name the object being accessed, while in the other two forms a dot or square bracket follows the name of the target object.
 
 \lstset{caption={Syntax for Property Access},
         label={list:property-access-notation}}
@@ -120,11 +120,11 @@ obj.key  // property access using dot notation
 obj[key] // property access using bracket notation
 \end{jscode}
 
-In the first example of Listing~\ref{list:property-access-notation}, \FlowCore\ retrieves \code{key} from the current context object.
+In the first example of \autoref{list:property-access-notation}, \FlowCore\ retrieves \code{key} from the current context object.
 The lookup path may follow the internal \brackdbl{scope} chain for properties defined in an outer lexical scope.
 The resulting value \code{key} carries a tag representing the union of all labels encountered on the reference path taken.
 
-In the latter two examples of Listing~\ref{list:property-access-notation}, \FlowCore\ first retrieves \code{obj} from the current activation object, in the same manner that it retrieves \code{key} in the first example.
+In the latter two examples of \autoref{list:property-access-notation}, \FlowCore\ first retrieves \code{obj} from the current activation object, in the same manner that it retrieves \code{key} in the first example.
 Recall that \FlowCore\ does not tag the object itself, but rather tags the pointers that reference the object.
 The resulting object reference \code{obj} then carries a tag representing the union of all labels encountered on the reference path taken.
 
@@ -135,7 +135,7 @@ In contrast, the dot notation contains the \code{key} as an embedded code string
 
 Once the object instance \code{obj} has been retrieved and the \code{key} calculated, the interpreter performs a hash-table lookup on the properties of that object.
 In the event that an object does not itself have a value associated with the requested \code{key}, the lookup proceeds recursively through objects in the prototype chain following \brackdbl{Prototype} references.
-Figure~\ref{fig:prototype-chain} shows this access path for a generic property lookup.
+\autoref{fig:prototype-chain} shows this access path for a generic property lookup.
 
 \newcommand{\hashvalue}[2]{\textlangle \code{#1} \textbar\ \code{#2}\textrangle}
 \newcommand{\hashbrackdbl}[2]{\textlangle \brackdbl{#1} \textbar\ \code{#2}\textrangle}
@@ -186,11 +186,11 @@ Figure~\ref{fig:prototype-chain} shows this access path for a generic property l
 \end{figure}
 
 \subsubsection{Labeling Semantics for Property Access}
-As shown in Figure~\ref{fig:prototype-chain}, property access begins with two labeled items: the object \code{obj} carrying label \code{O} and the stringified property name \code{key} carries label \code{K}.
+As shown in \autoref{fig:prototype-chain}, property access begins with two labeled items: the object \code{obj} carrying label \code{O} and the stringified property name \code{key} carries label \code{K}.
 The target value \code{valueK} ultimately found via the lookup chain also carries its own label \code{G}.
 At minimum, the final label on the value resulting from the lookup incorporates labels from the starting object, the key, and the value found.
 However, the lookup chain also involves labeled prototype references, so the label of the resulting value should incorporate the label of each object reference walked in the chain.
-Additionally, tracking of active implicit flows demands in joining the label of the current program counter to incorporate the current security context (Chapter~\ref{sec:control-flow-stack}).
+Additionally, tracking of active implicit flows demands in joining the label of the current program counter to incorporate the current security context (\autoref{sec:control-flow-stack}).
 
 In summary, the resulting value carries a label formed by the union of
 \begin{itemize}
@@ -223,17 +223,17 @@ The JavaScriptCore interpreter supports this feature by separating the function 
   \item the VariableEnviornment, used to identify the context object that holds bindings created by variable statements and function declarations within the execution context,
   \item and the ThisBinding, used to provide the object targeted by the \code{this} keyword within the execution context.
 \end{itemize}
-Unlike the current context object (the target of the ThisBinding) described in Section~\ref{sec:variables}, the execution context remains inaccessible by any JavaScript program.
+Unlike the current context object (the target of the ThisBinding) described in \autoref{sec:variables}, the execution context remains inaccessible by any JavaScript program.
 
 Just as \FlowCore\ labels values and object references, it also labels references to functions, supporting the first-class definitions offered by JavaScript.
 At the cite of storage, the label of a function depends on how it gets defined.
 Functions defined by loading source code have a label representing the domain from which the code was fetched.
 Functions defined during runtime execution carry the label of the current program counter at the cite of definition.
-When accessing a function in order to invoke a call, the label of function reference follows the same rules as provided earlier for the lookup of values (Section~\ref{sec:variables}).
+When accessing a function in order to invoke a call, the label of function reference follows the same rules as provided earlier for the lookup of values (\autoref{sec:variables}).
 
 The practice of using closures for data encapsulation and variable hiding does not affect the implementation of \FlowCore.
 Instead, it only affects the storage placement of the function and consequently the path of access a programmer uses to retrieve the function for invocation.
-Section~\ref{sec:function-calls} discusses the setup of the execution context prior to function evaluation and the mechanism for labeling the value resulting from the function call.
+\autoref{sec:function-calls} discusses the setup of the execution context prior to function evaluation and the mechanism for labeling the value resulting from the function call.
 
 \subsection{Built-ins}
 
@@ -732,7 +732,7 @@ As a conservative precaution, when the interpreter encounters a \code{throw} sta
 Once the interpreter finds the appropriate handler, it pops all activation frames within the call chain.
 Control flow then transfers to the corresponding \code{catch}-block where a \code{POPJ\_CFLABEL} instruction upgrades the entire control flow stack of the handling function using the label taken from the exception object.
 Taking this action prevents implicit information leaks that might occur due to exiting the \code{try}-block early.
-Such leaks are analogous to the \code{break} and \code{continue} (see Section~\ref{sec:break-and-continue}).
+Such leaks are analogous to the \code{break} and \code{continue} (\autoref{sec:break-and-continue}).
 
 The \code{finally}-block always executes using the current \pclabel, which is provided either by finishing the \code{try}-block or from catching an exception and executing the \code{catch}-block.
 \end{comment}
@@ -760,4 +760,3 @@ This analysis covers \emph{all} possible executions paths for every method parse
 % To include an instruction count evaluation:
 % check ./2010_jsflowpaper
 % check ./2011_esorics
-
