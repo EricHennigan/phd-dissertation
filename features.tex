@@ -379,20 +379,20 @@ bytecodeformatter.tikz_picture(j.instructions())
 
 Ordinary label propagation through straight-line code ensures that the predicate value itself has an attached label.
 \FlowCore\ uses this label to upgrade the program counter's label.
-It then pushes the new pc-label on the control flow stack, marking the entrance of a new program region.
-Although the new pc-label only affects instructions evaluated in the taken branch, the marking of the region applies to both branches.
+It then pushes the new \pclabel\ on the control flow stack, marking the entrance of a new program region.
+Although the new \pclabel\ only affects instructions evaluated in the taken branch, the marking of the region applies to both branches.
 
-The modified parser emits a \dup instruction (offset~\code{04}) to clone the current pc-label and mark the beginning of the secure code region.
-Next, instructions for evaluating the conditional value appear, so that they also execute under the cloned pc-label.
+The modified parser emits a \dup instruction (offset~\code{04}) to clone the current \pclabel\ and mark the beginning of the secure code region.
+Next, instructions for evaluating the conditional value appear, so that they also execute under the cloned \pclabel.
 The conditional value itself may be the result of an arbitrary expression, which could include function calls and shortcut evaluation of logical operators.
 \FlowCore\ cannot predict its label at parse time, so a \join instruction (offset~\code{10}) immediately follows the conditional evaluation (offset~\code{05}).
 %The example in \autoref{fig:2branch-bytecode} the \join instruction immediately follows the \dup instruction because the conditional value already exists in a register (\code{r0}) and does not require computation.
 
 Prior to selecting a branch for execution (offset~\code{12}), the \join instruction (offset~\code{10}) upgrades the top of the control flow stack using the label of the conditional value computed at runtime.
-All instructions in the chosen branch then execute under the new pc-label.
-The data-flow propagation rules then ensure that the information dependence from the conditional predicate propagates to values computed within that branch, via the pc-label as an intermediary.
-\FlowCore\ does not need to instrument additional instructions in either the true-branch (offsets~\code{15}--\code{18}) or the false-branch (offset~\code{20}), because it already applies data-flow propagation from the pc-label to label the value output from each instruction.
-When either side of the conditional branch finishes executing, a \popj instruction (offset~\code{23}) at the control flow join restores the pc-label to its state prior to branching, by popping the label pushed at the beginning of the region (offset~\code{04}).
+All instructions in the chosen branch then execute under the new \pclabel.
+The data-flow propagation rules then ensure that the information dependence from the conditional predicate propagates to values computed within that branch, via the \pclabel\ as an intermediary.
+\FlowCore\ does not need to instrument additional instructions in either the true-branch (offsets~\code{15}--\code{18}) or the false-branch (offset~\code{20}), because it already applies data-flow propagation from the \pclabel\ to label the value output from each instruction.
+When either side of the conditional branch finishes executing, a \popj instruction (offset~\code{23}) at the control flow join restores the \pclabel\ to its state prior to branching, by popping the label pushed at the beginning of the region (offset~\code{04}).
 
 \subsection{Loops}
 
@@ -436,13 +436,13 @@ Conceptually, that behavior places the loop condition within the same code regio
 So the code region defining the loop begins with the initialization code, covers the loop condition and body, and ends at the loop exit.
 
 Because the predicate of the loop may depend on runtime-supplied input, a static analysis cannot track the flow of information from predicate to loop body.
-Instead, \FlowCore\ establishes a region around the loop condition and body, relying on data-flow propagation to track the dependence at runtime, by propagating the region's current pc-label to labels on values generated within the loop body.
+Instead, \FlowCore\ establishes a region around the loop condition and body, relying on data-flow propagation to track the dependence at runtime, by propagating the region's current \pclabel\ to labels on values generated within the loop body.
 The recursively nested syntactic structure of the JavaScript language permits tracking the region with a label stack.
 
 When \FlowCore\ evaluates the loop condition it sets the label for the code region that defines the loop.
 But the loop condition controls execution of each loop body iteration.
 So \FlowCore\ upgrades the label of the code region after each evaluation of the condition.
-Due to the monotonicity of the join operation used to upgrade the pc-label on the code region, this behavior has an interesting side-effect.
+Due to the monotonicity of the join operation used to upgrade the \pclabel\ on the code region, this behavior has an interesting side-effect.
 Later iterations of the loop body my execute under a label higher in the security lattice than earlier iterations of the loop body.
 Naturally, successive iterations depend on earlier iterations, implying an information flow between iterations, which \FlowCore\ tracks.
 
@@ -487,11 +487,11 @@ Naturally, the placement of the loop condition at the tail end of the loop body 
 The \join instruction does not affect the height of the control-flow stack, successfully avoiding unwanted stack growth each iteration.
 
 The presence of the \join instruction in the conditional results in a monotonically increasing label on the loop body.
-This implementation detail permits later iterations to carry a higher pc-label than earlier iterations, even when these iterations do not influence each other.
+This implementation detail permits later iterations to carry a higher \pclabel\ than earlier iterations, even when these iterations do not influence each other.
 \FlowCore\ makes no attempt to analyze the loop body for independence of iterations, so it cannot downgrade the loop context.
 
 As soon as the loop condition fails to hold, \FlowCore\ executes a \popj instruction that restores the control-flow stack height to its previous level before the loop.
-This action allows subsequent code to execute under the same pc-label as existed before encountering the loop, regardless of how many loop iterations executed.
+This action allows subsequent code to execute under the same \pclabel\ as existed before encountering the loop, regardless of how many loop iterations executed.
 
 \subsection{Break and Continue}
 \label{sec:break-and-continue}
@@ -526,9 +526,9 @@ Even the comparison with the secret variable \code{pin} (line~\code{3}) does not
 The scope of the \code{if}-statement ends prior to incrementing the index, preventing any data-flow propagation that would influence the label on the index variable \code{i}.
 
 To combat the use of contrived control flow as a side-channel to data-flow propagation, \FlowCore\ raises the security context of the \emph{function} scope in which the \code{break} or \code{continue} statement occurs.
-This action causes code following the unexpected change in control flow to execute under the same pc-label as the \code{break} statement itself.
+This action causes code following the unexpected change in control flow to execute under the same \pclabel\ as the \code{break} statement itself.
 Any later use of the loop index \code{i} (line~\code{8}) then occurs under the raised security context.
-The rules for data-flow propagation incorporate the pc-label, so the result of such later computations carry the label of the condition (line~\code{3}) which controlled the break.
+The rules for data-flow propagation incorporate the \pclabel, so the result of such later computations carry the label of the condition (line~\code{3}) which controlled the break.
 
 \begin{figure}[h]
 \begin{python}
@@ -561,7 +561,7 @@ bytecodeformatter.tikz_picture(j.instructions())
 The arrow diagram in \autoref{fig:break-leak-bytecode} gives a visual layout of the nested control-flow structure in \autoref{list:break-leak}.
 The nested \code{if}-statement (lines~\code{07}--\code{27}) scopes the break in control flow (line~\code{25}).
 As explained previously (\autoref{sec:conditional-branch}), it begins with a \dup instruction (line~\code{07}) and ends with a \popj instruction (line~\code{27}).
-Instructions within the body of the true-branch occur under the pc-label upgraded by the loop condition, handled by the \join instruction (line~\code{17}).
+Instructions within the body of the true-branch occur under the \pclabel\ upgraded by the loop condition, handled by the \join instruction (line~\code{17}).
 
 In this example, the body of the true-branch contains a \code{break} statement that disrupts the ordinary control flow, resulting in the placement of a \code{jmp} instruction (line~\code{25}) that moves control to the loop exit.
 Prior to this break, \FlowCore\ places a \popj instruction (line~\code{22}) that pops the label corresponding to the \code{if}-statement off the top of the control-flow stack (argument~\code{pop:1}).
@@ -572,24 +572,24 @@ It has an additional parameter that causes an upgrade of the function scope (arg
 In this case, the function has only one level of scope beyond the nested \code{if}-statement.
 
 The \popj instruction for the break pops one label for the \code{if}-statement and upgrades two labels beneath, one for the \code{while}-loop and one for the function.
-After the breaking the control flow, all following instructions scoped to the current function execute under the upgraded pc-label.
-The use of the pc-label makes the data-flow propagation rules (\autoref{sec:data-flow-tracking}) context-aware, enabling \FlowCore\ to track the information dependence that values constructed outside of the interrupted loop have on the break condition.
+After the breaking the control flow, all following instructions scoped to the current function execute under the upgraded \pclabel.
+The use of the \pclabel\ makes the data-flow propagation rules (\autoref{sec:data-flow-tracking}) context-aware, enabling \FlowCore\ to track the information dependence that values constructed outside of the interrupted loop have on the break condition.
 
 \subsection{Function Calls}
 \label{sec:function-calls}
 
 JavaScript supports first-class functions, meaning that references to functions carry a label, just like references to Objects.
-Entry into a function creates an \term{execution context}\cite{ecma}, beginning with an activation object that holds the function-local variables and an \code{arguments} object that gives array-like indexable access to the function's runtime arguments and caller.
+Entry into a function creates an \term{execution context}~\cite{ecma}, beginning with an activation object that holds the function-local variables and an \code{arguments} object that gives array-like indexable access to the function's runtime arguments and caller.
 \FlowCore\ modifies the JavaScriptCore VM to establish a new code region surrounding the function body.
 
 As part of the preamble, \FlowCore\ pushes a label onto the control-flow stack at the time it creates the execution context for the called function.
-\FlowCore\ then upgrades the pc-label for the function by joining in The label of the function reference, ensuring that the results of all operations within the function occur under the label of the function reference.
+\FlowCore\ then upgrades the \pclabel\ for the function by joining in The label of the function reference, ensuring that the results of all operations within the function occur under the label of the function reference.
 Finally, control transfers to the newly established function frame.
 
 \FlowCore\ does not emit the \dup and \join instructions into the instruction stream to establish the beginning of the function's code region.
 Rather, it accomplishes the same effect by direct modification of JavaScriptCore's internal stack manipulation routines.
 
-During execution, \FlowCore\ applies the current pc-label to the result of all operations, following the control-flow and data-flow implementation given previously.
+During execution, \FlowCore\ applies the current \pclabel\ to the result of all operations, following the control-flow and data-flow implementation given previously.
 \FlowCore\ makes no special consideration for function-local variables, because they behave as fields stored on the activation object.
 The labeling rules also apply to implicitly defined local values, such as the function's return value, the \code{arguments} object, and any raised exception objects.
 %Additionally, the labeling applies to any variables accessed along the \brackdbl{scope} chain, using the same procedures for variable access on the \brackdbl{property} chain.
@@ -665,13 +665,13 @@ null
 \subsubsection{Return Values}
 
 As a result of data-flow label propagation, the return value already contains a conjunction of all labels on all data elements used in computation of the value.
-\FlowCore\ modifies the return instruction to apply the current pc-label to the value being returned.
-This additional step enables implicit return values\footnote{All JavaScript functions return \code{undefined} by default, if the function body does not have an explicit return value.} to posses a label at least as secure as the pc-label present at function exit.
+\FlowCore\ modifies the return instruction to apply the current \pclabel\ to the value being returned.
+This additional step enables implicit return values\footnote{All JavaScript functions return \code{undefined} by default, if the function body does not have an explicit return value.} to posses a label at least as secure as the \pclabel\ present at function exit.
 It also catches any upgrade to the code region of the function, such as that caused by a break in control flow (\autoref{sec:break-and-continue}).
 By modifying the implementation of the return instruction, \FlowCore\ does not need to instrument any security instructions at function return sites.
 
 \FlowCore\ handles early returns in the same manner that it handles a break in control flow.
-The code region exits with an explicit \popj instruction that upgrades the pc-label of the function body, immediately before the \code{ret} instruction labels its argument with the current program counter label and returns to the calling function.
+The code region exits with an explicit \popj instruction that upgrades the \pclabel\ of the function body, immediately before the \code{ret} instruction labels its argument with the current program counter label and returns to the calling function.
 
 Just as it modified the stack manipulation routines to establish a code region at the callsite, \FlowCore\ also takes care to implicitly perform the equivalent of a \popj instruction to end the function's code region as part of the function's epilogue.
 This action occurs in all cases as part of transferring control to the caller function and does not engender instrumentation of the \popj instruction into the instruction stream.
@@ -688,7 +688,7 @@ The setting of this label breaks down into two cases:
  \item [Execution defines a function at run time.]
    Just as with any object, the current program counter implicitly labels the \code{JSvalue} holding the function reference at the time of that function's creation.
   Whether stored in a variable for a later call, anonymously passed around or returned, or immediately called, \FlowCore\ uses the attached label to establish the execution context at function invocation time.
-  All code within the function then executes under a label at least as secure as the pc-label at the time of the function's creation.
+  All code within the function then executes under a label at least as secure as the \pclabel\ at the time of the function's creation.
   If the reference undergoes data-flow in a secure region, \FlowCore\ upgrades the attached label by the rules of control-flow propagation.
 \end{description}
 
@@ -728,13 +728,13 @@ bytecodeformatter.tikz_picture(j.instructions())
 \end{figure}
 
 The exception handling region of the \code{try}-block begins with a \dup instruction.
-As a conservative precaution, when the interpreter encounters a \code{throw} statement, it takes care to first cloak the exception object that is to be returned to the exception handler using the current pc-label.
+As a conservative precaution, when the interpreter encounters a \code{throw} statement, it takes care to first cloak the exception object that is to be returned to the exception handler using the current \pclabel.
 Once the interpreter finds the appropriate handler, it pops all activation frames within the call chain.
 Control flow then transfers to the corresponding \code{catch}-block where a \code{POPJ\_CFLABEL} instruction upgrades the entire control flow stack of the handling function using the label taken from the exception object.
 Taking this action prevents implicit information leaks that might occur due to exiting the \code{try}-block early.
 Such leaks are analogous to the \code{break} and \code{continue} (see Section~\ref{sec:break-and-continue}).
 
-The \code{finally}-block always executes using the current pc-label, which is provided either by finishing the \code{try}-block or from catching an exception and executing the \code{catch}-block.
+The \code{finally}-block always executes using the current \pclabel, which is provided either by finishing the \code{try}-block or from catching an exception and executing the \code{catch}-block.
 \end{comment}
 
 \subsection{Eval}
@@ -743,7 +743,7 @@ The \code{finally}-block always executes using the current pc-label, which is pr
 A call to \code{eval} first calls the parser, which compiles the string into an instruction stream.
 As a result of passing through the parser, this stream contains all of the security instructions just as a normal script would.
 That instruction stream then executes inside a code region constructed by the \FlowCore\ interpreter.
-The parameter string passed into the \code{eval} provides the initial pc-label for the new execution context.
+The parameter string passed into the \code{eval} provides the initial \pclabel\ for the new execution context.
 
 \section{Verification}
 
@@ -761,9 +761,6 @@ This analysis covers \emph{all} possible executions paths for every method parse
 % check ./2010_jsflowpaper
 % check ./2011_esorics
 
-
-
-\todo[inline]{replace pc-label with \mbox{pc-label}}
 \todo[inline]{pull citations from acsac-tr}
 
 \todo[inline]{remove the word 'bytecode' and 'opcode', replace with instruction}

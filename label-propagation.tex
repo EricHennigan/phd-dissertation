@@ -137,7 +137,7 @@ If the label on the request contains principles other than the destination domai
 \end{definition}
 
 When the Vm assigns value to an existing variable, it upgrades the label on the destination variable with the label attached to the source value.
-Because assignment represents a mutation of memory, the VM also upgrades the destination label with the current pc-label.
+Because assignment represents a mutation of memory, the VM also upgrades the destination label with the current \pclabel.
 The labels faithfully record the dependence of the assignment on the current security context.
 
 %TODO: include equal relation?
@@ -180,7 +180,7 @@ As shown in Figure~\ref{fig:cf-stack}, the labels on this stack are in a 1-1 cor
       \node {\ldots}; \\
     };
     \node[below=of labs, align=center] {Control Flow\\ Stack};
-    \node[right=of labFBA, align=left] {pc-label};
+    \node[right=of labFBA, align=left] {\pclabel};
 
     \draw[labarrow] ($(condB.mid east)+(.1,0)$) -- (labFBA.mid west);
     \draw[labarrow] ($(condA.mid east)+(.1,0)$) -- (labFA.mid west);
@@ -195,20 +195,20 @@ As shown in Figure~\ref{fig:cf-stack}, the labels on this stack are in a 1-1 cor
 \end{figure}
 
 The control flow stack records the runtime sequence of labels attached to the program counter.
-At all time the top of the control flow stack holds the label of the current program counter, \term{pc-label}, identifying the security context of any operations currently under execution.
-When the information flow VM assigns a value, it also joins the label attached to that value with the current pc-label.
+At all time the top of the control flow stack holds the label of the current program counter, \term{\pclabel}, identifying the security context of any operations currently under execution.
+When the information flow VM assigns a value, it also joins the label attached to that value with the current \pclabel.
 
 \subsection{Monotonicity of Control Flow Stack}
 
 We use two guidelines for maintaining the control flow stack:
 \begin{enumerate}
  \item Whenever control flow diverges due to an \code{if}, \code{while}, \code{for}, \code{switch}, function call or similar statement, the VM duplicates the top of the control flow stack to indicate entry into a secure region.
- \item Whenever a control flow joins, the VM pops and discards the top of the control flow stack, restoring the pc-label to the value it had before the branch in control flow occurred.
+ \item Whenever a control flow joins, the VM pops and discards the top of the control flow stack, restoring the \pclabel\ to the value it had before the branch in control flow occurred.
 \end{enumerate}
 
 Of conspicuous absence in our guidelines (and the complete list of security bytecodes in \autoref{ch:instructions}) is an operation for pushing a specific security label onto the control flow stack.
 According to the first guideline, the stack grows via successive duplications.
-When the VM enters a secure code region it first duplicates the pc-label and then joins it with the label attached to the condition which cause the control flow branch.
+When the VM enters a secure code region it first duplicates the \pclabel\ and then joins it with the label attached to the condition which cause the control flow branch.
 This execution directly implies an important theoretical result:
 \begin{theorem}
   At all times during program execution, the control flow stack contains monotonically increasing security labels.
@@ -226,7 +226,7 @@ This execution directly implies an important theoretical result:
 \end{proof}
 
 \section{Label Creep}
-When the information flow VM assigns to a value, it upgrades the label attached to that value with the current pc-label (a.k.a. the top of the control flow stack).
+When the information flow VM assigns to a value, it upgrades the label attached to that value with the current \pclabel\ (a.k.a. the top of the control flow stack).
 
 The information flow VM system, explicitly labels values manufactured in a higher security context before allowing them to enter a lower security context, as may happen during via a function \code{return} statement.
 The VM labels the result of computations involving two or more values using the join of the labels of all arguments.
@@ -235,8 +235,8 @@ As the interpreter executes, these joins steadily elevate the labels on objects 
 
 At all times during program execution, a monotonically increasing list of security labels comprises the control flow stack.
 All of the operations that our system performs on the control flow stack either leave the relationship between successive labels unchanged, or elevates the labels at the top of the stack.
-Because all labels attached to values incorporate the current program counter label, which lies at the top of the control flow stack, it is important not to elevate the pc-label unless absolutely necessary.
-Otherwise, an overly-conservative pc-label leads to the creation of values with unnecessarily elevated security labels.
+Because all labels attached to values incorporate the current program counter label, which lies at the top of the control flow stack, it is important not to elevate the \pclabel\ unless absolutely necessary.
+Otherwise, an overly-conservative \pclabel\ leads to the creation of values with unnecessarily elevated security labels.
 This work therefore recognizes the monotonicity of the control flow stack to be the primary source of label creep.
 
 Austin and Flanagan~\cite{austin.flanagan+12} give an example of indirect information flow and compare the published mitigation strategies.

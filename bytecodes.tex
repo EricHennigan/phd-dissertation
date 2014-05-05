@@ -55,7 +55,7 @@ Inserting this instruction between the computation of a conditional value and it
 Treatment of return statements requires further analysis
 \FlowCore\ must take care to align the control flow stack height in the event that a return occurs inside a nested code block.
 A translation of the return into a three step process accomplishes this task.
-First, label the return value using the current top of the control flow stack (i.e. the pc-label) and cache the value in the stack frame.
+First, label the return value using the current top of the control flow stack (i.e. the \pclabel) and cache the value in the stack frame.
 Second, instrument a \popj to restore the control flow stack height.
 Third, return the properly labeled value and tear-down the function.
 In a register machine, such as JavaScriptCore, the return instruction implementation can perform all three steps, by extending the return instruction opcode with an immediate value representing the control flow stack depth.
