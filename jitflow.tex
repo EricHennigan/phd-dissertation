@@ -359,7 +359,7 @@ This decision makes double values a source of label creep.
 Code and data originally tagged with different security principals (web domains) may interact during execution of a JavaScript program.
 The encoding of labels within the lattice supports tagging a single value as having been influenced by multiple principals.
 For every operation, \JitFlow\ inspects the labels of all inputs, including the current program counter.
-As described in \autoref{ch:tracking-capabilities}, it constructs a label representing the lattice join over all arguments and the current execution context.
+As described in \autoref{ch:label-tracking}, it constructs a label representing the lattice join over all arguments and the current execution context.
 \JitFlow\ then attaches the resulting label to the operation's output value.
 
 For an example of a situation where two principals influence a single value (simplified to omit the current execution context), consider the code snippet:
