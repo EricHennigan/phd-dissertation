@@ -755,89 +755,12 @@ To ensure that \FlowCore\ places all of the security instructions appropriately,
 This analysis covers \emph{all} possible executions paths for every method parsed, ensuring that \FlowCore\ never instruments security instructions that might cause a runtime misalignment of the control-flow stack.
 \FlowCore\ can run this verification over all of the more than 2,000 tests in the SpiderMonkey testing suite, which Mozilla uses to detect regressions for every code change.
 
+% \section{Evaluation}
+% \label{sec:evaluation}
+% To include an instruction count evaluation:
+% check ./2010_jsflowpaper
+% check ./2011_esorics
 
-\section{Evaluation}
-\label{sec:evaluation}
-
-\todo[inline] performance benchmarks
-%\todo{address reviewer comment: Performance overhead is reasonable, some benchmarks using real-world applications would be useful to estimate the actual impact on a system}
-\todo[inline] bytcode counts ??
-
-
-Our implementation focuses mainly on the creation of a fully functional and correct information flow tracking system.
-We would like to note that, to the best of our knowledge, no standard set of tests for information flow frameworks currently exists.
-Given this situation, we use the SunSpider~\cite{sunspider} benchmark suite to assess the overhead which our framework introduces.
-Despite the fact that it does not faithfully represent real-world JavaScript~\cite{jsmeter}, we choose this suite because its status as the standard benchmark suite for JavaScript makes it suitable for comparisons to other work.
-
-\subsection{Growth of Instruction Stream}
-%\begin{figure*}[ht]
-%  \centerline{\includegraphics[width=18cm,keepaspectratio=true]{graphics/evaluation_bytecodes.pdf}}
-%  \caption{Bytecodes emitted for SunSpider benchmark}
-%  \label{fig:eval_bytecodes}
-%\end{figure*}
-
-%Figure~\ref{fig:eval_bytecodes} shows the number of emitted bytecodes for each test in the SunSpider benchmark.
-
-To examine impact that introducing the new security instructions has on the memory requirements of SpiderMonkey's internal bytecode representation, we measure the change in size of the emitted instruction stream, for each test in the SunSpider~0.9.1 benchmark suite.
-Despite the fact that SunSpider runs only with only a single security principal, we find it useful for measuring the overhead incurred by introducing additional security instructions to well-known algorithms.
-
-% secure = [178, 15, 158, 25, 48, 38, 25, 8, 14, 3, 20, 29, 181, 71, 87, 140, 183, 18, 6, 28, 4, 36, 32, 129, 83, 32]
-% total = [ 2238, 173, 2446, 213, 334, 668, 164, 94, 81, 26, 167, 154, 2957, 1753, 930, 1313, 1556, 238, 195, 278, 144, 794, 325, 569, 592, 360]
-% data = zip(secure, total)
-% d = [ float(x[0]) / (x[1] - x[0]) for x in data ]
-% d[8], d[11], d[23], (sum(d)/len(d))
-We observe that tests such as \textit{string-tagcloud}, \textit{bitops-bit-in-byte} and \textit{controlflow-recursive}, which contain very ``branchy'' code with respect to their short length, incur the highest overhead; 29.3\%, 21.0\%, and 23.2\% respectively.
-Control flow constructs feature much less prominently in the other SunSpider tests, so the introduction of instructions which track branches and merges incur a much lower overhead.
-Inserting our security instructions into the instruction stream never causes it to grow by more than 30\%, and maintains an average overhead of 11.6\% growth.
-
-We therefore feel it important to note that many optimization opportunities for reducing the overhead of our techniques remain available for future work.
-For example, the overhead of introducing these instructions can likely be optimized away by using a runtime analysis to type-specialize over the labels on arguments and functions.
-%Such techniques are very common among interpreter-based virtual machines to optimize ordinary operations.
-%For the future however, we plan to follow the quickening approach so that our framework starts executing a bytecode-stream that includes the secure instructions and can jump to an unmodified bytecode-stream whenever possible.
-
-\subsection{Effect on Performance}
-\label{sec:evaluation-performance}
-
-We executed the SunSpider~0.9.1 benchmark suite on a Quad Core Intel Xeon~5140 running at 2.33~GHz with 32GiB~RAM running Linux kernel~2.6.3.2.
-To achieve a stable basis of comparison, we execute each test in the suite 100 times, and take the average over all runs.
-
-Our modified version of SpiderMonkey requires 140 seconds to execute the entire benchmark, while an unmodified version requires only 22.5 seconds.
-We compile both versions using the same flags.
-This test demonstrates an overhead of approximately 6x, primarily due to the introduction of explicitly cloaked values at return sites.
-
-Since each cloak is itself a JavaScript object, our system generates a much larger number of objects than an unmodified system, and thus spends more time doing object allocation and garbage collection.
-Currently, SpiderMonkey uses an unsophisticated mark-and-sweep garbage collector and does not employ generational collection.
-Recent improvements to the garbage collector~\cite{wagner2011} have already demonstrated a remarkable increase in collection speed, which will likely benefit our implementation.
-We also believe that we can reduce the number of cloak objects and improve our implementation by using techniques such as sparse labeling~\cite{1554353,1814220}.
-%Specifically, we expect to see a large performance improvement by placing objects into a labeled compartment within the garbage collector.
-
-%We also visited several websites, to evaluate this performance overhead as it would appear to a casual user.
-%When browsing the web with our system, we did not notice any slowdown for ordinary pages.
-%However, we did notice a slight response delay when interacting with JavaScript heavy applications (such as GMail).
-
-\subsection{Violations Issued when Browsing the Web}
-We implement enough of the security framework that we can compile and run the Firefox browser.
-Although we modify the SpiderMonkey interpreter to track information flow, we found that Firefox uses JavaScript internally for a large number of subsystems (including the user interface).
-Despite the potential for covert channels, we chose to whitelist the classes involved in these subsystems and consider them a portion of the trusted code base.
-
-
-We also used our modified version of Firefox to visit the top 10 sites in the \textit{Alexa's Top Sites}~\cite{alexa} listing.
-During this test, our system detects a large number of information flow violations.
-Figure~\ref{fig:eval_falsepositives} highlights the total number of unique violations issued for each of these pages.
-Manual investigation reveals that the vast majority of these sites load images and other resources from a separate server.
-Because sites request these resources from a domain different than the site itself, our system triggers an alarm due to the interaction of DOM objects having separate labels.
-For our approach to be adopted in a working environment, web site authors clearly need a policy specification framework (further discussed in Section~\ref{sec:policy_specification}), so that they can express their site's trust in a content distribution server.
-
-\todo[inline]{Figure of false positives}
-\begin{comment}
-\begin{figure}[htp]
-  \centerline{\includegraphics[width=12cm,keepaspectratio=true]{graphics/evaluation_falsepositives.pdf}}
-  \caption{Information flow alarms triggered when browsing Alexa's Top Sites in the United States~\cite{alexa}.}
-  \label{fig:eval_falsepositives}
-\end{figure}
-\end{comment}
-
-%===============================================================================
 
 
 \todo[inline]{replace pc-label with \mbox{pc-label}}
