@@ -359,7 +359,6 @@ This decision makes double values a source of label creep.
 Code and data originally tagged with different security principals (web domains) may interact during execution of a JavaScript program.
 The encoding of labels within the lattice supports tagging a single value as having been influenced by multiple principals.
 For every operation, \JitFlow\ inspects the labels of all inputs, including the current program counter.
-\todo[inline]{add formalization to tracking capabilities chapter}
 As described in \autoref{ch:tracking-capabilities}, it constructs a label representing the lattice join over all arguments and the current execution context.
 \JitFlow\ then attaches the resulting label to the operation's output value.
 
@@ -677,8 +676,6 @@ Even when implementing information flow in a JIT compiler, the overhead measured
 For example, the SunSpider benchmark (\autoref{fig:sunspider-performance}) shows an overhead of 137\% in the interpreter, while the JIT compiler shows only 74\%.
 A full account of the performance on each individual benchmark (using the encoding and framework as described in \autoref{sec:jitflow-labelencoding}) can be found in \autoref{app:jitflow-detailedresults}.
 
-\todo[inline]{create the appendix of detailed results}
-
 Many of the benchmarks, such as \code{regexp} in V8 and the \code{json} family of tests in Kraken, run with essentially the same speed as the unmodified JIT compiler.
 These tests perform fewer control-flow branches and make a higher percentage of native code calls compared to other tests.
 Meanwhile, the \code{controlflow-recursive} test in SunSpider introduces the most overhead, at 346\%, because it has a very large number of executed branches in recursive function calls and conditional tests.
@@ -819,9 +816,3 @@ In practice, steps such as DNS lookup, parsing and rendering, and content transm
 Consequently, using information flow tracking for realistic web browsing affects the user experience far less than CPU-intensive benchmarks may suggest.
 I consider the overhead more than acceptable --- especially since users benefit from substantially increased security in return.
 
-%xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-\todo[inline]{feedback the motivation and thirdpartycode sections of 2013.taco into thesis motivation (pick up more cites)}
-\todo[inline]{fix the spacing issue on dup join and popj definitions}
-\todo[inline]{check bitwise-or and bitwise-and}
-\todo[inline]{globally, control flow stack or control-flow stack?}
-\todo[inline]{patch up citations, look at thesis.blg}
