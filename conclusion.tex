@@ -121,7 +121,6 @@ In debug mode, an abstract interpretation that explores all control flow paths o
 During execution, the instructions push, pop, and upgrade the stack according to branches, joins, and loops in the control flow.
 The development of these instructions enables a transition in implementation from the interpreter (\FlowCore) to the JIT compiler (\JitFlow).
 The instructions are generic enough that they support the grafting of information flow tracking into both register-based (WebKit) and stack-based (Firefox) VM implementations.
-\todo[inline]{The eval section needs work, as it mentions firefox}
 
 \autoref{ch:label-tracking} outlines the semantics and implementation of label propagation that occurs in \FlowCore.
 It specifies the label inputs and outputs for mathematical, comparison, and bitwise operations, that occur during data flow operations.
