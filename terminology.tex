@@ -180,6 +180,6 @@ These features prohibit even runtime analysis from identifying all the values po
 %Previous work attempts to secure active information flows using through staged analysis~\cite{staged-javascript} and lightweight static analysis~\cite{XSS-tainting}.
 \FlowCore\ modifies the JavaScript VM to track both direct and indirect explicit flows at runtime.
 The transitive dataflow analysis include the tracking of values passed to and returned from function calls.
-\FlowCore\ also implements a runtime data structure for recording the history of the program counter (see~\ref{sec:control-flow-stack}) which allows the tracking of implicit active flows.
+\FlowCore\ also implements a runtime data structure for recording the history of the program counter (\autoref{ch:label-propagation}) that allows the tracking of implicit active flows.
 Because of the onerous analysis required, \FlowCore\ makes no attempt to track influence via passive control flow.
-Instead, this system focuses exclusively on complete runtime tracking of implicit active flows, for all of JavaScript's control structures (see~\ref{sec:feature-catalog}).
+Instead, it focuses exclusively on complete runtime tracking of implicit active flows, for all of JavaScript's control structures presented in \autoref{ch:label-tracking}.
