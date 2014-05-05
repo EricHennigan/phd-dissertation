@@ -28,7 +28,7 @@ This chapter addresses the design of the instrumented instructions.
 \section{The Necessity for New Instructions}
 
 During initial implementation, I first attempted to manipulate the control flow stack by modifying the functionality of existing instructions.
-However, this approach met with several obstacles which motivate the introduction of new security instructions.
+However, this approach met with several obstacles which motivate the introduction of new instructions for maintaining the control flow stack.
 These obstacles are not specific to either JavaScriptCore or SpiderMonkey, but originate from fall-through execution paths common to many languages.
 The technique of extending the instruction set generalizes to other dynamically typed language runtimes.
 
@@ -60,7 +60,7 @@ Second, instrument a \popj to restore the control flow stack height.
 Third, return the properly labeled value and tear-down the function.
 In a register machine, such as JavaScriptCore, the return instruction implementation can perform all three steps, by extending the return instruction opcode with an immediate value representing the control flow stack depth.
 
-\section{Security Instruction Details}
+\section{Control Flow Stack Instruction Details}
 
 The JavaScript VM first compiles each script into an instruction stream before beginning interpretation.
 \FlowCore\ modifies the parser to produce an instruction stream that differs only by the addition of control flow instructions which track and record control flow paths executed at runtime.
@@ -80,7 +80,7 @@ function steal_pin() {
 }
 \end{jscode}
 
-The code sample in \autoref{list:steal-pin} contains control flow structures, such as a \texttt{for}-loop, \texttt{break} statement, and \texttt{return} statement which allows us to examine the placement of the security instructions in greater detail.
+The code sample in \autoref{list:steal-pin} contains control flow structures, such as a \texttt{for}-loop, \texttt{break} statement, and \texttt{return} statement which allows us to examine the placement of the control flow stack instructions in greater detail.
 An attacker manages to inject the \code{steal\_pin} function, manufactured so that, at the end of execution, the local variable \code{i} contains the same value as the secret variable \code{pin}.
 
 Despite the fact that other, more direct mechanisms can achieve this relationship, the example highlights lesser used control flow constructs, such as the \texttt{break} statement, and the impact these constructs have on maintaining the control flow stack height.
@@ -184,7 +184,7 @@ Even though we, as programmers, can see that the \code{break} statement enforces
 \end{description}
 \end{samepage}
 
-The \popj security instruction carries two parameters: $p$, which specifies how many levels of control flow to pop, and $j$, which specifies how many further control flow levels that should be upgraded.
+The \popj instruction carries two parameters: $p$, which specifies how many levels of control flow to pop, and $j$, which specifies how many further control flow levels that should be upgraded.
 When the interpreter encounters a \popj instruction, it first saves the current top of the control flow stack, then it pops $p$ levels, and finally in-place joins $j$ more levels using the previously saved top.
 
 In its primary role, the \popj instruction marks the position of every control flow merge and serves to pop a label from the control flow stack.

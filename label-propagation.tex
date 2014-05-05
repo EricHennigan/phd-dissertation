@@ -206,7 +206,7 @@ We use two guidelines for maintaining the control flow stack:
  \item Whenever a control flow joins, the VM pops and discards the top of the control flow stack, restoring the \pclabel\ to the value it had before the branch in control flow occurred.
 \end{enumerate}
 
-Of conspicuous absence in our guidelines (and the complete list of security instructions in \autoref{ch:instructions}) is an operation for pushing a specific security label onto the control flow stack.
+Of conspicuous absence in our guidelines (and the complete list of control flow stack instructions in \autoref{ch:instructions}) is an operation for pushing a specific security label onto the control flow stack.
 According to the first guideline, the stack grows via successive duplications.
 When the VM enters a secure code region it first duplicates the \pclabel\ and then joins it with the label attached to the condition which cause the control flow branch.
 This execution directly implies an important theoretical result:

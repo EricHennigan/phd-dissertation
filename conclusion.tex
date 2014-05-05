@@ -45,7 +45,7 @@ The tracking engine can be customized to enforce any policy, so I leave question
 \subsection{Reducing Performance Overhead}
 
 Background research into the performance of information flow systems (\autoref{tab:jitflow-perfcomparison}) revealed a substantial overhead.
-The development of a control-flow stack and the security instructions that manipulate it during the implementation of \FlowCore\ naturally enabled a faster implementation to follow.
+The development of a control-flow stack and the instructions that manipulate it during the implementation of \FlowCore\ naturally enabled a faster implementation to follow.
 By implementing the dynamic tracking logic and control flow stack manipulation in a JIT compiler, \JitFlow\ specifically attacks the performance overhead.
 Although the percentual slowdown is still similar to other systems, \JitFlow\ starts from a much faster baseline: the JIT compiled code.
 By establishing a new status quo for the implementation of information flow, I hope that more users will be willing to adopt information flow as part of their web browsing experience.
@@ -73,7 +73,7 @@ Results from the web crawler indicate that a limitation on total number of repre
 
 \subsection{Handoff between the Interpreter and JIT compiler}
 
-The design of the security instructions that manipulate the control-flow stack support all the different control structures (switch-case, specialized iteration, exceptions, with statement).
+The design of the instructions that manipulate the control-flow stack support all the different control structures (switch-case, specialized iteration, exceptions, with statement).
 Neither \FlowCore\ nor \JitFlow\ issue these instructions for any structures beyond the basic \code{for} and \code{while} loops, \code{break}, \code{continue}, and \code{if} statements.
 
 An industrial strength implementation requires supporting native data structures (array, string, date, regex, etc.) and property lookup paths (by name, by value, user-overloadable getters/setters, etc.).

@@ -299,7 +299,7 @@ Consequently, \FlowCore\ undertakes only enough static control-flow analysis to 
 Fortunately, JavaScript uses structured control flow constructs.
 This language feature permits the use of a static analysis that calculates exactly at which point the information flow instructions introduced in \autoref{ch:instructions} need insertion into a program's instruction stream.
 
-\FlowCore\ modifies the instruction generator of JavaScriptCore to instrument security instructions at parse time.
+\FlowCore\ modifies the instruction generator of JavaScriptCore to instrument control flow stack instructions at parse time.
 This modification allows \FlowCore\ to prevent certain categories of control-flow based information leaks (\autoref{sec:tracking-capabilities}) by using a control-flow stack that tracks the security label of the program counter (\autoref{sec:control-flow-stack}) at runtime.
 
 %This section presents a high-level motivation followed by the information flow instruction instrumentation for each type of control flow construct offered by JavaScript.
@@ -480,7 +480,7 @@ bytecodeformatter.tikz_picture(j.instructions())
 Prior to the loop initialization code, \FlowCore\ marks the beginning the loop region with a \dup instruction (line~\code{01}).
 Because the \dup instruction changes only the height of the control-flow stack, and not the value of the label on top of the stack, the loop initialization instructions (line~\code{02}) execute under an unmodified security context.
 For performance optimization reasons, JavaScriptCore places the loop condition (lines~\code{24}--\code{30}) after the loop body (lines~\code{07}--\code{18}).
-Both \code{for}-loops and \code{while}-loops follow this convention, permitting only a single example (\autoref{fig:for-loop-bytecode}) to show the security instruction placement.
+Both \code{for}-loops and \code{while}-loops follow this convention, permitting only a single example (\autoref{fig:for-loop-bytecode}) to show the placement of control flow stack instructions.
 
 Each time \FlowCore\ evaluates the loop condition, it executes a \join instruction (line~\code{28}) that upgrades the current security context for the next iteration.
 Naturally, the placement of the loop condition at the tail end of the loop body causes an upgrade in every iteration.
@@ -668,7 +668,7 @@ As a result of data-flow label propagation, the return value already contains a 
 \FlowCore\ modifies the return instruction to apply the current \pclabel\ to the value being returned.
 This additional step enables implicit return values\footnote{All JavaScript functions return \code{undefined} by default, if the function body does not have an explicit return value.} to posses a label at least as secure as the \pclabel\ present at function exit.
 It also catches any upgrade to the code region of the function, such as that caused by a break in control flow (\autoref{sec:break-and-continue}).
-By modifying the implementation of the return instruction, \FlowCore\ does not need to instrument any security instructions at function return sites.
+By modifying the implementation of the return instruction, \FlowCore\ does not need to instrument any control flow stack instructions at function return sites.
 
 \FlowCore\ handles early returns in the same manner that it handles a break in control flow.
 The code region exits with an explicit \popj instruction that upgrades the \pclabel\ of the function body, immediately before the \code{ret} instruction labels its argument with the current program counter label and returns to the calling function.
@@ -741,7 +741,7 @@ The \code{finally}-block always executes using the current \pclabel, which is pr
 \label{sec:eval}
 \FlowCore\ treats the \code{eval} feature in a manner similar to other function calls.
 A call to \code{eval} first calls the parser, which compiles the string into an instruction stream.
-As a result of passing through the parser, this stream contains all of the security instructions just as a normal script would.
+As a result of passing through the parser, this stream contains all of the control flow stack instructions just as a normal script would.
 That instruction stream then executes inside a code region constructed by the \FlowCore\ interpreter.
 The parameter string passed into the \code{eval} provides the initial \pclabel\ for the new execution context.
 
@@ -751,8 +751,8 @@ In addition to the modifications made to JavaScriptCore, the \FlowCore\ projects
 \FlowCore\ correctly identifies active implicit flows represented in the test suite, including the ``leak pin'' examples, \autoref{list:2branch}, \autoref{list:for-loop}, and \autoref{list:break-leak}.
 Although this effort does not substitute for a proof of correctness, it does give us confidence that our implementation faithfully follows the approach outlined in this thesis.
 
-To ensure that \FlowCore\ places all of the security instructions appropriately, the development version also executes an abstract interpreter that tracks the control-flow stack height at every instruction of a compiled method.
-This analysis covers \emph{all} possible executions paths for every method parsed, ensuring that \FlowCore\ never instruments security instructions that might cause a runtime misalignment of the control-flow stack.
+To ensure that \FlowCore\ places all of the control flow stack instructions appropriately, the development version also executes an abstract interpreter that tracks the control-flow stack height at every instruction of a compiled method.
+This analysis covers \emph{all} possible executions paths for every method parsed, ensuring that \FlowCore\ never instruments control flow stack instructions that might cause a runtime misalignment of the control-flow stack.
 \FlowCore\ can run this verification over all of the more than 2,000 tests in the SpiderMonkey testing suite, which Mozilla uses to detect regressions for every code change.
 
 % \section{Evaluation}
@@ -761,4 +761,3 @@ This analysis covers \emph{all} possible executions paths for every method parse
 % check ./2010_jsflowpaper
 % check ./2011_esorics
 
-\todo[inline]{remove security instruction, replace with control flow instruction}
