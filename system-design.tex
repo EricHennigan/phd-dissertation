@@ -244,7 +244,7 @@ Throughout our analysis, we shall refer to this wrapper object as a \term{cloak}
 Internally, JavaScriptCore already supports wrapper classes for Strings and Dates, as well as automatic objection promotion for Numbers and Booleans.
 Given this information, we might expect fewer modifications to be made to the underlying VM, as this change only requires the introduction of a new subclass of the existing \code{JSWrapperObject}.
 
-However, implementing the wrapper class is not exactly trivial, even with the help of an existing framework.
+However, implementing the wrapper class is not trivial, even with the help of an existing framework.
 From the perspective of the JavaScript program, a cloak object must mimic, in every circumstance, the same behavior as the primitive it cloaks.
 Under no circumstances should the presence (or absence) of a security wrapper ever become evident to a JavaScript program, otherwise attacker provided code could exploit the difference in behavior.
 %We make an exception to this guideline for policy violations, which have the side effect of halting the VM.
@@ -279,8 +279,8 @@ Although implementation details of JavaScriptCore serve as a guide, the followin
 
 The existing core datatype in JavaScriptCore uses a NaN encoding scheme that enables the value and type tag to coexist in the same memory structure.
 The tagged pointer technique has the benefit of allowing the VM to perform operations on primitives quickly and directly.
-Unfortunately, many common operators, such as \texttt{+}, behave differently depending on the types of the arguments.
-Not only must the VM first inspect the type of the core values involved before dispatching the operation, but it then also unpacks the payload of the arguments from their encoding.
+Unfortunately, many common operators, such as \texttt{+}, are polymorphic, their behavior differing according to types of the arguments.
+Not only must the VM first inspect the type of the core values involved before dispatching the operation, but it then also decodes the operands. 
 
 Using the fat value approach requires modifying the core value representation, extending it with additional bits to hold the security type.
 This modification impacts the mechanisms used to encode and decode primitive values, as well as the type inspection routines.
@@ -315,7 +315,7 @@ In the cloak approach, each object receives an internal field to store its secur
 
 \subsection{Interned Objects}\label{sec:interned-objects}
 
-The JavaScriptCore VM employs optimizations pioneered by earlier dynamically typed languages, such as Lisp and Scheme.
+The JavaScriptCore VM employs optimizations pioneered by earlier dynamically typed language implementations, such as Lisp and Scheme.
 To achieve better runtime performance and reduce memory footprint, the VM interns contents of type \code{string}.
 \autoref{list:intern} clarifies the terminology we use to differentiate the storage aspects of JavaScriptCore's interning optimization.
 Semantically, JavaScriptCore separates primitive strings from string objects.
@@ -356,7 +356,7 @@ function foo(x) {
 One solution to this dilemma is to automatically upgrade the label attached to the interned string value.
 However, this solution causes unnecessary upgrades, as each occurrence of the string will upgrade the attached security label, even when such occurrences are completely independent.
 With each successive use of the interned string, the upgraded label propagates throughout the system, becoming a source of label creep.
-This strategy propagates a false information flow dependence when completely separate and non-interfering code routines reference the same string contents purely as a side effect interning.
+This strategy propagates a false information flow dependence when completely separate and non-interfering code routines reference the same string contents purely as a side effect of interning.
 We observe from this approach that placing the security label on the \emph{referent} will not allow the information flow framework to distinguish the code paths and security contexts on which the \emph{reference} depends.
 
 The cloak approach permits another solution, as it stores the label on the cloak object wrapping the primitive string.
@@ -533,7 +533,7 @@ The implementation differences between the cloak and fat value approaches extend
 Not only is the label in a fat value optionally ignorable, but the direct attachment of a label to the core value creates a labeled reference semantics.
 This semantics allows the VM to treat differently separate references to the same object, avoiding the confusion of identity that can result from having interned objects.
 By attaching labels only to objects, the cloak approach provides a labeled object semantics.
-Unfortunately, becasue of this attachment, the label of an object becomes shared among all references to that object.
+Unfortunately, because of this attachment, the label of an object becomes shared among all references to that object.
 As the object is used in different contexts, the attached label monotonically escalates, becoming a source of label creep.
 
 \medskip

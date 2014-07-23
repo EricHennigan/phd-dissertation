@@ -14,15 +14,15 @@
 \chapter{Motivation}
 \label{ch:motivation}
 
-Many industrial and commercial institutions employ dynamically typed languages in systems which process sensitive information.
-Programmers often find the high-level nature of these languages convenient for rapidly developing prototypes that meet the business need for quick deployment.
+Dynamically typed languages are often used in systems which process sensitive information.
+The high-level nature of these languages is highly convenient for rapidly developing prototypes which meet business needs for quick deployment.
 For example, Web applications have de facto standardized on JavaScript for client-side logic, which includes secure authentication.
 
 Since its inception, the World Wide Web has experienced explosive growth and has evolved from an initial collection of static pages to a global network of dynamic and interactive content.
 As critical business functions become increasingly Web-based, the amount of sensitive information traversing the Web increases correspondingly.
 Personal information, used in sensitive online transactions (e.g., banking, tax filing, shopping, etc.), now possesses a black-market value that continues to draw the attention of criminals and fraudsters.
 Because early designers of the Web did not consider these uses, nor did they have an explicit focus on security, the resulting architecture contains inherent weaknesses that permit criminals to steal credit card numbers, identification credentials, and other personal information.
-In spite of the increasing demand for secure processing and communications, the semantics of dynamically typed languages, such as JavaScript, interferes with static analysis techniques that would otherwise be used to verify application security~\cite{robertson.vigna+09}.
+The semantics of dynamically typed languages, such as JavaScript, reduce the effectiveness of static analysis techniques which would otherwise be used to verify application security~\cite{robertson.vigna+09}.
 
 
 In today's architecture, the web server delivers HTML and JavaScript to the client as an untyped string.
@@ -47,7 +47,7 @@ The potential for harvesting of sensitive user credentials via a forum post with
 \section{Difficulties of Filtering User Input}
 
 Currently, the most promoted mechanism for preventing script injection attacks is to filter out HTML and JavaScript code from user input.
-Though user input filtering forms the first line of security defense of any website, not every malicious script can be deterministically identified.
+Though user input filtering forms the first line of security defense of any website, not every malicious script can be reliably identified.
 Web frameworks that lack strong static typing further compound the problem because they cannot provably verify that all strings pass through a filter function before placement into the resulting page.
 
 \subsection{HTML Identification}
@@ -80,7 +80,7 @@ The acceptance of tags formatted in unconventional manners further contributes t
 \subsection{Script Identification}
 
 Examples from RSnake's XSS Cheat Sheet~\cite{xsscheatsheet}\footnote{The XSS Cheat Sheet also provides a handy reference of malicious scripts that can be used to test user input filters} exhibit many ways in which a script can be encoded to bypass user input filters.
-As a second line of defence, a web page can employ syntax filters and program analysis to restrict the running of malicious scripts~\cite{reis.etal+06, yu.etal+07, yaowen.etal+04}.
+As a second line of defense, a web page can employ syntax filters and program analysis to restrict the running of malicious scripts~\cite{reis.etal+06, yu.etal+07, yaowen.etal+04}.
 
 Just as HTML has many different character encodings, JavaScript provides several syntaxes for accessing an object's properties.
 For example, each of the following three lines create a dialog box with the contents of a page's cookie:
@@ -99,7 +99,7 @@ To provide a clear demonstration of difficulties encountered by input filtering,
 [_/_]+$_[+$])])()[__[_/_]+__[_+~$]+$_[_]+$$](_/_)
 \end{alltt}
 
-\section{The Last Line of Defence}
+\section{The Last Line of Defense}
 
 This work assumes that the web application's filter defenses are incomplete and non-exhaustive.
 The attacker is able to bypass the filters and store malicious JavaScript in the web site's database.
@@ -112,7 +112,7 @@ The second principal is most concerning, and the one we wish to combat.
 Within the browser, the execution semantics of JavaScript,
 \end{comment}
 
-Persistent XSS attacks have in the past shut down popular internet services.
+Persistent XSS attacks have in the past shut down popular Internet services.
 For example, in 2005, the `Samy' worm~\cite{samy} set a world record for viral spreading and forced MySpace to suspend service in order to purge the work from their database.
 In 2007, the RightMedia Trojan propagated itself via malicious banner advertisements delivered through a trusted syndication network.
 These ads appeared on popular sites such as Yahoo! Photobucket and MySpace.
@@ -123,7 +123,7 @@ The architectural problems underlying these attacks have not been solved.
 
 \subsection{Preventing Malicious Action}
 
-Based on the observation that the execution of code within the JavaScript VM and browser sandbox can cause no harm as long as it does not generate external signals (such as network traffic), I advocate allowing the malicious code to execute under new semantics that track the information dependence of runtime values.
+Based on the observation that the execution of code within the JavaScript VM and browser sandbox can cause no harm as long as it does not generate external signals (such as network traffic), We advocate allowing the malicious code to execute under new semantics that track the information dependence of runtime values.
 Rather than rely entirely on string filtration that attempts to identify and reject attacker supplied code, the advocated approach tracks the flow of information through a chain of JavaScript program values.
 The JavaScript code becomes categorized as malicious only when it attempts to communicate sensitive information to an unauthorized third party.
 At that point, a network hook enforcing information flow policies in the browser intervenes and prevents the information leak.
@@ -141,7 +141,7 @@ To clarify the information flow tracking capabilities of \FlowCore\ and \JitFlow
 As explained in \autoref{ch:instructions}, tracking information dependence through control-flow requires instrumentation of new instructions that manipulate the information flow data structures.
 \autoref{ch:label-tracking} specifies the label propagation strategy used by the framework and illustrates placement of the new instructions through code examples.
 
-To implement unittests of the label propagation logic, an extension of the browser-hosted JavaScript environment exposes the security labels as first-class program objects (\autoref{ch:first-class-labels}).
+To implement unit tests of the label propagation logic, an extension of the browser-hosted JavaScript environment exposes the security labels as first-class program objects (\autoref{ch:first-class-labels}).
 The new instructions provide a versatile architecture that permitted a rapid update of the label propagation system to support JIT compilation (\autoref{ch:jitflow}).
 \autoref{ch:conclusion} summarizes the work involved and lessons learned.
 
