@@ -226,9 +226,9 @@ The JavaScriptCore interpreter supports this feature by separating the function 
 Unlike the current context object (the target of the ThisBinding) described in \autoref{sec:variables}, the execution context remains inaccessible by any JavaScript program.
 
 Just as \FlowCore\ labels values and object references, it also labels references to functions, supporting the first-class definitions offered by JavaScript.
-At the cite of storage, the label of a function depends on how it gets defined.
+At the site of storage, the label of a function depends on how it gets defined.
 Functions defined by loading source code have a label representing the domain from which the code was fetched.
-Functions defined during runtime execution carry the label of the current program counter at the cite of definition.
+Functions defined during runtime execution carry the label of the current program counter at the site of definition.
 When accessing a function in order to invoke a call, the label of function reference follows the same rules as provided earlier for the lookup of values (\autoref{sec:variables}).
 
 The practice of using closures for data encapsulation and variable hiding does not affect the implementation of \FlowCore.
@@ -446,7 +446,7 @@ Due to the monotonicity of the join operation used to upgrade the \pclabel\ on t
 Later iterations of the loop body my execute under a label higher in the security lattice than earlier iterations of the loop body.
 Naturally, successive iterations depend on earlier iterations, implying an information flow between iterations, which \FlowCore\ tracks.
 
-Unfortunately, \FlowCore\ does have a powerful enough analyzer to determine if subsequent iterations actually possess an information flow dependence between iterations.
+Unfortunately, \FlowCore\ does not have a powerful enough analyzer to determine if subsequent iterations actually possess an information flow dependence between iterations.
 The programmer may intend that each iteration be logically independent, such that a more powerful language would execute all iterations in parallel, with some loop body executions under conditionals with a high label, and others under a lower label.
 In JavaScript, logically-independent iterations meant to execute under a lower label will unfortunately happen to inherit a higher label, when they occur subsequent to the execution of an iteration with a higher label.
 This side-effect occurs as a result of expressing parallel logic in a single-threaded manner and forms a potential source a label creep that \FlowCore\ cannot avoid.
@@ -477,7 +477,7 @@ bytecodeformatter.tikz_picture(j.instructions())
   \label{fig:for-loop-bytecode}
 \end{figure}
 
-Prior to the loop initialization code, \FlowCore\ marks the beginning the loop region with a \dup instruction (line~\code{01}).
+Prior to the loop initialization code, \FlowCore\ marks the beginning of the loop region with a \dup instruction (line~\code{01}).
 Because the \dup instruction changes only the height of the control-flow stack, and not the value of the label on top of the stack, the loop initialization instructions (line~\code{02}) execute under an unmodified security context.
 For performance optimization reasons, JavaScriptCore places the loop condition (lines~\code{24}--\code{30}) after the loop body (lines~\code{07}--\code{18}).
 Both \code{for}-loops and \code{while}-loops follow this convention, permitting only a single example (\autoref{fig:for-loop-bytecode}) to show the placement of control flow stack instructions.
@@ -499,7 +499,7 @@ This action allows subsequent code to execute under the same \pclabel\ as existe
 JavaScript allows the \code{break} and \code{continue} statements to specify which loop they apply to.
 This complicates the maintenance of the control-flow stack, because they cause control flow to jump out of an arbitrarily nested loop.
 Such jumps can bypass the normal exit criteria of nested loops, thereby causing the control-flow stack to be out of alignment at the target location.
-To maintain correct runtime-behavior \FlowCore\ handles this issue by ensuring that the instruction emitter generates the correct number of control flow pops for any nested loops prematurely exit.
+To maintain correct runtime-behavior \FlowCore\ handles this issue by ensuring that the instruction emitter generates the correct number of control flow pops for any nested loops prematurely exited.
 A static analysis in the parser performs this computation and provides the resulting number as a parameter to the \popj instruction.
 
 \autoref{list:break-leak} demonstrates the use of a break in control flow to construct a value identity, \code{i~==~pin}, between an loop index, \code{i}, and a secret variable, \code{pin}, with a higher label in the security lattice.
@@ -583,7 +583,7 @@ Entry into a function creates an \term{execution context}~\cite{ecma}, beginning
 \FlowCore\ modifies the JavaScriptCore VM to establish a new code region surrounding the function body.
 
 As part of the preamble, \FlowCore\ pushes a label onto the control-flow stack at the time it creates the execution context for the called function.
-\FlowCore\ then upgrades the \pclabel\ for the function by joining in The label of the function reference, ensuring that the results of all operations within the function occur under the label of the function reference.
+\FlowCore\ then upgrades the \pclabel\ for the function by joining in the label of the function reference, ensuring that the results of all operations within the function occur under the label of the function reference.
 Finally, control transfers to the newly established function frame.
 
 \FlowCore\ does not emit the \dup and \join instructions into the instruction stream to establish the beginning of the function's code region.
@@ -624,7 +624,7 @@ Douglas Crockford describes three patterns that emulate the behavior of these mi
     A privileged method is able to access the private variables and methods, and is itself accessible to the public methods and the outside.
     It is possible to delete or replace a privileged method, but it is not possible to alter it, or to force it to give up its secrets.
   \item[Private:]
-    A private members are made by the constructor.
+    Private members are made by the constructor.
     They are attached to the object, but they are not accessible to the outside, nor are they accessible to the object's own public methods.
     They are accessible to private and privileged methods.
 \end{description}
@@ -646,7 +646,7 @@ function Constructor(param) {
     }
 
     var private_self = this;
-    this.priviledged_method = function () {
+    this.privileged_method = function () {
         return private_method() ? private_self.public_member : null;
     }
 }
@@ -656,7 +656,7 @@ function Constructor(param) {
 [object Object]
 > obj.public_member
 1
-> obj.priviledged_method()
+> obj.privileged_method()
 1
 > obj.privileged_method()
 null

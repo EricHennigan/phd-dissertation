@@ -45,17 +45,16 @@ By selectively tagging only those variables considered security sensitive, devel
 I do not think that information flow techniques will see adoption without the ability to selectively ignore these flow reports in a flexible developer-controlled manner.
 With the first-class labeling features, \FlowCore\ provides developers a custom JavaScript engine that can answer questions about information flows in their application, such as ``Does the user-entered password field influence network requests to third parties, potentially leaking information?'' and ``What other objects might this field influence?''
 
-The implementation of first-class labels does not incur any significant execution performance (\autoref{sec:first-class-performance}).
-The design resists attacks JavaScript-level attacks against itself, even while exposing the underlying security data structures.
-Since not all client browsers come equipped with the \FlowCore\ information flow tracking engine, developers can still benefit by using the first-class label feature as a debug environment to detect existing web application security holes.
+The implementation of first-class labels does not incur any significant execution performance penalty(\autoref{sec:first-class-performance}).
+The design resists JavaScript-level attacks against itself, even while exposing the underlying security data structures.
+While not all client browsers come equipped with the \FlowCore\ information flow tracking engine, developers can still benefit by using the first-class label feature as a debug environment to detect existing web application security holes.
 
 \section{The Attacker's Threat}
 \label{sec:threat-model}
 
-Throughout this chapter, we assume that the attacker has already injected code into the developer's web application.
-The attacker exploits an XSS vulnerability to inject code in the developer's web application, supplying a JavaScript payload via an included advertisement, mashup content, or library, or via an unsanitized form or URL (\autoref{ch:motivation}).
+Throughout this chapter, we assume that the attacker has already exploited an XSS vulnerability to inject code in the developer's web application, supplying a JavaScript payload via an included advertisement, mashup content, or library, or via an unsanitized form or URL (\autoref{ch:motivation}).
 Although we limit the attack payload to JavaScript, we assume that its origin does not make it distinguishable from the rest of the web application's JavaScript codebase.
-The attacker also has publicly-facing knowledge about the application, obtained by visiting and interacting with the application and observing its behavior, which can be used to craft the payload.
+The attacker also has public-facing knowledge about the application, obtained by visiting and interacting with the application and observing its behavior, which can be used to craft the payload.
 We also assume that the attacker controls their own web server that acts as a harvesting point for stolen data.
 
 These abilities combine to pose an information leak threat.

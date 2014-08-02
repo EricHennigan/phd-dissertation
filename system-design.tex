@@ -205,7 +205,7 @@ As shown in \autoref{fig:fat-encoding}, each value within the interpreter then b
 \end{figure}\hfill
 
 The fat value technique requires modifying the core representation of all values within the VM.
-While performing this modification on an arbitrary dynamic language VM is not necessarily a trivial undertaking, the designers of JavaScriptCore have conveniently encapsulation the type inspection and conversion methods in the \code{JSValue} class.
+While performing this modification on an arbitrary dynamic language VM is not necessarily a trivial undertaking, the designers of JavaScriptCore have conveniently encapsulated the type inspection and conversion methods in the \code{JSValue} class.
 This practice makes the modification easier than on other JavaScript VM's such as SpiderMonkey.
 However, appropriately tagging each value with a security label still requires manual inspection of all code sites which create new values.
 Additionally, doubling the size of the core datatype also doubles the memory space requirements of any running program: the VM allocates twice as much space for the same number of core values.
@@ -241,7 +241,7 @@ Throughout our analysis, we shall refer to this wrapper object as a \term{cloak}
 \label{fig:security-wrapper}
 \end{figure}
 
-Internally, JavaScriptCore already supports wrapper classes for Strings and Dates, as well as automatic objection promotion for Numbers and Booleans.
+Internally, JavaScriptCore already supports wrapper classes for Strings and Dates, as well as automatic object promotion for Numbers and Booleans.
 Given this information, we might expect fewer modifications to be made to the underlying VM, as this change only requires the introduction of a new subclass of the existing \code{JSWrapperObject}.
 
 However, implementing the wrapper class is not trivial, even with the help of an existing framework.
@@ -280,7 +280,7 @@ Although implementation details of JavaScriptCore serve as a guide, the followin
 The existing core datatype in JavaScriptCore uses a NaN encoding scheme that enables the value and type tag to coexist in the same memory structure.
 The tagged pointer technique has the benefit of allowing the VM to perform operations on primitives quickly and directly.
 Unfortunately, many common operators, such as \texttt{+}, are polymorphic, their behavior differing according to types of the arguments.
-Not only must the VM first inspect the type of the core values involved before dispatching the operation, but it then also decodes the operands. 
+Not only must the VM first inspect the type of the core values involved before dispatching the operation, but it must also decode the operands.
 
 Using the fat value approach requires modifying the core value representation, extending it with additional bits to hold the security type.
 This modification impacts the mechanisms used to encode and decode primitive values, as well as the type inspection routines.
@@ -529,7 +529,7 @@ In contrast, the cloak technique exports labeled primitives as cloak objects, le
 Host interface code which expects a primitive value may fault when encountering a cloak object instead.
 %We experienced exactly this problem when implementing cloaks in Firefox's JavaScript interpreter, SpiderMonkey.
 
-The implementation differences between the cloak and fat value approaches extends beyond interaction with the host environment and imply different security semantics.
+The implementation differences between the cloak and fat value approaches extend beyond interaction with the host environment and imply different security semantics.
 Not only is the label in a fat value optionally ignorable, but the direct attachment of a label to the core value creates a labeled reference semantics.
 This semantics allows the VM to treat differently separate references to the same object, avoiding the confusion of identity that can result from having interned objects.
 By attaching labels only to objects, the cloak approach provides a labeled object semantics.

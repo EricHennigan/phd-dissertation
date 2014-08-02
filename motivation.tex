@@ -18,14 +18,14 @@ Dynamically typed languages are often used in systems which process sensitive in
 The high-level nature of these languages is highly convenient for rapidly developing prototypes which meet business needs for quick deployment.
 For example, Web applications have de facto standardized on JavaScript for client-side logic, which includes secure authentication.
 
-Since its inception, the World Wide Web has experienced explosive growth and has evolved from an initial collection of static pages to a global network of dynamic and interactive content.
-As critical business functions become increasingly Web-based, the amount of sensitive information traversing the Web increases correspondingly.
-Personal information, used in sensitive online transactions (e.g., banking, tax filing, shopping, etc.), now possesses a black-market value that continues to draw the attention of criminals and fraudsters.
+The World Wide Web has grown explosively and has evolved from a modest collection of static pages to a global network of dynamic and interactive content.
+As critical business functions become increasingly Web-based, the amount of sensitive information traversing the Web increased correspondingly.
+Personal information, used in sensitive online transactions (e.g., banking, tax filing, shopping, etc.), now possesses a black-market value, which continues to draw the attention of criminals and fraudsters.
 Because early designers of the Web did not consider these uses, nor did they have an explicit focus on security, the resulting architecture contains inherent weaknesses that permit criminals to steal credit card numbers, identification credentials, and other personal information.
 The semantics of dynamically typed languages, such as JavaScript, reduce the effectiveness of static analysis techniques which would otherwise be used to verify application security~\cite{robertson.vigna+09}.
 
 
-In today's architecture, the web server delivers HTML and JavaScript to the client as an untyped string.
+Today's web servers deliver HTML and JavaScript to the client as an untyped string.
 Web~2.0 applications contain server-side processing that injects user generated content and syndicated advertisements into pages assembled on demand.
 Popular code frameworks that perform this composition do not themselves have static typing (as in the case of PHP, Ruby on Rails, and Django).
 The practice of including foreign content as an unsafe string provides attackers the opportunity to inject malicious code into a web page, in an attack known as Cross-Site Scripting (XSS).
@@ -33,7 +33,7 @@ The prevalence, persistence, scope, and danger~\cite{whitehat, cwe} of such atta
 
 \section{The Threat of Code Injection}
 
-The most pernicious type of XSS attack allows the injected script to persist between browsing sessions, by residing in a server-side data store.
+The most pernicious type of XSS attack allows the injected script to persist in a server-side data store, between browser sessions.
 The canonical example of a \term{persistent} XSS attack involves a message board or web forum that allows the posting of user-generated content.
 The site stores this content in a server-side database, so that it may be retrieved for viewing by other visitors.
 When a malicious user bypasses textual filters and injects JavaScript into a forum posting, the site saves the script and inserts it into all pages that contain the post.
@@ -123,8 +123,8 @@ The architectural problems underlying these attacks have not been solved.
 
 \subsection{Preventing Malicious Action}
 
-Based on the observation that the execution of code within the JavaScript VM and browser sandbox can cause no harm as long as it does not generate external signals (such as network traffic), We advocate allowing the malicious code to execute under new semantics that track the information dependence of runtime values.
-Rather than rely entirely on string filtration that attempts to identify and reject attacker supplied code, the advocated approach tracks the flow of information through a chain of JavaScript program values.
+Based on the observation that the execution of code within the JavaScript VM and browser sandbox can cause no harm as long as it does not generate external signals (such as network traffic), we advocate allowing the malicious code to execute under new semantics that track the information dependence of runtime values.
+Rather than rely entirely on string filtration that attempts to identify and reject attacker supplied code, this approach tracks the flow of information through a chain of JavaScript program values.
 The JavaScript code becomes categorized as malicious only when it attempts to communicate sensitive information to an unauthorized third party.
 At that point, a network hook enforcing information flow policies in the browser intervenes and prevents the information leak.
 
