@@ -2,19 +2,6 @@
 \chapter{First-Class Labels}
 \label{ch:first-class-labels}
 
-\newcommand{\FlowLabel}[0]{\code{FlowLabel}}
-\newcommand{\FlowLabelObject}[0]{\code{FlowLabelObject}}
-\newcommand{\FlowLabelRegistry}[0]{\code{FlowLabelRegistry}}
-\newcommand{\JSValue}[0]{\code{JSValue}}
-\newcommand{\Network}[0]{\code{Network}}
-\newcommand{\UnaryExpression}[0]{\textit{UnaryExpression}}
-\newcommand{\mjoin}[0]{\code{join}}
-\newcommand{\msubsumes}[0]{\code{subsumes}}
-\newcommand{\mlabelof}[0]{\code{labelof}}
-
-\newcommand{\codestringdbl}[1]{\code{\textquotedbl #1\textquotedbl}}
-\newcommand{\bracketdbl}[1]{\textlbrackdbl \code{#1}\textrbrackdbl}
-
 \FlowCore\ forms the foundation of an information-flow tracking web browser that tracks flow in the Document Object Model, named ConDOM~\cite{kerschbaumer.etal+12}.
 A modification of the ConDOM browser that randomly switches the information flow tracking capabilities on and off later formed a critical component of a system, called CrowdFlow~\cite{kerschbaumer.etal+13}, that gathers attack statistics across a crowd of users.
 
@@ -246,8 +233,8 @@ In the interest of clarity, I do not use any examples that exhibit the inherent 
       draw, text width=5.2cm] {
       \FlowLabel\ Prototype
   \nodepart{second}
-      \texttt{+} \textlbrackdbl \texttt{toString}\textrbrackdbl\\
-      \texttt{+} \textlbrackdbl \texttt{construct}\textrbrackdbl\\
+      \texttt{+} \bracketdbl{toString}\\
+      \texttt{+} \bracketdbl{construct}\\
       \texttt{+} \mjoin\\
       \texttt{+} \msubsumes
   };
@@ -258,14 +245,14 @@ In the interest of clarity, I do not use any examples that exhibit the inherent 
   {
       \FlowLabelObject
   \nodepart{second}
-      \texttt{+} \textlbrackdbl\texttt{call}\textrbrackdbl
+      \texttt{+} \bracketdbl{call}
   };
 
-  \draw[-open triangle 45, style=dotted] (obj.north) -- node[near start,right] {\texttt{-}\textlbrackdbl \texttt{prototype}\textrbrackdbl} (proto.south);
+  \draw[-open triangle 45, style=dotted] (obj.north) -- node[near start,right] {\texttt{-}\bracketdbl{prototype}} (proto.south);
 
 \end{tikzpicture}
   \caption{UML class diagram of the first-class labeling system that introduces the \FlowLabel\ prototype constructor, and \FlowLabelObject\ instances.
-  As in the ECMA~\cite{ecma} language standard, \textlbrackdbl \textbullet \textrbrackdbl\ indicates implementation internal methods.}
+  As in the ECMA~\cite{ecma} language standard, \bracketdbl{\textbullet} indicates implementation internal methods.}
   \label{fig:uml}
 \end{figure}
 

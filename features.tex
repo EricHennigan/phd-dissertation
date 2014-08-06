@@ -104,7 +104,7 @@ Unlike class-based languages such as C++ and Java, JavaScript supports the dynam
 Rather than defining the presence of fields at compile-time, the JavaScript programmer constructs empty objects and populates them with properties at runtime.
 JavaScript replaces the strict hierarchical relationship between object classes with runtime prototypal inheritance.
 Property access proceeds by first scanning the initial object for the requested property.
-In the event that the property is absent, the lookup proceeds by recursively scanning each object in the prototype chain, following the internal \brackdbl{Prototype} property.
+In the event that the property is absent, the lookup proceeds by recursively scanning each object in the prototype chain, following the internal \bracketdbl{Prototype} property.
 
 \subsubsection{Property Access}
 
@@ -121,7 +121,7 @@ obj[key] // property access using bracket notation
 \end{jscode}
 
 In the first example of \autoref{list:property-access-notation}, \FlowCore\ retrieves \code{key} from the current context object.
-The lookup path may follow the internal \brackdbl{scope} chain for properties defined in an outer lexical scope.
+The lookup path may follow the internal \bracketdbl{scope} chain for properties defined in an outer lexical scope.
 The resulting value \code{key} carries a tag representing the union of all labels encountered on the reference path taken.
 
 In the latter two examples of \autoref{list:property-access-notation}, \FlowCore\ first retrieves \code{obj} from the current activation object, in the same manner that it retrieves \code{key} in the first example.
@@ -130,15 +130,15 @@ The resulting object reference \code{obj} then carries a tag representing the un
 
 In the bracket form, the interpreter first coerces the \code{key} into a string via the internal \code{ToString} function.
 This coercion happens for all accesses, including numerical indexing on an array.
-Assuming that the \brackdbl{ToString} method has not been overridden by the programmer, the result of the coercion carries the same label as the given \code{key}, otherwise it carries the label of the returned result from the overloaded method call.
+Assuming that the \bracketdbl{ToString} method has not been overridden by the programmer, the result of the coercion carries the same label as the given \code{key}, otherwise it carries the label of the returned result from the overloaded method call.
 In contrast, the dot notation contains the \code{key} as an embedded code string (requiring no coercion) that carries the label of the code source.
 
 Once the object instance \code{obj} has been retrieved and the \code{key} calculated, the interpreter performs a hash-table lookup on the properties of that object.
-In the event that an object does not itself have a value associated with the requested \code{key}, the lookup proceeds recursively through objects in the prototype chain following \brackdbl{Prototype} references.
+In the event that an object does not itself have a value associated with the requested \code{key}, the lookup proceeds recursively through objects in the prototype chain following \bracketdbl{Prototype} references.
 \autoref{fig:prototype-chain} shows this access path for a generic property lookup.
 
 \newcommand{\hashvalue}[2]{\textlangle \code{#1} \textbar\ \code{#2}\textrangle}
-\newcommand{\hashbrackdbl}[2]{\textlangle \brackdbl{#1} \textbar\ \code{#2}\textrangle}
+\newcommand{\hashbracketdbl}[2]{\textlangle \bracketdbl{#1} \textbar\ \code{#2}\textrangle}
 \begin{figure}[h!]
   \centering
 \begin{tikzpicture}[
@@ -149,7 +149,7 @@ In the event that an object does not itself have a value associated with the req
   \node[] (lookup) at (-2cm,0cm) {};
 
   \matrix [draw=gray, matrix anchor=west, column sep=1.5cm] (object1) {
-    & \node[cellpath] (proto1) {\hashbrackdbl{Prototype}{P}}; \\
+    & \node[cellpath] (proto1) {\hashbracketdbl{Prototype}{P}}; \\
     & \node[cell] {\vdots}; \\
     & \node[cell] {\hashvalue{value}{A}}; \\
     \node[draw=black] (table1) {}; & \node[cell] {\hashvalue{value}{B}}; \\
@@ -160,7 +160,7 @@ In the event that an object does not itself have a value associated with the req
   \node[above, anchor=south west] at (object1.north west) {Object \code{obj}};
 
   \matrix [draw=gray, matrix anchor=west, column sep=1.5cm] at (7cm,0cm) (object2) {
-    & \node[cell] (proto2) {\hashbrackdbl{Prototype}{Q}}; \\
+    & \node[cell] (proto2) {\hashbracketdbl{Prototype}{Q}}; \\
     & \node[cell] {\vdots}; \\
     & \node[cell] {\hashvalue{value}{E}}; \\
     \node[draw=black] (table2) {}; & \node[cell] (value2B) {\hashvalue{empty}{F}}; \\
@@ -592,7 +592,7 @@ Rather, it accomplishes the same effect by direct modification of JavaScriptCore
 During execution, \FlowCore\ applies the current \pclabel\ to the result of all operations, following the control-flow and data-flow implementation given previously.
 \FlowCore\ makes no special consideration for function-local variables, because they behave as fields stored on the activation object.
 The labeling rules also apply to implicitly defined local values, such as the function's return value, the \code{arguments} object, and any raised exception objects.
-%Additionally, the labeling applies to any variables accessed along the \brackdbl{scope} chain, using the same procedures for variable access on the \brackdbl{property} chain.
+%Additionally, the labeling applies to any variables accessed along the \bracketdbl{scope} chain, using the same procedures for variable access on the \bracketdbl{property} chain.
 
 \begin{comment}
 function foo() {
