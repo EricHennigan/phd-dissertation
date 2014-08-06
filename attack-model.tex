@@ -1,0 +1,151 @@
+\chapter{Code Injection Attacks}
+
+
+\begin{comment}
+
+To clarify the information flow tracking capabilities of \FlowCore\ and \JitFlow, \autoref{ch:terminology} establishes terminology for the different levels of information flow.
+\autoref{ch:system-design} outlines different implementation strategies and their effects on performance, implementation difficulty, and security label semantics.
+\autoref{ch:label-propagation} describes the underlying data structures that support the label framework.
+As explained in \autoref{ch:instructions}, tracking information dependence through control-flow requires instrumentation of new instructions that manipulate the information flow data structures.
+\autoref{ch:label-tracking} specifies the label propagation strategy used by the framework and illustrates placement of the new instructions through code examples.
+
+To implement unit tests of the label propagation logic, an extension of the browser-hosted JavaScript environment exposes the security labels as first-class program objects (\autoref{ch:first-class-labels}).
+The new instructions provide a versatile architecture that permitted a rapid update of the label propagation system to support JIT compilation (\autoref{ch:jitflow}).
+\autoref{ch:conclusion} summarizes the work involved and lessons learned.
+\end{comment}
+
+\begin{comment}
+on using information flow techniques which can detect and prevent malicious behavior of executing programs.
+
+- change language semantics
+- augment memory model with labels
+- detect and intercept xss
+- prevent information leakage
+
+Combine earlier approaches into a universal and comprehensive framework
+- decentralized labeling
+- support more flexible policies
+- hybrid static/dynamic analysis
+- dynamically track information flow
+- pervasively works at the lowest layer
+\end{comment}
+
+
+
+To date, web browsers solely rely on the same origin policy (SOP)~\cite{sop} to prevent the exfiltration of sensitive user information caused by XSS.
+The SOP, which permits scripts from the same origin to access each others methods and objects, unfortunately, can only prevent XSS attacks if the third party code is properly isolated using an inline frame (\texttt{iframe}).
+The SOP, however, can not circumvent information exfiltration attacks if the web page intentionally includes the third party code in the same execution context, e.g. in the case of libraries or mashups.
+Kerschbaumer~et~al.~\cite{kerschbaumer.etal+13} show that information influenced by code originating from up to six different domains is sent cross domain boundaries on the Internet.
+Verification and proof that all these included scripts perform only supposed tasks is not available.
+Beyond all question, hacking just one these included scripts gives immediate access to user sensitive data.
+
+
+\section{The Threat of Code Injection}
+
+The most common type of XSS attack, known as a \term{reflected} or \term{non-persistent} vulnerability, arises from using unsanitized data from the web client as input to server-side processing scripts.
+The canonical example involves the user submitting a web search query, encoded in a URL, which the server echoes verbatim as part of the results page.
+If the query contained executable code, the web browser opening up the search page will execute the injected script.
+To become a victim, an innocent user need only to visit a malicious URL, which spammers often obfuscate through a neutral url-shortening service.
+
+The most pernicious type of XSS attack allows the injected script to persist in a server-side data store, between browser sessions.
+The canonical example of a \term{persistent} XSS attack involves a message board or web forum that allows the posting of user-generated content.
+The site stores this content in a server-side database, so that it may be retrieved for viewing by other visitors.
+When a malicious user bypasses textual filters and injects JavaScript into a forum posting, the site saves the script and inserts it into all pages that contain the post.
+To become a victim, an innocent user needs only to view a page with the malicious post.
+
+Many of the victims of XSS have their browser simultaneously logged in to other more sensitive services (such as email, shopping, banking or brokerage accounts).
+For most users, the web browser stores more personally identifying information about individual habits and interests than any other single application.
+Additionally, web browsers also conveniently store login credentials for banking sites, webmail services, and many shopping sites, as well as form information containing your real name, address, phone number, and credit card numbers.
+The potential for harvesting of sensitive user credentials via a forum post or spam email with malicious JavaScript presents a serious threat to the privacy of the average web user.
+
+\section{Difficulties of Filtering User Input}
+
+Currently, the most promoted mechanism for preventing script injection attacks is to filter out HTML and JavaScript code from user input.
+Though user input filtering forms the first line of security defense of any website, not every malicious script can be reliably identified.
+Web frameworks that lack strong code analysis further compound the problem because they cannot provably verify that all strings pass through a filter function before placement into the resulting page.
+The most popular languages used for the web, JavaScript, PHP, ASP, Ruby, Python, and Perl, all fall into this category.
+
+\subsection{HTML Identification}
+\label{subsec:html-encoding}
+
+The Web is constructed from various interrelated technologies: URLs for resource requests, HTML for page layout, CSS for content layout, JavaScript for page code, the JavaScript Object Notation (JSON) for object description, XML for data description, etc.
+Each of these technologies has its own specification and set of allowed characters.
+So many different character encodings exist that developers find it very difficult to track in what context a user-supplied string might appear on a page and how a browser interpret the string in that context.
+
+These many different encodings allow an attacker to formulate strings that are acceptable in one context, but nefarious in another.
+For example, characters such as `\texttt{<}', which has special meaning in the HTML specification, can be escaped in many different ways (\autoref{tab:html-encoding}).
+Historic design philosophies such as `being liberal in what you accept from others'~\cite{rfc761}, have coerced browsers into allowing whitespace (\texttt{<scr ipt>}) or mixed-case (\texttt{<ScrIpT>}) when matching HTML tags.
+The acceptance of tags formatted in unconventional manners further contributes to the difficulty of identifying potentially malicious inputs.
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{l|ccccc}
+ \textbf{Encoding Type} & \multicolumn{4}{c}{\textbf{Encoded variant of `\texttt{<}'}} \\
+ \hline
+ URL Encoding           & \texttt{\%3C} &&&\\
+ HTML Entity            & \texttt{\&lt;} & \texttt{\&lt} & \texttt{\&LT;} & \texttt{\&LT} \\
+ Decimal Encoding       & \texttt{\&\#60;} & \texttt{\&\#060;} & \texttt{\&\#0060;} & \texttt{\ldots} \\
+ Hex Encoding           & \texttt{\&\#x3c;} & \texttt{\&\#x03c;} & \texttt{\&\#X3c} & \texttt{\ldots} \\
+ Unicode                & \texttt{\textbackslash u003c} &&&\\
+\end{tabular}
+\caption{Examples of Character Encoding~\cite{kals.etal+06}.}
+\label{tab:html-encoding}
+\end{table}
+
+\subsection{Script Identification}
+
+Examples from RSnake's XSS Cheat Sheet~\cite{xsscheatsheet}\footnote{The XSS Cheat Sheet also provides a handy reference of malicious scripts that can be used to test user input filters} exhibit many ways in which a script can be encoded to bypass user input filters.
+As a second line of defense, a web page can employ syntax filters and program analysis to restrict the running of malicious scripts~\cite{reis.etal+06, yu.etal+07, yaowen.etal+04}.
+
+Just as HTML has many different character encodings, JavaScript provides several syntaxes for accessing an object's properties.
+For example, each of the following three lines create a dialog box with the contents of a page's cookie:
+
+\begin{alltt}
+alert(document.cookie)
+alert(document['cookie'])
+with(document) alert(cookie)
+\end{alltt}
+
+This multiplicity interferes with routines that attempt to identify malicious code when filtering user input.
+To provide a clear demonstration of difficulties encountered by input filtering, Hasegawa~\cite{xssfilters} manufactured the following JavaScript snippet that calls \texttt{alert(1)}, yet contains no alphanumeric characters:
+
+\begin{alltt}
+($=[$=[]][(__=!$+$)[_=-~-~-~$]+(\{\}+$)[_/_]+($$=($_=!''+$)
+[_/_]+$_[+$])])()[__[_/_]+__[_+~$]+$_[_]+$$](_/_)
+\end{alltt}
+
+\section{The Last Line of Defense}
+
+This work assumes that the web application's filter defenses are incomplete and non-exhaustive.
+The attacker is able to bypass the filters and store malicious JavaScript in the web site's database.
+The server code responsible for assembling pages trusts the database content and includes the code in pages viewable by innocent users of the application.
+
+\begin{comment}
+The persistent XSS attack just given illustrates two fundamental principals of web security: (1) user generated content cannot be trusted, and (2) data stored on your own servers should not necessarily be trusted.
+
+The second principal is most concerning, and the one we wish to combat.
+Within the browser, the execution semantics of JavaScript,
+\end{comment}
+
+Persistent XSS attacks have in the past shut down popular Internet services.
+For example, in 2005, the `Samy' worm~\cite{samy} set a world record for viral spreading and forced MySpace to suspend service in order to purge the work from their database.
+In 2007, the RightMedia Trojan propagated itself via malicious banner advertisements delivered through a trusted syndication network.
+These ads appeared on popular sites such as Yahoo! Photobucket and MySpace.
+In the same year, Nduja~\cite{nduja} authored a ``Cross Webmail Worm'' that was able to propagate itself across four webmail providers among the most popular in Italy.
+On each of the four webmail providers separate functionality for both infection and propagation needed to be developed, making this worm the first to spread across different web applications.
+
+Though dated, these anecdotal examples are notable not only for setting records, but also for demonstrating the relative ease with which a clever user can control the actions taken by millions of other browsers.
+Publications tracking security vulnerabilities~\cite{owasp, cwe} continually advocate the use of sanitization routines for combating the string inclusion problem, demonstrating that the architectural problems underlying XSS attacks have not been solved.
+
+\subsection{Preventing Malicious Action}
+
+Based on the observation that the execution of code within the JavaScript VM and browser sandbox can cause no harm as long as it does not generate external signals (such as network traffic), we advocate allowing the malicious code to execute under a modified interpreter that tracks the information dependence of runtime values.
+Rather than rely entirely on string filtration that attempts to identify and reject attacker supplied code, this approach tracks the flow of information through a chain of JavaScript program values.
+The web browser categorizes JavaScript code as malicious only when it attempts to communicate sensitive information to an unauthorized third party.
+At that point, a network hook enforcing information flow policies in the browser intervenes and prevents the information leak.
+
+This work describes \FlowCore, an interpreter-level information flow framework written for WebKit's JavaScriptCore virtual machine, and \JitFlow, a JIT-compiled improvement that provides increased performance with respect to the interpreter.
+Both of these systems tag program values and the program counter with labels that convey data ownership by one or more security principals.
+These labels propagate during program execution, and a network monitor implements a security policy by inspecting the label attached data in a network request.
+
+

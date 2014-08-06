@@ -14,136 +14,68 @@
 \chapter{Motivation}
 \label{ch:motivation}
 
-Dynamically typed languages are often used in systems which process sensitive information.
-The high-level nature of these languages is highly convenient for rapidly developing prototypes which meet business needs for quick deployment.
+Systems that process sensitive information often use dynamically typed languages.
+The high-level nature of these languages makes them highly convenient for rapidly developing prototypes which meet business needs for quick deployment.
 For example, Web applications have de facto standardized on JavaScript for client-side logic, which includes secure authentication.
 
 The World Wide Web has grown explosively and has evolved from a modest collection of static pages to a global network of dynamic and interactive content.
 As critical business functions become increasingly Web-based, the amount of sensitive information traversing the Web increased correspondingly.
 Personal information, used in sensitive online transactions (e.g., banking, tax filing, shopping, etc.), now possesses a black-market value, which continues to draw the attention of criminals and fraudsters.
 Because early designers of the Web did not consider these uses, nor did they have an explicit focus on security, the resulting architecture contains inherent weaknesses that permit criminals to steal credit card numbers, identification credentials, and other personal information.
-The semantics of dynamically typed languages, such as JavaScript, reduce the effectiveness of static analysis techniques which would otherwise be used to verify application security~\cite{robertson.vigna+09}.
+The dynamic nature of JavaScript reduces the effectiveness of static analysis techniques that would otherwise be used to verify web application security~\cite{robertson.vigna+09}.
 
-
-Today's web servers deliver HTML and JavaScript to the client as an untyped string.
+Web servers deliver HTML and JavaScript to a client browser as an untyped string.
 Web~2.0 applications contain server-side processing that injects user generated content and syndicated advertisements into pages assembled on demand.
-Popular code frameworks that perform this composition do not themselves have static typing (as in the case of PHP, Ruby on Rails, and Django).
+Popular server-side code frameworks that perform this composition do not themselves have static typing (as in the case of PHP, Ruby on Rails, and Django).
 The practice of including foreign content as an unsafe string provides attackers the opportunity to inject malicious code into a web page, in an attack known as Cross-Site Scripting (XSS).
 The prevalence, persistence, scope, and danger~\cite{whitehat, cwe} of such attacks has given XSS the infamous moniker: ``buffer overflow of the web.''
 
-\section{The Threat of Code Injection}
+On the client-side, the browser security model possesses weaknesses that integrate HTML and executable JavaScript code into a single execution context, despite possibly separate origins.
+Even though this dynamic loading of code functions as a powerful feature enriching web applications with third party code, it also opens the door for attackers to perform arbitrary actions behind the scenes in a users browser.
+Without any observable difference in runtime behavior such spurious scripts can exfiltrate sensitive user information, like e.g., authentication credentials or credit card numbers.
+A malevolent script has the power to log all keystrokes on a user's keyboard and the ability to traverse the Document Object Model (DOM)~\cite{dom} and exfiltrate all information displayed on the user's screen.
 
-The most pernicious type of XSS attack allows the injected script to persist in a server-side data store, between browser sessions.
-The canonical example of a \term{persistent} XSS attack involves a message board or web forum that allows the posting of user-generated content.
-The site stores this content in a server-side database, so that it may be retrieved for viewing by other visitors.
-When a malicious user bypasses textual filters and injects JavaScript into a forum posting, the site saves the script and inserts it into all pages that contain the post.
-To become a victim, an innocent user needs only to view a page with the malicious post.
+Vulnerability studies consistently rank code injection as the most prevalent type of attack on web applications.
+The Open Web Application Security Project\cite{owasp} ranks injection as the biggest threat for its easy exploitability and severe security impact, recommending a parameterized API, taking extra care to correctly handle the escape syntax of any interpreters, and the use of positive ``white list'' input validation routines.
+They same organization also ranks XSS as the third biggest threat for its average exploitability, very widespread prevelance and moderate security impact, recommending proper escaping of all untrusted data sources, positive ``white list'' input validation, auto-sanitization libraries for rich content, and the use of a W3C Content Security Policy.
+The Common Weakness Enumeration published by MITRE~\cite{cwe} also ranks SQL and OS Command injection in first and second positions, respectively, and XSS in fourth.
+The report recommends using libraries with safe APIs, identifying and sanitizing all inputs on both the client and the server, creating static mappings that reference known inputs, and enforcing a separation between code and data.
 
-Many of the victims viewing the forum have their browser simultaneously logged in to other more sensitive services (such as email, shopping, banking or brokerage accounts).
-For most users, the web browser stores more personally identifying information about individual habits and interests than any other single application.
-Additionally, web browsers also conveniently store login credentials for banking sites, webmail services, and many shopping sites, as well as form information containing your real name, address, phone number, and credit card numbers.
-The potential for harvesting of sensitive user credentials via a forum post with malicious JavaScript presents a serious threat to the privacy of the average web user.
+Nikiforakis~et~al.~\cite{nikiforakis.etal+12} show that 88.45\% of web sites include at least one remote JS library and highlight the potential of such included scripts to perform malicious actions without attracting attention by neither web developers nor end users.
+An empirical study~\cite{jang.etal+10} on privacy violating information flows confirms the ubiquity of sensitive user data exfiltration currently practiced on the Internet.
 
-\section{Difficulties of Filtering User Input}
+As of today, several approaches~\cite{vogt.etal+07,just.etal+11,groef.etal+12,kerschbaumer.etal+13} have shown that information flow tracking can overcome the shortcomings of the SOP and successfully counter XSS-based information exfiltration attacks.
+Even though these dynamic tracking enhancements provide the desired security, all of the presented approaches suffer from the drawback of incurring drastic performance penalties of at least~1$\times$.
+Note, that all presented approaches integrate the tracking logic in the JavaScript interpreter which itself commonly performs 4$\times$~to~5$\times$ worse than code generated by state of the art just-in-time (JIT) compilers.
 
-Currently, the most promoted mechanism for preventing script injection attacks is to filter out HTML and JavaScript code from user input.
-Though user input filtering forms the first line of security defense of any website, not every malicious script can be reliably identified.
-Web frameworks that lack strong static typing further compound the problem because they cannot provably verify that all strings pass through a filter function before placement into the resulting page.
+We identify the performance penalty as the major deployment obstacle for adopting one of the presented information flow tracking frameworks and integrate the dynamic tracking of information using a JIT compiler in a JavaScript engine.
+This thesis outlines the problematic situation of executing scripts from different origins in the same execution context within a user's browser and makes the following contributions:
 
-\subsection{HTML Identification}
-\label{subsec:html-encoding}
+\begin{itemize}
 
-The Web is constructed from various interrelated technologies: URLs for resource requests, HTML for page layout, CSS for content layout, JavaScript for page code, the JavaScript Object Notation (JSON) for object description, XML for data description, etc.
-Each of these technologies has its own specification and set of allowed characters.
-So many different character encodings exist that developers find it very difficult to track in what context a user-supplied string might appear on a page and how a browser interpret the string in that context.
+\item{To the best of our knowledge we are the first to integrate dynamic information flow tracking in a JIT compiler for a dynamically typed programming language.}
 
-These many different encodings allow an attacker to formulate strings that are acceptable in one context, but nefarious in another.
-For example, characters such as `\texttt{<}', which has special meaning in the HTML specification, can be escaped in many different ways (\autoref{tab:html-encoding}).
-Historic design philosophies such as `being liberal in what you accept from others'~\cite{rfc761}, have coerced browsers into allowing whitespace (\texttt{<scr ipt>}) or mixed-case (\texttt{<ScrIpT>}) when matching HTML tags.
-The acceptance of tags formatted in unconventional manners further contributes to the difficulty of identifying potentially malicious inputs.
+\item{A set of instructions that enables information flow tracking at the bytecode-level, allowing fast transitions between interpreter and JIT-compiled code.}
 
-\begin{table}[ht]
-\centering
-\begin{tabular}{l|ccccc}
- \textbf{Encoding Type} & \multicolumn{4}{c}{\textbf{Encoded variant of `\texttt{<}'}} \\
- \hline
- URL Encoding           & \texttt{\%3C} &&&\\
- HTML Entity            & \texttt{\&lt;} & \texttt{\&lt} & \texttt{\&LT;} & \texttt{\&LT} \\
- Decimal Encoding       & \texttt{\&\#60;} & \texttt{\&\#060;} & \texttt{\&\#0060;} & \texttt{\ldots} \\
- Hex Encoding           & \texttt{\&\#x3c;} & \texttt{\&\#x03c;} & \texttt{\&\#X3c} & \texttt{\ldots} \\
- Unicode                & \texttt{\textbackslash u003c} &&&\\
-\end{tabular}
-\caption{Examples of Character Encoding~\cite{kals.etal+06}.}
-\label{tab:html-encoding}
-\end{table}
+\item{A first-class mechanism for labeling objects, allowing website authors to tag data considered sensitive to their application and implement label-specific network traffic policies.}
 
-\subsection{Script Identification}
+\item{The data structures and implementation techniques that enabled JIT-compilation performance improvements.}
 
-Examples from RSnake's XSS Cheat Sheet~\cite{xsscheatsheet}\footnote{The XSS Cheat Sheet also provides a handy reference of malicious scripts that can be used to test user input filters} exhibit many ways in which a script can be encoded to bypass user input filters.
-As a second line of defense, a web page can employ syntax filters and program analysis to restrict the running of malicious scripts~\cite{reis.etal+06, yu.etal+07, yaowen.etal+04}.
+\item{We evaluate our system on two dimensions:}
 
-Just as HTML has many different character encodings, JavaScript provides several syntaxes for accessing an object's properties.
-For example, each of the following three lines create a dialog box with the contents of a page's cookie:
+\begin{itemize}
+\item{\textbf{Efficiency:}
+We show that our JIT-generated code for information flow tracking introduces, on average, 30\% overhead on established JavaScript benchmark suites;  SunSpider~\cite{sunspider}, V8~\cite{v8}, and Kraken~\cite{kraken}.
 
-\begin{alltt}
-alert(document.cookie)
-alert(document['cookie'])
-with(document) alert(cookie)
-\end{alltt}
+\item{\textbf{Compliance:}
+We verify that our JIT compiler performs accurate information flow tracking by providing a test suite consisting of more than 200 test cases.}
 
-This multiplicity interferes with routines that attempt to identify malicious code when filtering user input.
-To provide a clear demonstration of difficulties encountered by input filtering, Hasegawa~\cite{xssfilters} manufactured the following JavaScript snippet that calls \texttt{alert(1)}, yet contains no alphanumeric characters:
+%\item{\textbf{Real World Applicability:}
+%We conduct a web crawler, and show that our system detects real world information flow violations, by randomly visiting 500 web pages of the Alexa~Top~One~Million~\cite{alexa} web pages in the world.}
+}
+\end{itemize}
 
-\begin{alltt}
-($=[$=[]][(__=!$+$)[_=-~-~-~$]+({}+$)[_/_]+($$=($_=!''+$)
-[_/_]+$_[+$])])()[__[_/_]+__[_+~$]+$_[_]+$$](_/_)
-\end{alltt}
-
-\section{The Last Line of Defense}
-
-This work assumes that the web application's filter defenses are incomplete and non-exhaustive.
-The attacker is able to bypass the filters and store malicious JavaScript in the web site's database.
-The server code responsible for assembling pages trusts the database content and includes the code in pages viewable by innocent users of the application.
-
-\begin{comment}
-The persistent XSS attack just given illustrates two fundamental principals of web security: (1) user generated content cannot be trusted, and (2) data stored on your own servers should not necessarily be trusted.
-
-The second principal is most concerning, and the one we wish to combat.
-Within the browser, the execution semantics of JavaScript,
-\end{comment}
-
-Persistent XSS attacks have in the past shut down popular Internet services.
-For example, in 2005, the `Samy' worm~\cite{samy} set a world record for viral spreading and forced MySpace to suspend service in order to purge the work from their database.
-In 2007, the RightMedia Trojan propagated itself via malicious banner advertisements delivered through a trusted syndication network.
-These ads appeared on popular sites such as Yahoo! Photobucket and MySpace.
-In 2007, Nduja~\cite{nduja} authored a ``Cross Webmail Worm'' that was able to propagate itself across four webmail providers among the most popular in Italy.
-On each of the four webmail providers separate functionality for both infection and propagation needed to be developed, making this worm the first to spread across different web applications.
-Though dated, these examples are notable not only for setting records, but also for demonstrating the relative ease with which a clever user can control the actions taken by millions of other browsers.
-The architectural problems underlying these attacks have not been solved.
-
-\subsection{Preventing Malicious Action}
-
-Based on the observation that the execution of code within the JavaScript VM and browser sandbox can cause no harm as long as it does not generate external signals (such as network traffic), we advocate allowing the malicious code to execute under new semantics that track the information dependence of runtime values.
-Rather than rely entirely on string filtration that attempts to identify and reject attacker supplied code, this approach tracks the flow of information through a chain of JavaScript program values.
-The JavaScript code becomes categorized as malicious only when it attempts to communicate sensitive information to an unauthorized third party.
-At that point, a network hook enforcing information flow policies in the browser intervenes and prevents the information leak.
-
-\section{Summary}
-
-This work implements \FlowCore, an interpreter-level information flow framework written for WebKit's JavaScriptCore virtual machine, and \JitFlow, a JIT-compiled improvement that provides increased performance with respect to the interpreter.
-Both of these systems tag program values and the program counter with labels that convey data ownership by one or more security principals.
-These labels propagate during program execution, and a network monitor implements a security policy by inspecting the label attached data in a network request.
-
-
-To clarify the information flow tracking capabilities of \FlowCore\ and \JitFlow, \autoref{ch:terminology} establishes terminology for the different levels of information flow.
-\autoref{ch:system-design} outlines different implementation strategies and their effects on performance, implementation difficulty, and security label semantics.
-\autoref{ch:label-propagation} describes the underlying data structures that support the label framework.
-As explained in \autoref{ch:instructions}, tracking information dependence through control-flow requires instrumentation of new instructions that manipulate the information flow data structures.
-\autoref{ch:label-tracking} specifies the label propagation strategy used by the framework and illustrates placement of the new instructions through code examples.
-
-To implement unit tests of the label propagation logic, an extension of the browser-hosted JavaScript environment exposes the security labels as first-class program objects (\autoref{ch:first-class-labels}).
-The new instructions provide a versatile architecture that permitted a rapid update of the label propagation system to support JIT compilation (\autoref{ch:jitflow}).
-\autoref{ch:conclusion} summarizes the work involved and lessons learned.
+\end{itemize}
 
 \section{Executive Summary}
 
@@ -201,18 +133,3 @@ Additionally, the first-class label feature proved invaluable for implementing u
 \autoref{ch:jitflow} demonstrates that the framework developed for the \FlowCore\ interpreter readily supports transition to a JIT compiler.
 The new tracking engine, \JitFlow, implements the control-flow stack instructions in assembly, caches the top of the control flow stack in a virtual register, and pre-allocates space for the control flow stack itself.
 These optimization lead to a vast performance improvement, that approximately halves the execution time of the flow tracking interpreter.
-\begin{comment}
-on using information flow techniques which can detect and prevent malicious behavior of executing programs.
-
-- change language semantics
-- augment memory model with labels
-- detect and intercept xss
-- prevent information leakage
-
-Combine earlier approaches into a universal and comprehensive framework
-- decentralized labeling
-- support more flexible policies
-- hybrid static/dynamic analysis
-- dynamically track information flow
-- pervasively works at the lowest layer
-\end{comment}
