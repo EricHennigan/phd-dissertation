@@ -1,4 +1,116 @@
 
+\chapter{Background}
+
+Given the damage that a sensitive 
+
+http://www.cse.psu.edu/~tjaeger/cse598-f11/docs/sm-jsac03.pdf
+http://www.cse.chalmers.se/~andrei/psi09.pdf
+
+
+\section{Foundations of Information Flow}
+
+The development of Information Flow dates back to the late 1970's, and arises out of a desire to trace and detect information leaks that can occur in computer systems.
+In 1976, Denning introduced ``A Lattice Model of Secure Information Flow''~\cite{denning+76} that permits a concise formulation of security requirements through the mathematical relations on a partially ordered set of security principals.
+The lattice model provides a unifying view of all systems that restrict information flow, overcoming undecidable analysis present in security mechanisms based on access control~\cite{lampson+74}.
+Shortly following this insight, Denning and Denning~\cite{denning.denning+77} introduced a Pascal compiler that exploited the properties of the security lattice to verify secure information flow through a program.
+A program fails certification when the static analysis phase of the compiler detects an implicit information flow.
+
+
+
+
+\section{System Design}
+
+
+\section{Related Implementations}\label{sec:related-work}
+
+As part of a large-scale investigation into privacy-violating information flows that occur on the Alexa global top 50,000 websites, Jang~et~al.~\cite{jang.etal+10} implemented a rewriting-based JavaScript information flow engine within the Chrome browser.
+The system uses a source-to-source rewriting approach that injects taints, propagates them, and blocks tainted flows within the rewritten code, with an average execution overhead between 2.5$\times$ and 3$\times$.
+In contrast to \FlowCore, their system required understanding only the browser's AST data structures, and none of the complexity of the JavaScript runtime, and therefore tracks flows at a coarser granularity.
+Nevertheless, they detected four types of privacy-violating flows, cookie stealing, location hijacking, history sniffing, and behavior tracking, used by very popular sites (Alexa top-100) that exfiltrate information about users' browsing behavior.
+
+Chudnov and Naumann~\cite{chudnov.naumann+10} implement runtime-inline monitoring, based on its applicability to dynamically-typed, interpreted languages, featuring \code{eval}, such as JavaScript.
+They argue that inlining should occur at the source code level, because of the widespread practice of delivering JavaScript source code to browsers and the non-portability of any VM-level implementation across browsers.
+Their proposal relies on the JIT to maintain acceptable performance, but they provide no implementation, only a proof of correctness for the inlined monitor.
+\FlowCore\ modifies the VM-runtime in order to maintain performance in a time when browser vendors heavily market their execution speend.
+Additionally, their proof rests on a small abstract syntax that does not fully represent the complexity of JavaScript.
+
+Magazinius~et~al.~\cite{magazinius.etal+12} implement the ability to inlinine monitors on the fly, with an overhead between 2$\times$ and 3$\times$.
+They propose a framework for creating shadow variables that track the security label of the original.
+As with \FlowCore, they include a mechanism for labeling the program counter and tracking the security context.
+
+
+\section{First-Class Labels}
+\subsection{Developer Accessible Labels}
+
+To the best of my knowledge, no other work incorporates a first-class labeling system into a dynamically typed programming language.
+This feature allows the developer to construct label objects, apply them to label other program values, compose them together, and use them as part of natively programmed policy functions.
+
+%In 1977, Denning and Denning~\cite{denning-cert} introduced a Pascal compiler that uses static program analysis and a security lattice over principals to certify program non-interference at compile time.
+%This compiler implements a security lattice~\cite{denning-lattice} over principals.
+%If the compiler detects an implicit information flow in a program, the program fails certification.
+%In contrast, our supporting JavaScript VM performs information flow propagation at runtime and ensures that code cannot send traffic over the network if it violates a developer-specified policy.
+
+In 2001, the programming language Jif (Java Information Flow), introduced by Meyers et al.\cite{jif} proved the feasibly of tracking information flows within real programs.
+The Jif interpreter introduce a security-type system that allows annotation of Java types with confidentiality labels that refer to variables of the dependent type \texttt{label}~\cite{sabelfeld.myers+03}.
+%This feature allows label objects to be used as both first-class values and as labels for other values.
+Jif extends the lattice model with a system of decentralized labels~\cite{myers.liskov+00}, which I find ideal for dealing with the multitude of principals that require separate and distinct representation within a web page.
+Java does not represent types as first-class entities, but the Jif programmer does have the ability to use the labeling features to program functions with statically type-checked information flow properties.
+Our work provides a similar, but simpler and runtime-enforced, labeling system for the dynamically-typed JavaScript.
+
+Li and Zdancewic~\cite{li.zdancewic+06} present a security sublanguage that expresses and enforces information-flow policies in Haskell.
+Their implementation supports dynamic security lattices, run-time code privileges, and declassification without modifications to Haskell itself.
+The type-checking proceeds in two stages: (1) checking and compilation of the base language followed by (2) checking of the secure computations at runtime just prior to execution of programs written in the sublanguage.
+In contrast, our work presents extensions to an existing JavaScript environment and does not require rewriting of existing programs into a secure sublanguage.
+
+\subsection{JavaScript Information Flow Systems}
+
+Other research on language-based information flow specific to JavaScript relies on automatic labeling frameworks that seek to provide end-users with secure browsers and minimize developer.
+Our system seeks to leverage web developer domain knowledge about their application as part of a security testing environment.
+
+Vogt et al.~\cite{vogt.etal+07} modify Firefox's JavaScript engine, SpiderMonkey, to monitor the flow of sensitive information using a combination of static and dynamic analysis.
+Before execution, their modified VM statically analyzes each function via abstract interpretation to detect and mark implicit information flows.
+Their framework automatically taints objects provided by the browser (e.g., Document, History, Window, and form elements) and enforces information flows according to the Same Origin Policy.
+The hosting web browser used to evaluation \FlowCore\ also automatically labels dynamically loaded code according to the Same Origin Policy.
+However, the contribution of first-class labels allows the developer to specify security policies specific to their application in native JavaScript, providing much more flexibility beyond the Same Origin Policy.
+
+Just et al.~\cite{just.etal+11} modify the JavaScriptCore VM in WebKit to perform information flow tracking for \code{eval}, \code{break}, \code{continue}, and other control-flow structures.
+\FlowCore's integration with WebKit achieves the same analysis with better performance due to difference in implementation details.
+The first-class labels API moves beyond implementation of an information flow tracking engine to reflect portions of the labeling engine into the JavaScript environment, to enable targeted security debugging.
+
+Chugh et al.~\cite{chugh.etal+09} attack the problem of dynamically loaded JavaScript by using staged information flow.
+Their approach statically computes an information flow graph for all available code, leaving \textit{holes} where code might appear at runtime, and subjecting dynamically loaded code to the same analysis as soon as it becomes available.
+They also introduce a new policy language to the existing babel of languages used for web development.
+The new subgraph merges with the current information flow graph and the browser performs residual checks to ensure that the combined result can not violate existing policy constraints.
+In contrast, \FlowCore\ avoids delaying code execution and shifts analysis of information flows to runtime, enabling the developer to write application-specific policies in JavaScript itself.
+
+Jang et al.~\cite{jang.etal+10} employ a JavaScript rewriting-based information flow engine to document 43 cases of history sniffing within the Alexa~\cite{alexa} Global Top 50,000 sites.
+Because of access control restrictions on the History object, determining sites a user has visited can only be accomplished via an implicit control flow such as that in \autoref{list:sniffPassword}.
+Rather than employ rewriting, \FlowCore\ propagates labels at the interpreter level, increasing performance and preventing attackers from subverting the system.
+%Most websites that contained such flows were attempting to discern whether a user has visited pages of a competing site.
+
+\subsection{Type-Checking JavaScript for Information Flow}
+
+Many researchers give type systems intended to analyze JavaScript programs for information flow security.
+Austin and Flannagan, in conjunction with Mozilla, promote sparse labeling techniques intended to decrease memory overhead and increase performance~\cite{austin.flanagan+09} and provide a formal semantics for \emph{partially leaked} information~\cite{austin.flanagan+10}.
+Hedin and Sabelfeld~\cite{hedin.sabelfeld+12} provide Coq-verified formal rules that cover object semantics, higher-order functions, exceptions, and dynamic code evaluation, powerful enough to support DOM functionality.
+Efforts along this line of research typically cover a core of the JavaScript specification, and have not seen wide-spread adoption.
+I forgo formalized verification in a practical effort to target adoption of our work by developers focused on security debugging rather than end users.
+The ability (and business encouragement) to include third part scripts in a web mashup makes finding solutions to the \emph{label creep} problem~\cite{sabelfeld.myers+03} even more urgent than it historically has been.
+
+\subsection{JavaScript Language Policies}
+
+Meyerovich and Livshits introduce an aspect oriented framework, named \textsc{ConScript}~\cite{meyerovich.livshits+10} that supports weaving specific security policies with existing web applications.
+Using their framework, web authors wrap application code with security monitors specified in JavaScript.
+They also provide a type-checker that verifies that policies do not accidentally contain common implementation bugs.
+Their system supports aspect wrapper functions around arbitrary code, while \FlowCore\ focuses on monitoring network traffic.
+An aspect oriented approach cannot detect and prevent information leaks that occur due to control-flow transfers as exhibited in \autoref{list:sniffPassword}.
+
+
+
+
+
+----------------------------------------------------------
+
 \chapter{Related Work}
 
 Several researchers embrace the addition of security features to existing programming languages as a mechanism to prevent information theft.
@@ -61,7 +173,7 @@ There are two outstanding problems: 1. label creep, 2. can't track passive indir
 %%%%%%%%%%%%%%%%%%%%%%%%%
 % From 2010 jsflowpaper.tex
 
-\section{Related Work}
+ \section{Related Work}
 \label{sec:relatedwork}
 
 Adding security enhancements for universal programming languages is a task several researchers have embraced.
@@ -120,7 +232,7 @@ Instead, a webpage is treated as an object with a publicly declared interface, a
 %%%%%%%%%%%%%%%%%%%%%%%%%
 % From 2011 acsac.tex
 
-\section{Related and Future Work}
+ \section{Related and Future Work}
 \label{sec:relatedwork}
 
 %\todo{no standard benchmarks, no standard evals, no standard info flow attacks to compare against}
@@ -131,9 +243,6 @@ We remain optimistic that information flow can be brought from the world of stat
 
 \subsection{Static Analysis}
 
-In 1977, Denning and Denning~\cite{359712} gave a specification that ensures non-interference of Pascal programs using a static type checking analysis.
-Programs which contain implicit information flows fail certification by the compiler.
-This work builds on the lattice model~\cite{denning1976lattice} of secure information flow proposed in 1976.
 
 In 2001, Myers and Liskov~\cite{myers2001jif} introduced a programming language called Jif (Java Information Flow), which extends Java with static checking of information flow.
 Though the static analysis techniques developed in this work are not applicable to dynamic languages, we find the associated contribution of a decentralized label model~\cite{363526} presciently appropriate for dealing with the multitude of principals that require representation in an embedded language such as JavaScript.
