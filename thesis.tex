@@ -68,6 +68,14 @@
 \newcommand{\bracketdbl}[1]{\textlbrackdbl \code{#1}\textrbrackdbl}
 \newcommand{\codestringdbl}[1]{\code{\textquotedbl #1\textquotedbl}}
 
+\newcommand{\codeline}[1]{line~\code{#1}}
+\newcommand{\Codeline}[1]{Line~\code{#1}}
+\newcommand{\codelines}[2]{lines~\code{#1}--\code{#2}}
+\newcommand{\bcodeline}[1]{offset~\code{#1}}
+
+\newcommand{\jsvalue}[0]{\code{JSValue}}
+\newcommand{\jsvalues}[0]{\code{JSValue}s}
+
 \usepackage{tikz}
 \usetikzlibrary{arrows}
 \usetikzlibrary{backgrounds}
@@ -123,9 +131,22 @@
   caption=,
   language=JavaScript,
   frame=tb,
-  basicstyle=\small\ttfamily,
+  basicstyle=\small,
   captionpos=b,
   aboveskip={1\baselineskip},
+}}{}
+
+\lstnewenvironment{exploit-example} {\lstset{
+  basicstyle=\small\ttfamily,
+  tabsize=2,
+  showspaces=false,
+  showtabs=false,
+  tabsize=2,
+  frame=tb,
+  captionpos=b,
+  aboveskip={1.5\baselineskip},
+  float=h,
+  escapeinside={(*}{*)},
 }}{}
 
 \lstnewenvironment{jscode} {\lstset{

@@ -2,13 +2,13 @@
 \chapter{Just-In-Time Compilation}
 \label{ch:jitflow}
 
-\newcommand{\codeline}[1]{line~\code{#1}}
-\newcommand{\Codeline}[1]{Line~\code{#1}}
-\newcommand{\codelines}[2]{lines~\code{#1}--\code{#2}}
-\newcommand{\bcodeline}[1]{offset~\code{#1}}
+\renewcommand{\codeline}[1]{line~\code{#1}}
+\renewcommand{\Codeline}[1]{Line~\code{#1}}
+\renewcommand{\codelines}[2]{lines~\code{#1}--\code{#2}}
+\renewcommand{\bcodeline}[1]{offset~\code{#1}}
 
-\newcommand{\jsvalue}[0]{\code{JSValue}}
-\newcommand{\jsvalues}[0]{\code{JSValue}s}
+\renewcommand{\jsvalue}[0]{\code{JSValue}}
+\renewcommand{\jsvalues}[0]{\code{JSValue}s}
 
 Experience integrating \FlowCore\ with the WebKit browser and visiting pages in the Alexa Top 1,000~\cite{alexa} revealed important issues about JavaScript's omnipresence on the Web.
 In particular, that effort discovered that today's highly-interactive web applications rely on a performant JavaScript interpreter backed up by a just-in-time compiler.

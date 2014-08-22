@@ -61,7 +61,7 @@ This thesis outlines the problematic situation of executing scripts from differe
 
 \item{The data structures and implementation techniques that enabled JIT-compilation performance improvements.}
 
-\item{We evaluate our system on two dimensions:}
+\item{We evaluate the system on two dimensions:}
 
 \begin{itemize}
 \item{\textbf{Efficiency:}
@@ -81,8 +81,8 @@ We verify that our JIT compiler performs accurate information flow tracking by p
 
 \autoref{ch:attack-model} gives an overview of web architecture and its negative effects on security.
 The structure of HTML, dynamic typing of JavaScript, and the textual inclusion of third-party code and data, each contribute to an infrastructure that puts casual web user's data at risk for surreptitious information theft through a code injection attack known as Cross-Site Scripting.
-The widespread practice of dynamically creating strings later treated as HTML and JavaScript code defeats static analysis techniques.
-To detect and mitigate these attacks, we propose using dynamic information flow to track data propagation in a JavaScript VM, and call the resulting interpreter \FlowCore.
+The widespread practice of dynamically creating strings later treated as HTML and JavaScript and loaded on-demand requires delaying security analysis until runtime.
+To detect and mitigate these attacks, we propose using dynamic (runtime) information flow to track data propagation in a JavaScript VM, and call the resulting interpreter \FlowCore.
 
 \autoref{ch:related-work} \todo{Needs description. How much can be done concurrent with terminology section?}
 % \todo[inline]{related work is terrible, missing references, repeated paragraphs, mentions firefox}

