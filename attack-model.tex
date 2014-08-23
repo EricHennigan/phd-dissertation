@@ -1,6 +1,6 @@
-\chapter{Code Injection Attacks}\label{ch:code-injection}
+\chapter{Code Injection Attacks}\label{ch:attack}
 
-\section{Brief Overview of Web Architecture}\label{sec:web-architecture}
+\section{Brief Overview of Web Architecture}\label{sec:attack-web-architecture}
 
 Web developer and user demand for increased interactivity in web pages led Netscape to introduce the JavaScript\footnote{JavaScript has now been standardized as ECMAScript~\cite{ecma}} programming language as a means of enabling more dynamic behavior within a webpage.
 Modern web browsers contain an embedded JavaScript virtual machine that enables the page to load and execute code that dynamically updating the page, even as the page is being parsed.
@@ -52,7 +52,7 @@ The multitude of syntaxes for accessing page elements complicates auditing web a
 %For example, an early web-based email application required the user to refresh the page showing the inbox to check for new mail.
 %With the introduction of client-side code and dynamically updatable page content, a webmail application is now able to periodically check with the mail sever for new mail without user intervention, even issuing a notification of new mail.
 
-\section{The Many Types of XSS}\label{sec:xss-types}
+\section{The Many Types of XSS}\label{sec:attack-xss-types}
 
 Attackers exploit the code-injection vulnerability known as Cross-site scripting by insertion JavaScript or other code into a webpage, causing viewers of that page to unwittingly execute malicious code.
 The following examples inject benign code as a proof-of-concept demonstrating the code insertion vulnerability.
@@ -250,7 +250,7 @@ Because most exploits aim at executing JavaScript within a browser, the injectio
 As a result, XSS exploits remain generally OS and browser agnostic, granting them an amazingly large scope of potential victims.
 The difficulty in distinguishing JavaScript exploit code from normal web page markup~\cite{xss-history} makes XSS attacks difficult to detect.
 
-\section{Historical Uses of XSS}\label{sec:xss-uses}
+\section{Historical Uses of XSS}\label{sec:attack-xss-uses}
 
 Attackers benefit from XSS vulnerabilities because the browser executes the injected code in the context of the original page or web application.
 The victim's browser misidentifies the code as being a legitimate part of the requested page, with the result that the malicious code subverts any security protections (such as the same-origin policy \autoref{sec:same-origin}) and acquires the same access and privileges as all other code on the page.
@@ -327,7 +327,7 @@ In addition, it probably also stores login credentials to banking sites, webmail
 % \item remaining dormant during propagation to avoid attention.
 %\end{itemize}
 
-\section{Architectural Defects of the Web}\label{sec:web-architecture-defects}
+\section{Architectural Defects of the Web}\label{sec:attack-web-architecture}
 
 The ad-hoc evolution of the Web has resulted in a profoundly insecure architecture, with respect to code injection attacks.
 In particular, three facets of the current architecture have an important impact on security.
@@ -536,5 +536,6 @@ Modern web applications pull their content and code from a wide variety of sourc
 Servers deliver HTML layout, JSON and XML data, and JavaScript code as source text.
 The different language specifications for character and token encoding makes filtering and identifying malicious code difficult.
 XSS attacks can inject code onto the web application's servers, making code origin an unreliable indicator of trustworthiness.
-These attacks pose a serious security risk for both customers and businesses, innocent users become victims merely by visiting an infected page.
+These attacks pose a serious security risk for both customers and businesses.
+Innocent users become victims merely by visiting an infected page.
 
