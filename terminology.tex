@@ -1,4 +1,4 @@
-\chapter{Flow Terminology}
+\chapter{Information Flow Terminology}
 \label{ch:terminology}
 
 \begin{comment}
@@ -48,24 +48,25 @@ else
 
 After the founding of information flow as a program analysis technique in the late 1970's by Denning and Denning~\cite{denning.denning+77}, the field lay relatively quiescent until recently.
 Since the mid 2000's, because of enhancements in the interactivity of web pages and the steady rise in online commerce, there has been a fervent and earnest push for greater data security in web browsers and web applications.
-Because these programs use dynamically typed languages they cannot use a static type checker to prove and enforce program properties.
-Lacking a mechanism for verifying security and data handling properties, information flow remains the most promising approach for detecting and preventing information leakage in web applications.
+These programs use dynamically typed languages, so they lack a static type checker to prove and enforce program properties.
+Since JavaScript lacks a proof mechanism proof mechanism for verifying security and data handling properties, information flow remains the most promising approach for detecting and preventing information leakage in web applications.
 
 The rapid creation of so many new systems~\cite{chugh.etal+09, yaowen.etal+04, jang.etal+10, robertson.vigna+09, vogt.etal+07} using information flow techniques to attack web security problems has led to a difficulty in comparing research results across implementations.
 For example, some authors implement simple data tainting while others use wrapper objects or dynamic rewriting techniques.
-The lack of a terminology for describing, in detail, exactly which categories of information flow a system can detect is disconcerting.
-Of more critical importance, without adequate vocabulary, my literature review finds researchers somewhat negligent in expressing the limits of their system's capabilities.
-As a result, the boundary line circumscribing the state of the art remains painfully fuzzy.
+Most authors do not clearly detail exactly which categories of information flow their system detects.
+%The lack of a terminology for describing, in detail, exactly which categories of information flow a system can detect is disconcerting.
+%Of more critical importance, without adequate vocabulary, my literature review finds researchers somewhat negligent in expressing the limits of their system's capabilities.
+As a result, the boundary line circumscribing the state of the art remains fuzzy.
 
-Recent work applying information flow techniques has overloaded terminology established by Denning and Denning~\cite{denning.denning+77}.
-For example, when Jang~et~al.~\cite{jang.etal+10} describe the capabilities of their JavaScript rewriting system, they introduce the term ``indirect'' to describe a flow for which they found no previous research.
-This ``new'' terminology unfortunately overloads an existing use of the term by Denning and Denning~\cite{denning.denning+77}, prompting the creation of this chapter.
+%Recent work applying information flow techniques has overloaded terminology established by Denning and Denning~\cite{denning.denning+77}.
+%For example, when Jang~et~al.~\cite{jang.etal+10} describe the capabilities of their JavaScript rewriting system, they introduce the term ``indirect'' to describe a flow for which they found no previous research.
+%This ``new'' terminology unfortunately overloads an existing use of the term by Denning and Denning~\cite{denning.denning+77}, prompting the creation of this chapter.
 
 This work bases itself on Denning and Denning's~\cite{denning.denning+77} original categorization of the types of flows which can occur in an executable program because this categorization has become standard in the field.
-However, since their categorization lacks sufficient precision for more modern implementations, especially in application to dynamically typed languages, this work also introduces a refinement of the standard terminology.
-This work offers more precise and descriptive designations of the established types of information flows in the most compatible manner possible.
-For each flow identified, this work also illustrates the language mechanisms responsible for the information flow.
-Finally, we demonstrate the descriptive utility of the new terminology by mapping each flow to the program analysis required to detect it.
+However, since their categorization lacks sufficient precision for more modern implementations, especially in application to dynamically typed languages, we also introduces a refinement of the standard terminology.
+The refinement offers more precise and descriptive designations of the established types of information flows.
+For each flow identified, we illustrate the language mechanisms responsible for the information flow.
+Finally, we demonstrate the descriptive utility of the new terminology by mapping each flow to the level of program analysis required to detect it.
 
 This chapter refines the two categories of information flow established by Denning and Denning~\cite{denning.denning+77}, explicit flows (\autoref{sec:explicit-flow}) and implicit flows (\autoref{sec:implicit-flow}).
 
@@ -101,7 +102,7 @@ c = bar(_, b, _)
 
 \begin{description}
 \item{
-\textbf{Direct Explicit Flows} occur when a value is influenced as a result of direct data transfer, such as an assignment.
+\textbf{Direct Explicit Flows} occur when a direct data transfer, such as an assignment, influences a value.
 A simple single-statement intra-procedural dataflow analysis can identify these flows.
 \autoref{table:explicitterminology} illustrates an intuitively clear example of this type of flow which occurs in the code sample: \texttt{var pub = secret}.
 Subexpressions involving more than one argument also have a direct explicit information flow from all argument values to the operator's resulting value.
@@ -112,14 +113,14 @@ Any labeling or tagging mechanism which propagates the security type information
 \textbf{Indirect Explicit Flows} occur as the transitive closure of direct flows.
 Identification of indirect flows requires more powerful multi-statement or inter-procedural dataflow analysis.
 The code example for indirect flows in \autoref{table:explicitterminology} shows their transitive nature via a functional dependence.
-This paper preserves the use of the term ``indirect'' as originally defined by Denning and Denning~\cite{denning.denning+77} and not as overloaded by Jang~et~al.~\cite{jang.etal+10}.
+%This paper preserves the use of the term ``indirect'' as originally defined by Denning and Denning~\cite{denning.denning+77} and not as overloaded by Jang~et~al.~\cite{jang.etal+10}.
 }
 \end{description}
 
 \section{Implicit Information Flows}
 \label{sec:implicit-flow}
 
-Implicit information flows occur when a value is influenced as a result of control flow dependence.
+Implicit information flows occur when a control flow branch or jump influences a value.
 This dependence can be either \term{active}, corresponding to a runtime dependence, or \term{passive}, corresponding to a static dependence.
 Although Denning and Denning~\cite{denning.denning+77} establish the term \term{implicit flow} they did not refine the category into these two descriptors.
 
@@ -157,7 +158,7 @@ else
 
 \begin{description}
 \item{
-\textbf{Active Implicit Flows} occur when a value depends depends on a previously taken control flow branch \term{at runtime}.
+\textbf{Active Implicit Flows} occur when a value depends on a previously taken control flow branch \term{at runtime}.
 Identification of this dependence requires a tracked program counter and a recorded history of control flow branches taken during program execution.
 Presently, systems which track the program counter in order to propagate dependence information are known as ``dynamic information flow tracking'' systems.
 Because the literature lacks a refined terminology for the two descriptors of implicit flow, Jang~et~al.~\cite{jang.etal+10} coin the term ``indirect flow'' to refer to this kind of flow.
@@ -166,7 +167,7 @@ Because the literature lacks a refined terminology for the two descriptors of im
 \item{
 \textbf{Passive Implicit Flows} occur when a value depends on a control flow branch \emph{not taken} during program execution.
 Identification of this dependence requires a static analysis prior to program execution.
-Because the dependence follows code paths not taken at runtime, these flows are notoriously difficult to detect in dynamic programming languages.
+Because the dependence follows code paths not taken at runtime, these flows remain notoriously difficult to detect in dynamic programming languages.
 Unfortunately, even static languages include features, such as object polymorphism and reference returning functions, which make the destination of an assignment unknown at compile time.
 Dynamic programming languages, such as JavaScript, include runtime field lookup, prototype chains, and the ability to load additional code at runtime via \texttt{eval}.
 These features prohibit even runtime analysis from identifying all the values possibly influenced in all alternative control flow branches.
@@ -174,7 +175,7 @@ These features prohibit even runtime analysis from identifying all the values po
 
 \end{description}
 
-\section{The Tracking Capabilities of \FlowCore}
+\section{Tracking Capabilities of \FlowCore\ and \JitFlow}
 \label{sec:tracking-capabilities}
 
 %Previous work attempts to secure active information flows using through staged analysis~\cite{staged-javascript} and lightweight static analysis~\cite{XSS-tainting}.
