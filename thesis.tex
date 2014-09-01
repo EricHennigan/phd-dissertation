@@ -295,7 +295,6 @@ findings. No graphs, charts, or tables may be included.
 \include{defense-model}
 %\include{related-work}
 \include{terminology}
-\include{system-design}
 \include{label-propagation}
 \include{bytecodes}
 \include{features}
@@ -319,7 +318,11 @@ findings. No graphs, charts, or tables may be included.
 \bibliographystyle{amsalpha}
 \bibliography{strdefs,refs,procs}
 
-\include{appendix}
+\chapter*{Appendices}
+\addcontentsline{toc}{chapter}{Appendices}
+\appendix
+\include{benchmarks}
+\include{system-design}
 
 %\todo[inline]{pull citations from acsac-tr, into features?}
 %\todo[inline]{feedback the motivation and thirdpartycode sections of 2013.taco into thesis motivation (pick up more cites)}

@@ -234,15 +234,15 @@
 	\pagenumbering{arabic}
 }
 
-\renewcommand{\appendix}
-{
-	\par
-	\setcounter{section}{0}
-	\gdef\thechapter{\@Alph\c@section}
-	\gdef\thesection{\@Alph\c@section}
-	\chapter*{Appendices}
-	\addcontentsline{toc}{chapter}{Appendices}
-}
+%\renewcommand{\appendix}
+%{
+%	\par
+%	\setcounter{section}{0}
+%	\gdef\thechapter{\@Alph\c@section}
+%	\gdef\thesection{\@Alph\c@section}
+%	\chapter*{Appendices}
+%	\addcontentsline{toc}{chapter}{Appendices}
+%}
 
 % Redefine the bibliography to make it single-spaced.
 \renewcommand{\bibliography}[1]{%
