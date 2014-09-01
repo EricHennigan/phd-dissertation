@@ -45,6 +45,10 @@
 \newtheorem{theorem}{Theorem}
 \newtheorem{definition}{Definition}
 
+% etoolbox from python package, setspace from ucithesis.sty
+\BeforeBeginEnvironment{equation}{\begin{singlespace}}
+\AfterEndEnvironment{equation}{\end{singlespace}\noindent\ignorespaces}
+
 \newcommand{\term}{\emph}
 \newcommand{\code}{\texttt}
 
