@@ -15,10 +15,10 @@ Rather than fret over distinguishing between legitimate and malicious code (or b
 This approach catches all malicious behavior defined by some security policy, forcing conformance even on trusted code.
 \JitFlow\ adds information flow tracking infrastructure to JavaScriptCore.
 The retrofitting of security into an established and mature VM occurs as four components:
-(1) labeling of the data types (\autoref{ch:label-propagaton}) and
+(1) the labeling of the data types (\autoref{ch:label-propagaton}),
 (2) the instrumentation of instructions for managing runtime data structures such as the control flow stack (\autoref{sec:control-flow-stack}) and program counter label,
 (3) the implementation of JIT-complied versions of existing and new virtual machine instructions,
-(4) the introduction of memory layout modifications to stack frames that support caching of the \pclabel for fast retrieval and seamless switching between JIT-compiled code and the interpreter.
+(4) and the introduction of memory layout modifications to stack frames that support caching of the \pclabel for fast retrieval and seamless switching between JIT-compiled code and the interpreter.
 
 \newcommand{\popj}{\code{POPJ\_CFLABEL} }
 \newcommand{\dup}{\code{DUP\_CFLABEL} }
