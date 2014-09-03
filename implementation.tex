@@ -229,7 +229,7 @@ JavaScriptCore's JIT compiler interpreter require a unified representation that 
 The \term{inline label} representation results in high performance, so \JitFlow\ modifies the \JSValue\ representation as detailed in \autoref{sec:jitflow-labelencoding}.
 The label resides in bits 32--47 of integers, pointers, and immediates, while doubles remain implicitly labeled with the highest available label in the lattice.
 
-\subsection{Tracking Data Flow}
+\subsection{Tracking Data Flow}\label{sec:implemntation-tracking-data-flow}
 
 \JitFlow\ modifies JIT compiler in JavaScriptCore to track information flow in all binary operations:  \code{add}, \code{sub}, \code{mul}, \code{div}, \code{mod}, \code{lshift}, \code{rshift}, \code{urshift}, \code{bitand}, \code{bitor}, and \code{bitxor}.
 Because JavaScript semantics allow for ad-hoc polymorphism, i.e., using the arithmetic add operator to perform both, numeric addition and string concatenation, the \code{add} operation supports multiple data types.

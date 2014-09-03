@@ -1,32 +1,16 @@
 
-\chapter{Just-In-Time Compilation}\label{ch:jitflow}
-\section{The Threat of executing third Party Code}\label{sec:jitflow-thirdpartycode}
-\subsection{The Nature of Code Injection Attacks}\label{sec:jitflow-codeinjection}
-\subsection{Threat Model} \label{sec:jitflow-threatmodel}
-\subsection{Provided Security} \label{sec:jitflow-providedsecurity}
-\subsection{Sample Attack: Stealing Form Data}\label{sec:jitflow-stealingformdata}
-\section{Changes Made to the Information Flow Framework}\label{sec:jitflow-framework}
-\subsection{The Label Lattice}
-\subsection{Tracking Data Flow}\label{sec:jitflow-tracking-dataflow}
-\subsection{Tracking Control Flow}\label{sec:jitflow-tracking-controlflow}
-\subsection{Browser Integration}
-\section{JIT Implementation of Information Flow}\label{sec:jitflow-implementation}
-\subsection{Encoding Labels} \label{sec:jitlabelencoding}
-\subsection{Tracking Data Flow in the JIT} \label{sec:jitdataflow}
-\section{Evaluation} \label{sec:jitflow-evaluation}
-
-The \JitFlow\ implementation, including \FlowLabelRegistry\ and other data structures, adds approximately 4,000 lines of C++/assembly code to WebKit's codebase\footnote{Calculated by performing a \texttt{git diff base | grep "\textasciicircum+[\textasciicircum+]" | wc -l}}.
+\chapter{Evaluation}\label{ch:evaluation}
 
 This section evaluates the performance gained by implementing the logic for dynamically tracking information flow in JIT-compiled code.
 The techniques used to validate that the implemented logic correctly tracks the flow of information also deserve emphasis.
-Finally, I distinguish the limitations that arise as implementation artifacts from the fundamental limitations of the information flow approach.
+Finally, we distinguish the limitations that arise as implementation artifacts from the fundamental limitations of the information flow approach.
 
 WebKit contains an interpreter, JavaScriptCore (JSC), that executes a bytecode instruction sequence using direct threaded interpretation\footnote{
 In March 2012, JavaScriptCore changed to a low-level interpreter, implemented via a custom language that generates the assembly for a direct threaded interpreter.
 The benchmarks shown here measure the performance of the C++ version of JSC that predates this change.
 }.
 The WebKit project also contains a template JIT compiler that compiles the bytecode instruction stream and an optimizing JIT compiler based on a program's data-flow graph.
-\JitFlow\ builds upon the template JIT and does not implement information flow in the optimizing JIT compiler, which operates only on Macintosh operating systems.
+\JitFlow\ builds upon the template JIT and does not implement information flow in the optimizing version of the JIT compiler, because it operates only on Macintosh operating systems.
 All of the following benchmarks compare information flow implementations of interpreter-only and JIT-only execution modes.
 
 \begin{table}[ht]
@@ -60,15 +44,15 @@ none reported     & JS Interpreter (1~bit label)       & Vogt~et~al.~\cite{vogt.
 \subsection{Effect on Performance}
 \label{sec:jitflow-evaluation-performance}
 
-To demonstrate how JIT compilation of dynamic information flow tracking reduces the performance impact within an information-flow tracking VM, I execute three established JavaScript benchmark suites:
+To demonstrate how JIT compilation of dynamic information flow tracking reduces the performance impact within an information-flow tracking VM, we execute three established JavaScript benchmark suites:
 SunSpider version 1.0~\cite{sunspider}, V8 version~6~\cite{v8}, and Kraken version 1.1~\cite{kraken}.
 A dual Quad Core Intel Xeon E5462 2.80~GHz with 9.8~GB RAM running Ubuntu~11.10 (kernel 3.2.0) executes all benchmarks using \texttt{nice~-n~-20} to minimize operating system scheduler effects.
-After running each suite once for warm-up, the test software executes 10 repetitions for each benchmark get stable results and reports the geometric mean of these repetitions to discount outliers.
+After running each suite once for warm-up, the test software executes 10 repetitions for each benchmark to obtain stable results and reports the geometric mean of these repetitions to discount outliers.
 Note that the results for these benchmarks do not include the overhead for JIT compiling the code since this happens during the warm-up run.
 
-Previous implementations of information flow (\autoref{tab:jitflow-perfcomparison}) experience a handicap by beginning with an unmodified interpreter that is already an average of 287\% slower than JIT-compiled code.
+Previous implementations of information flow (\autoref{tab:jitflow-perfcomparison}) experience a handicap by beginning with an unmodified interpreter that performs an average of 287\% slower than JIT-compiled code.
 On a relative basis, \JitFlow\ outperforms all of the previous work listed in \autoref{tab:jitflow-perfcomparison}.
-\JitFlow\ also outperforms on an absolute basis because it is measured with respect to much faster JIT-compiled code.
+\JitFlow\ also outperforms on an absolute basis when measured with respect to much faster JIT-compiled code.
 
 \begin{figure}[ht]
   \centerline{\includegraphics[width=\linewidth,keepaspectratio=true]{graphics/sunspider_plot.pdf}}
@@ -88,18 +72,17 @@ On a relative basis, \JitFlow\ outperforms all of the previous work listed in \a
    \label{fig:kraken-performance}
 \end{figure}
 
-To provide a consistent basis for performance comparison, I implemented information flow tracking in WebKit's interpreter and JIT compiler using the same label encoding and supporting data structures introduced in \autoref{ch:label-propagation}.
-The comparison required creating a 32-bit version of \FlowCore\ that implements inline labels, rather than the fat values discussed previously.
-The benchmarks measure the performance of JIT-compiled tracking code (\JitFlow) vs. interpreter code (32-bit \FlowCore) in exclusive modes.
+To provide a consistent basis for performance comparison, we implemented information flow tracking in WebKit's interpreter and JIT compiler using the same label encoding and supporting data structures introduced in \autoref{ch:label-propagation}.
+%The comparison required creating a 32-bit version of \FlowCore\ that implements inline labels, rather than the fat values discussed previously.
+The benchmarks measure the performance of JIT-compiled tracking code (\JitFlow) vs. interpreter code (\FlowCore) in exclusive modes.
 As illustrated in Figures~\ref{fig:sunspider-performance}, \ref{fig:v8-performance}, and \ref{fig:kraken-performance}, the average performance impact for \JitFlow\ (Sunspider~74\%, V8~108\%, and Kraken~38\%) clearly demonstrates that JIT-compiled code implementing dynamic information flow tracking outperforms the execution speed of an unmodified interpreter.
 Hence, the \JitFlow\ implementation sets a new bar for dynamic information flow systems.
 
-
-At the outset, I engineered and incorporated the information flow tracking logic in the JavaScriptCore interpreter, creating \FlowCore.
-This effort gave me a deep understanding of WebKit's JavaScript VM and allows a comparison between the relative performance impacts of implementing dynamic information flow tracking in the interpreter vs. the JIT compiler.
+At the outset, we engineered and incorporated the information flow tracking logic in the JavaScriptCore interpreter, creating \FlowCore.
+This effort gave us a deep understanding of WebKit's JavaScript VM and allows a comparison between the relative performance impacts of implementing dynamic information flow tracking in the interpreter vs. the JIT compiler.
 Even when implementing information flow in a JIT compiler, the overhead measured as percentage relative to the baseline does not necessarily correspond to that seen when implementing the same framework within the JavaScript interpreter.
 For example, the SunSpider benchmark (\autoref{fig:sunspider-performance}) shows an overhead of 137\% in the interpreter, while the JIT compiler shows only 74\%.
-A full account of the performance on each individual benchmark (using the encoding and framework as described in \autoref{sec:jitflow-labelencoding}) can be found in \autoref{app:jitflow-detailedresults}.
+\autoref{app:jitflow-detailed-results} contains a full account of the performance on each individual benchmark (using the encoding and framework as described in \autoref{sec:jitflow-labelencoding}).
 
 Many of the benchmarks, such as \code{regexp} in V8 and the \code{json} family of tests in Kraken, run with essentially the same speed as the unmodified JIT compiler.
 These tests perform fewer control-flow branches and make a higher percentage of native code calls compared to other tests.
@@ -116,19 +99,20 @@ As previously stated in \autoref{sec:jitflow-labelencoding}, the current format 
 All operations involving doubles implicitly carry the highest label available at the time they execute.
 This conservative labeling strategy might conceal the performance drawback for benchmarks focusing on doubles.
 
-To show that this implementation detail has little performance impact, I report the percentage of operations creating doubles vs. other \jsvalues\ for each of the three benchmark suites.
-In SunSpider 4.7\% of \jsvalues\ created are doubles, while in V8 and Kraken fewer than 1\% are doubles, 0.23\% in V8 and 0.96\% in Kraken, respectively.
+To show that this implementation detail has little performance impact, we report the percentage of operations creating doubles vs. other \jsvalues\ for each of the three benchmark suites.
+In SunSpider, doubles comprise 4.7\% of created \jsvalues\, while in the other test frameworks double comprise fewer than 1\%, 0.23\% in V8, and 0.96\% in Kraken.
 This ratio lets us conclude that, in those three benchmark suites, doubles account for only a small fragment of created values and therefore do not influence the overall performance impact.
 
 \subsection{Correctness}
 \label{sec:jitflow-evaluation-correctness}
 
+The \JitFlow\ implementation, including \FlowLabelRegistry\ and other data structures, adds approximately 4,000 lines of C++/assembly code to WebKit's codebase\footnote{Calculated by performing a \texttt{git diff base | grep "\textasciicircum+[\textasciicircum+]" | wc -l}}.
 To validate that the modifications \JitFlow\ makes to JavaScriptCore's JIT engine for tracking the flow of information throughout execution of a JavaScript program do not introduce any errors, we made sure that none of our modifications broke any of the Mozilla regression tests in the WebKit repository.
 This suite consists of over 1,000 test cases covering core JavaScript functionality, including arrays, dates, functions, numbers, objects, regular expressions, and strings.
 
-In addition, I wrote a suite of test cases that check the correct label propagation for the information flow tracking logic and added them to the regression suite.
+In addition, we wrote a suite of test cases that check the correct label propagation for the information flow tracking logic and added them to the regression suite.
 These tests exercise label propagation for all of the implemented binary operations and control-flow structures: \code{if}-statements, the various loop constructs including break and continue statements, \code{eval}, and function calls.
-These these tests make use of a first-class labeling framework~\cite{hennigan.etal+13} (\autoref{ch:first-class-labels}) that permits explicit application and inspection of labels within the JavaScript language itself, allowing the test cases to be incorporated into the regression suite.
+These these tests make use of a first-class labeling framework~\cite{hennigan.etal+13} (\autoref{ch:first-class-labels}) that permits explicit application and inspection of labels within the JavaScript language itself, allowing incorporation of the test cases into the regression suite.
 
 \lstset{
   caption={Regression test verifying correct label propagation for additions.},
@@ -151,7 +135,7 @@ reportCompare((labelof res), (labelof a).join(labelof b),
 \end{jscode}
 
 \autoref{list:jitflow-regressiontest} shows one of the crafted regression tests for confirming correct label propagation.
-In keeping with the other examples in this paper, this test focuses on the correct label propagation for integer addition.
+In keeping with the other examples (\autoref{sec:implementation-tracking-data-flow}), this test focuses on the correct label propagation for integer addition.
 
 The integer addition test begins by giving each of the input operands separate labels.
 \Codeline{1} assigns input variable \code{a} the value \code{24} with label \code{labelA} (internally mapped to \code{0001}) and \codeline{2} assigns input variable \code{b} the value \code{12} with label \code{labelB} (internally mapped to \code{0010}).
@@ -163,18 +147,17 @@ On \codeline{6}, it checks that the result has value \code{36} as expected.
 Further sanity checking occurs on \codelines{7}{10} to ensure that the label attached to the result subsumes the label attached to each of the inputs.
 Finally, on \codeline{12}, the test verifies that the label attached to the result of the addition (\code{0011}) matches the join of the labels on the operands (\code{0001|0010}).
 
-
 %------------------------------------------------------------------------------------------------------
 \subsection{Real World Applicability}
 \label{sec:realworldapplicability}
 
-Conforming to the capabilities of the attacker (\autoref{sec:jitflow-thirdpartycode}), this evaluation defines an information flow violation as the inequality of domains between a network data payload and the target.
+Conforming to the capabilities of the attacker (\autoref{sec:defense-attackers-threat}), this evaluation defines an information flow violation as the inequality of domains between a network data payload and the target.
 When the label of the payload indicates that the data has been influenced by any origin other than the destination domain, the network request represents a communication to a foreign party, possibly an attacker-controlled server.
 
 To verify that \JitFlow\ detects information flow violations, a web crawler automatically visits web pages and stays on each web page for 60~seconds.
 The web crawler visits a randomly sampled selection 100 of the Alexa~Top~one~million~\cite{alexa} web pages.
 To simulate user interaction, the web crawler fills out HTML-forms and submits the first available form on each visited page.
-For all of the following results, the crawler used information flow in both the JIT compiler and the interpreter.
+For all of the following results, the crawler used information flow in both the JIT compiler and the interpreter, demonstrating a seamless switch between the two, as occurs in real-world browsing.
 
 \begin{table*}[ht!]
 \centering
@@ -204,7 +187,7 @@ For all of the following results, the crawler used information flow in both the 
 \subsubsection{Including other domains.}
 
 Modern web applications integrate content from several different origins on the web.
-Our statistics show that each of the visited web pages include an average of 7~different origins for their content.
+The collected statistics show that each of the visited web pages include an average of 7~different origins for their content.
 The inline label approach lets \JitFlow\ directly encode up to 16 different domains within one label.
 This technique permits an efficient encoding even for the web pages including the most content: \url{prizyvnikmoy.ru}, \url{finn-dinghy.de},  \url{mitula.ch}, and \url{roxio.com} including content from 13 domains.
 These findings complement the results of Nikiforakis et al~\cite{nikiforakis.etal+12}, who visited over three million pages for their empirical study showing that more than 90\% of all pages include code from less than 15 different domains.
@@ -216,12 +199,12 @@ The page \url{onefeat.com} had the highest observed number of violating flows, a
 On average, the crawler detected 12 violating flows per page in our sample (\autoref{tab:webstatistics}).
 
 The crawler revisited the same pages the following day using the JIT compiler and found 1,173 violations.
-Because the unit test cases used to develop both the interpreter and JIT compiler implementations attest to the same flow tracking and detection abilities, I attribute the 1.5\% variance between runs to dynamic page content.
+Because the unit test cases used to develop both the interpreter and JIT compiler implementations attest to the same flow tracking and detection abilities, we attribute the 1.5\% variance between runs to dynamic page content.
 For example, the page \url{newsarama.com} increased the number of content requests from 11 to 18 between the two runs, where our network monitor recorded 16 violating information flows in the interpreter and 28 information flow violations in the JIT.
 Groef~et~al.~\cite{groef.etal+12} report a similar phenomenon when evaluating their system on real web pages.
 
 The evaluation does not distinguish between malicious flows and detected flow violations due to the presence of Content Distribution Networks (CDNs), which modern web pages use for performance reasons to serve content to their users.
-Before \JitFlow\ can be adopted, web site authors need a way to express allowed information flows and whitelist requests to their own CDNs.
+The first-class label feature acts as a path to adoption, providing a way for web application developers to express allowed information flows and whitelist requests to their own CDNs.
 
 \section{Summary}
 
@@ -239,5 +222,4 @@ Without these optimizations, a good part of the speedup from JIT compilation wou
 On absolute terms, its performance measures more than twice as fast as the fastest known JavaScript information flow tracking interpreter.
 In practice, steps such as DNS lookup, parsing and rendering, and content transmission also factor into the browser performance equation.
 Consequently, using information flow tracking for realistic web browsing affects the user experience far less than CPU-intensive benchmarks may suggest.
-I consider the overhead more than acceptable --- especially since users benefit from substantially increased security in return.
-
+We consider the overhead more than acceptable --- especially since users benefit from substantially increased security in return.
