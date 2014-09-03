@@ -36,6 +36,9 @@ The potential for harvesting of sensitive user credentials via a forum post or s
 %Despite the fact that including this code into a web application grants it access to the application's internals, web authors remain unlikely to audit third-party code for security vulnerabilities, especially when compressed.
 %Consequently, dynamic textual inclusion remains an open and prevalent channel through which attackers can inject malicious code into a web application.
 
+%The Same Origin Policy, still widely in use as a first line of defense in web applications, permits scripts access to methods and properties when sharing the same origin and restricts access otherwise.
+%Unfortunately, rules of the Same Origin Policy often clash with modern web application architecture, because the SOP only applies to cross-frame communication.
+
 The mechanisms of XSS injection (\autoref{sec:attack-xss-types}) make the origin of the attack code equivalent to the origin of the web application itself, as governed by Same Origin Policy.
 Consequently, the SOP cannot prevent information exfiltration after code injection has occurred.
 However, preventing the injection by analyzing source text remains difficult for architectural reasons (\autoref{sec:attack-web-architecture}).
