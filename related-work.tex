@@ -135,8 +135,8 @@ The inlining technique remains advantageous in that it requires no modifications
 \subsection{Control Flow Stack}
 
 \JitFlow\ implements the control flow stack as a runtime shadow stack, which records the history of the labels attached to the program counter at each control flow branch.
-Many researchers have used the runtime shadow stack technique to secure program execution~\cite{abadi2009control, frantzen2001stackghost, prasad2003binary}.
-It has also been successfully used in other information flow research~\cite{lam2006general}.
+Many researchers have used the runtime shadow stack technique to secure program execution~\cite{abadi.etal+09, frantzen.shuey+01, prasad.chiueh+03}.
+It has also been successfully used in other information flow research~\cite{lam.chiueh+06}.
 The \JitFlow\ implementation extends this research by instrumenting \emph{explicit} instructions for manipulating the shadow stack into the existing instruction stream.
 After extensive literature review, we could not find any publications that introduce instructions for maintaining a runtime shadow stack data structure.
 Indeed, we could find no authors which address these important details so vital to implementors.
@@ -192,7 +192,7 @@ Grier~et~al.\cite{grier.etal+08} built the OP browser which combines formal meth
 It partitions the browser into subsystems with simple interactions and uses information flow to analyze attacks.
 Nadji~et~al.\cite{nadji.etal+09} combine randomization of web content with runtime tracking to ensure that untrusted content injected into a page cannot be syntactically isolated from its surrounding content.
 The strength of this approach, called document structure integrity, lies in its ability to prevent XSS attacks not based on JavaScript.
-%In contrast, \JitFlow\ does not address information flows encoded within the structure of host provided objects.
+In contrast, \JitFlow\ does not address information flows encoded within the structure of host provided objects~\cite{russo.etal+09}.
 AdSafe~\cite{adsafe}, Caja~\cite{caja}, and FaceBook~JS~\cite{facebookjs} exemplify a different approach focused on limiting a JavaScript programs capabilities, rather than identifying untrusted source code and isolating it during execution.
 
 \subsection{Type-Checking JavaScript for Information Flow}
@@ -208,7 +208,7 @@ Efforts along this line of research typically cover a core of the JavaScript spe
 \subsection{Formalization}
 
 We currently do not have a formal proof that our framework can guarantee non-interference security.
-Although some researchers have worked toward providing a formalization of JavaScript semantics~\cite{yu2007javascript, herman2007status, maffeis2008operational, guha2010essence} on which such a proof could be based, we did not find any that were readily suitable for creating such a proof.
+Although some researchers have worked toward providing a formalization of JavaScript semantics~\cite{yu.etal+07, herman.flanagan+07, maffeis.etal+08, guha.etal+10} on which such a proof could be based, we did not find any that were readily suitable for creating such a proof.
 These formalizations suffer from being incomplete with respect to all the features of JavaScript or are only available in paper form.
 Tackling such a drawback will require much future work to bring these efforts into a state where they can be easily used by implementors as a verification framework within an automated proof system.
 We eagerly await further research in this direction, so that we may identify and fix any bugs within our approach.
@@ -236,7 +236,7 @@ To the best of our knowledge, \JitFlow\ marks the project to incorporate informa
 
 \section{Policy Enforcement}
 
-The Browser-Enforced Embedded Policy (BEEP) project~\cite{beep} introduced the idea of allowing a webpage to specify which scripts to trust, using the browser itself to filter out entire scripts.
+The Browser-Enforced Embedded Policy (BEEP) project~\cite{jim.etal+07} introduced the idea of allowing a webpage to specify which scripts to trust, using the browser itself to filter out entire scripts.
 The framework hashes the source of each script and refers to a whitelist to determine the legitimacy of a script before executing it.
 A website author must place this whitelist in the \texttt{<head>} portion of a webpage, so that the browser can load it before executing any JavaScript that might change the list.
 Rather than focusing on the legitimacy of the script itself, \FlowCore\ preserves the flexibility of executing all scripts as long as they do not incur an information flow violation, enabling business to continue including dynamically delivered advertisements.
@@ -254,5 +254,5 @@ Crites~et~al.\cite{crites.etal+08} have proposed ``OMash'', a mechanism which se
 OMash treats web pages as program objects and restricts communication to declared public interfaces.
 By abandoning the SOP for controlling DOM access and cross-domain data exchange, it avoids the SOP's vulnerabilities.
 
-Barth~et~al.\cite{barth.etal+08, barth.etal+09a} examine the existing \code{postMessage} API, that uses the ability of one frame to navigate another, providing a communication channel that bypasses the SOP, which restricts manipulation of objects across frame boundaries.
-They analyze existing attacks that occur when using a frame's location url as a communication channel, and propose extending the API to allow the sender of a message to specify the recipient.
+Barth~et~al.\cite{barth.etal+08} examine the existing \code{postMessage} API, that uses the ability of one frame to navigate another, providing a communication channel that bypasses the SOP, which restricts manipulation of objects across frame boundaries.
+They analyze existing attacks that occur when using a frame's location URL as a communication channel, and propose extending the API to allow the sender of a message to specify the recipient.
