@@ -1,0 +1,18 @@
+
+2010_jsflowpaper.pdf
+2010_socal_slides.pdf
+2011_acsac.pdf
+2011_acsac.tex
+2011_esorics.pdf
+2011_esorics.tex
+
+2012_crisis     -- first class labels in webkit
+2012_esorics    -- ConDom (webkit)
+
+2013_acsac      -- jitflow
+2013_asiaccs    -- crowdflow (draft only)
+2013_ccs        -- crowdflow
+2013_isc        -- crowdflow
+2013_taco       -- jitflow (really good comparison chart, and some first-class mention)
+
+
