@@ -95,44 +95,25 @@ We automate a crawler that visit a random sampling of 100 pages from the Alexa~T
 
 \section{Executive Summary}
 
-%This work describes \FlowCore, an interpreter-level information flow framework written for WebKit's JavaScriptCore virtual machine, and \JitFlow, a JIT-compiled improvement that provides increased performance with respect to the interpreter.
-%Both of these systems tag program values and the program counter with labels that convey data ownership by one or more security principals.
-%These labels propagate during program execution, and a network monitor implements a security policy by inspecting the label attached data in a network request.
+This thesis describes both \FlowCore, an interpreter-level information flow framework written for WebKit's JavaScriptCore virtual machine, and \JitFlow, a JIT-compiled improvement that provides increased performance with respect to the interpreter.
+Both of these systems tag program values and the program counter with labels that convey data ownership by one or more security principals.
+These labels propagate during program execution, and a network monitor implements a security policy by inspecting the label attached data in a network request.
 
-%To clarify the information flow tracking capabilities of \FlowCore\ and \JitFlow, \autoref{ch:terminology} establishes terminology for the different levels of information flow.
-%\autoref{ch:system-design} outlines different implementation strategies and their effects on performance, implementation difficulty, and security label semantics.
-%\autoref{ch:label-propagation} describes the underlying data structures that support the label framework.
-%As explained in \autoref{ch:instructions}, tracking information dependence through control-flow requires instrumentation of new instructions that manipulate the information flow data structures.
-%\autoref{ch:label-tracking} specifies the label propagation strategy used by the framework and illustrates placement of the new instructions through code examples.
-%
 %To implement unit tests of the label propagation logic, an extension of the browser-hosted JavaScript environment exposes the security labels as first-class program objects (\autoref{ch:first-class-labels}).
 %The new instructions provide a versatile architecture that permitted a rapid update of the label propagation system to support JIT compilation (\autoref{ch:jitflow}).
 %\autoref{ch:conclusion} summarizes the work involved and lessons learned.
 
-\autoref{ch:attack} gives an overview of web architecture and its negative effects on security.
+\autoref{ch:attack} gives an overview of modern web architecture and its negative effects on security.
 The structure of HTML, dynamic typing of JavaScript, and the textual inclusion of third-party code and data, each contribute to an infrastructure that puts casual web user's data at risk for surreptitious information theft through a code injection attack known as Cross-Site Scripting.
 The widespread practice of dynamically creating strings later treated as HTML and JavaScript and loaded on-demand requires delaying security analysis until runtime.
 
-\autoref{ch:defense} \todo[inline]{supply description}
+\autoref{ch:defense} describes in detail how an attacker might abscond sensitive data from a web application.
 To detect and mitigate these attacks, we propose using dynamic (runtime) information flow to track data propagation in a JavaScript VM, and call the resulting interpreter \FlowCore.
-
-\autoref{ch:related-work} \todo[inline]{Needs description. How much can be done concurrent with terminology section?}
-% \todo[inline]{related work is terrible, missing references, repeated paragraphs, mentions firefox}
-%\autoref{ch:related-work} provides the research setting in which the \FlowCore\ implementation took place.
-%It summarizes prior efforts to establish guidelines and best practices that have been shown to work, and highlights differences that make previous approaches inapplicable to JavaScript.
-%The approaches taken by other researchers 
-%It contrasts the approach taken by \FlowCore\ with approaches taken by other researchers.
-%The implementation 
 
 \autoref{ch:terminology} establishes and names different levels of information flow tracking detail.
 The categorization splits information flows between dataflow and control-flow based leaks and correlates each with a required minimum level of program analysis.
-Developing this categorization permits a clear definition of the information flow tracking capabilities \FlowCore.
-Through dynamic labeling of the program counter, \FlowCore\ can track up to active implicit information flows.
-
-\autoref{ch:system-design} outlines the different implementations \FlowCore\ might have used.
-It contrasts the implementation of labels between a fat value approach and a security wrapper approach.
-Each approach is assessed based on the provided labelling semantics, the difficulty of implementation,the ease of label access, and the impacts on the garbage collector and other runtime systems.
-Based on the outcome of this analysis, \FlowCore\ chooses to implement the fat values value approach for labelling because it (1) provides a reference semantics, (2) does not impact the garbage collector, and (3) easily labels both primitives and object references.
+Developing this categorization permits a clear definition of the information flow tracking capabilities \FlowCore and \JitFlow.
+Through dynamic labeling of the program counter, our VM can track up to active implicit information flows.
 
 \autoref{ch:label-propagation} describes implementation details that support labeling values within the JavaScript VM.
 \FlowCore\ adds a \FlowLabelRegistry\ that stores a lattice over security principals.
@@ -142,26 +123,45 @@ Each element of the lattice forms a bit-vector that maps to a label.
 Propagating information influence from control flow predicates to instructions within the code branch requires the addition of a label stack that tracks changes to the label on the program counter.
 As a JavaScript program executes, the labels attached to program values monotonically rise through the lattice, leading to label creep.
 
-\autoref{ch:instructions} introduces three new instructions that maintain the control flow label stack.
+\autoref{ch:implementation} introduces three new instructions that maintain the control flow label stack.
 A parse-time analysis instruments these instructions into the instruction stream.
 In debug mode, an abstract interpretation that explores all control flow paths of the instruction stream ensures correct instrumentation for each method.
 During execution, the instructions push, pop, and upgrade the stack according to branches, joins, and loops in the control flow.
-The development of these instructions enables a transition in implementation from the interpreter (\FlowCore) to the JIT compiler (\JitFlow).
 The instructions are generic enough that they support the grafting of information flow tracking into both register-based (WebKit) and stack-based (Firefox) VM implementations.
-
-\autoref{ch:label-tracking} outlines the semantics and implementation of label propagation that occurs in \FlowCore.
-It specifies the label inputs and outputs for mathematical, comparison, and bitwise operations, that occur during data flow operations.
-Through illustrative examples, it gives the implementation of label prapagation for JavaScript control-flow features, \code{for} and \code{while} loops, including \code{break} and \code{continue} statements.
-These examples demonstrate the placement of the control flow stack instructions.
-It describes the label propagation rules for function calls, including the implementation details that affect the control flow stock during function prologue and epilogue.
+The development of these instructions enables a transition in implementation from the interpreter, \FlowCore, to the JIT compiler, \JitFlow.
+\JitFlow makes some additional performance improvements with pre-allocation of memory for the control-flow label stack, memory layout of stack frames to ensure quick access to frequently used labels, and inlining of assembly code to perform label propagation.
 
 \autoref{ch:first-class-labels} describes an extension of the labeling framework that gives JavaScript developers access to the labeling system.
 \FlowCore\ reflects labels stored in the \FlowLabelRegistry\ as first-class objects into the host environment.
 The new \FlowLabelObject\ prototype class enables the creation, comparison, composition of labels, while a new \mlabelof\ keyword enables inspection of labeled variables.
 When used with a modified web browser, a network monitor hook allows the writing of a security policy within JavaScript.
 Using first-class labels developers can tag specific values with their own labels, decreasing the sources of label creep and using the propagation and inference rules as a security debugging system.
-Additionally, the first-class label feature proved invaluable for implementing unittests of the propagation rules and buttressing confidence in the correctness of the implementation.
+Additionally, the first-class label feature proved invaluable for implementing unittests of the propagation rules and buttressing confidence in the correctness of the implementation of label propagation.
 
-\autoref{ch:jitflow} demonstrates that the framework developed for the \FlowCore\ interpreter readily supports transition to a JIT compiler.
-The new tracking engine, \JitFlow, implements the control-flow stack instructions in assembly, caches the top of the control flow stack in a virtual register, and pre-allocates space for the control flow stack itself.
-These optimization lead to a vast performance improvement, that approximately halves the execution time of the flow tracking interpreter.
+\autoref{ch:evaluation} compares the performance of our VM against that of several other researchers using 3 different benchmarks: SunSpider~\cite{sunspider}, V8~\cite{v8}, and Kraken~\cite{kraken}.
+\JitFlow\ has an average tracking overhead of 73\% relative to a baseline JIT compiler on CPU-intensive benchmarks.
+On absolute terms, its performance measures more than twice as fast as the fastest known JavaScript information flow tracking interpreter.
+We also show how the first-class label system assisted with ensuring correctness of the implementation, and perform an automated web crawl that successfully detects information transmission to third parties.
+
+\autoref{ch:related-work} provides the research setting in which the \JitFlow\ implementation took place.
+It establishes the origins of information flow and highlights foundational techniques subsequently added.
+We contrast our implementation with that of other researchers using different strategies such as source rewriting, staged analysis, taint tracking, isolation, secure multi-execution, and type-checking.
+We compare with other research work that includes some of the same components, citing implementations using a control flow stack, JIT-compilation, and first-class labels.
+
+\autoref{ch:conclusion} concludes the thesis with a summary overview that expresses concerns about the adoption of information flow as a security technique for the web.
+We think \JitFlow\ can overcome the primary impediment: performance.
+
+%\autoref{ch:system-design} outlines the different implementations \FlowCore\ might have used.
+%It contrasts the implementation of labels between a fat value approach and a security wrapper approach.
+%Each approach is assessed based on the provided labelling semantics, the difficulty of implementation,the ease of label access, and the impacts on the garbage collector and other runtime systems.
+%Based on the outcome of this analysis, \FlowCore\ chooses to implement the fat values value approach for labelling because it (1) provides a reference semantics, (2) does not impact the garbage collector, and (3) easily labels both primitives and object references.
+
+%\autoref{ch:label-tracking} outlines the semantics and implementation of label propagation that occurs in \FlowCore.
+%It specifies the label inputs and outputs for mathematical, comparison, and bitwise operations, that occur during data flow operations.
+%Through illustrative examples, it gives the implementation of label prapagation for JavaScript control-flow features, \code{for} and \code{while} loops, including \code{break} and \code{continue} statements.
+%These examples demonstrate the placement of the control flow stack instructions.
+%It describes the label propagation rules for function calls, including the implementation details that affect the control flow stock during function prologue and epilogue.
+
+%\autoref{ch:jitflow} demonstrates that the framework developed for the \FlowCore\ interpreter readily supports transition to a JIT compiler.
+%The new tracking engine, \JitFlow, implements the control-flow stack instructions in assembly, caches the top of the control flow stack in a virtual register, and pre-allocates space for the control flow stack itself.
+%These optimization lead to a vast performance improvement, that approximately halves the execution time of the flow tracking interpreter.
