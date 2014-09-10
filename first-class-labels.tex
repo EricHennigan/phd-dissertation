@@ -5,7 +5,7 @@
 The interpreter portion of \JitFlow\ forms the foundation of an information-flow tracking web browser that tracks flow in the Document Object Model, named ConDOM~\cite{kerschbaumer.etal+12}.
 A modification of the ConDOM browser that randomly switches the information flow tracking capabilities on and off later formed a critical component of a system, called CrowdFlow~\cite{kerschbaumer.etal+13}, that gathers attack statistics across a crowd of users.
 
-As in \autoref{ch:Defense}, these systems also define an \emph{information leak} as the communication of any information to a web origin that differs from the flow-tracked derivation of that information.
+Concordant with our attack model (\autoref{ch:defense}), these systems also define an \emph{information leak} as the communication of any information to a web origin that differs from the flow-tracked derivation of that information.
 Through automated browsing, ConDOM and CrowdFlow discovered a high number of false positives, where the web application sourced much of its material from Content Distribution Networks (CDNs) that have different domains than the page itself.
 
 These observations indicate that JavaScript program authors have more knowledge about the information-flow security needs of the application they develop than any automated system can assess~\cite{hennigan.etal+12, hennigan.etal+13}.

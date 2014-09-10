@@ -15,7 +15,7 @@ Rather than fret over distinguishing between legitimate and malicious code (or b
 This approach catches all malicious behavior defined by some security policy, forcing conformance even on trusted code.
 \JitFlow\ adds information flow tracking infrastructure to JavaScriptCore.
 The retrofitting of security into an established and mature VM occurs as four components:
-(1) the labeling of the data types (\autoref{ch:label-propagaton}),
+(1) the labeling of the data types (\autoref{ch:label-propagation}),
 (2) the instrumentation of instructions for managing runtime data structures such as the control flow stack (\autoref{sec:control-flow-stack}) and program counter label,
 (3) the implementation of JIT-complied versions of existing and new virtual machine instructions,
 (4) and the introduction of memory layout modifications to stack frames that support caching of the \pclabel for fast retrieval and seamless switching between JIT-compiled code and the interpreter.
@@ -24,7 +24,7 @@ The retrofitting of security into an established and mature VM occurs as four co
 \newcommand{\dup}{\code{DUP\_CFLABEL} }
 \newcommand{\join}{\code{JOIN\_CFLABEL} }
 
-\section{Control Flow Instructions}\label{sec:instructions}
+\section{Control Flow Instructions}\label{ch:implementation-sec:instructions}
 
 The introduction of new instructions for the maintenance of the control flow stack permits a far easier JIT implementation of information flow.
 These instructions serve to decouple the concerns of computation from information flow tracking.
@@ -216,7 +216,7 @@ In particular, the \code{ret} instruction at offset~\code{44} executes under the
 \JitFlow\ modifies the \code{ret} instruction to upgrade the label of the returned value by joining it with the label of the current execution context.
 This action tracks the information flow demonstrated by \autoref{list:steal-pin}.
 
-\section{Tracking Information Flow in the JIT}
+\section{Tracking Information Flow in the JIT}\label{ch:implementation-sec:jitflow}
 
 Whether an interpreter or JIT-compiled code performs information flow tracking, the implementation requires supporting data structures and other modifications to the runtime VM.
 This section presents the lower-level implementation which allows the JIT compiler to perform this tracking at substantially improved speeds.
@@ -229,7 +229,7 @@ JavaScriptCore's JIT compiler interpreter require a unified representation that 
 The \term{inline label} representation results in high performance, so \JitFlow\ modifies the \JSValue\ representation as detailed in \autoref{sec:jitflow-labelencoding}.
 The label resides in bits 32--47 of integers, pointers, and immediates, while doubles remain implicitly labeled with the highest available label in the lattice.
 
-\subsection{Tracking Data Flow}\label{sec:implemntation-tracking-data-flow}
+\subsection{Tracking Data Flow}\label{ch:implementation-sec:jitflow-tracking-data-flow}
 
 \JitFlow\ modifies JIT compiler in JavaScriptCore to track information flow in all binary operations:  \code{add}, \code{sub}, \code{mul}, \code{div}, \code{mod}, \code{lshift}, \code{rshift}, \code{urshift}, \code{bitand}, \code{bitor}, and \code{bitxor}.
 Because JavaScript semantics allow for ad-hoc polymorphism, i.e., using the arithmetic add operator to perform both, numeric addition and string concatenation, the \code{add} operation supports multiple data types.
@@ -276,7 +276,7 @@ Without masking out the label, \JitFlow\ joins in the value (and label of) the r
 At this point, \code{R11} contains the join of the labels of both operands together with the bitwise-or of the values.
 
 The label on the result of the addition must also include the label from the current context.
-Because the top of the control flow stack provides the security context to every binary operation, \JitFlow\ caches it in the \code{JITStackFrame} (\autoref{sec:jitcontrolflow}).
+Because the top of the control flow stack provides the security context to every binary operation, \JitFlow\ caches it in the \code{JITStackFrame} (\autoref{ch:implementation-sec:jitflow-optimizations}).
 Line~6 retrieves the label from the cache into register \code{R12}.
 The VM joins in this context label using another bitwise or, accumulating the result in register \code{R11} (\codeline{7}).
 
@@ -308,7 +308,7 @@ Together, these properties allow \JitFlow\ to use bitwise-or to apply a label to
 At parse-time, \JitFlow\ instruments the control-flow stack instructions into the instruction stream and annotates the function with a maximum control-flow stack depth.
 When the function executes, \JitFlow\ pre-allocates space for the control flow stack as part of setting up stack frame.
 
-As explained in \autoref{sec:instructions}, JavaScript complicates the context tracking issue by supporting labeled \code{break} and \code{continue} statements that cause early exit from arbitrarily nested inner loops.
+As explained in \autoref{ch:implementation-sec:instructions}, JavaScript complicates the context tracking issue by supporting labeled \code{break} and \code{continue} statements that cause early exit from arbitrarily nested inner loops.
 When a program performs one of these scope-jumping actions, all further operations carried out within the function become tagged with the label under which the break or continue occurred.
 \JitFlow\ accomplishes this tracking with a stack of labels that follow the program counter and issuance of a \popj instruction that upgrades the function's entire control flow stack.
 To briefly illustrate this process, \autoref{list:jitflow-stealpin-bytecodes} contains the instruction sequence for the \code{stealpin} function shown in \autoref{list:steal-pin}.
@@ -355,11 +355,11 @@ This instruction causes \JitFlow\ to pop the scope corresponding to the \code{if
 
 Regardless of the path through the loop, finishing with the normal exit or by following the \code{break} statement, the loop ends with a \popj\ instruction (\bcodeline{36}) that restores the control flow stack to the level it had before loop entry.
 
-\subsection{Optimizing Control Flow Tracking in the JIT}\label{sec:jitcontrolflow}
+\subsection{Optimizing Control Flow Tracking in the JIT}\label{ch:implementation-sec:jitflow-optimizations}
 
 The steps taken to increase JIT compiler performance for tracking control flow involved successive refinement.
 For example, JavaScriptCore's JIT compiler does not fully implement all of the bytecode instructions and often calls back into the interpreter to handle slow paths.
-At one stage during development, the \JitFlow\ compiler implemented our the new control-flow instructions (\autoref{sec:instructions}) through a callback to C++.
+At one stage during development, the \JitFlow\ compiler implemented our the new control-flow instructions (\autoref{ch:implementation-sec:instructions}) through a callback to C++.
 This stage of implementation naturally had a higher performance overhead than the final product.
 
 \JitFlow\ uses three techniques to enable fast tracking of control-flow influence:
@@ -390,7 +390,7 @@ If so, the runtime system skips the expensive task of following the pointers to 
 
 \item \textit{It implements the instructions that maintain the control-flow stack directly in assembly.}
 %\JitFlow\ takes as input the same instruction stream as the \JitFlow\ interpreter.
-When the JIT compiler encounters one of the control-flow stack manipulation instructions (\autoref{sec:instructions}) it emits assembly code that performs the operation.
+When the JIT compiler encounters one of the control-flow stack manipulation instructions (\autoref{ch:implementation-sec:instructions}) it emits assembly code that performs the operation.
 Not only does this code access the control-flow stack through the appropriate reference path shown in \autoref{fig:jitflow-stackframe}, but it also updates the cached top label when necessary.
 Cache updates only occur in the \join\ and \popj\ instructions, because the \dup\ instruction modifies stack height but does not change the label on top.
 
@@ -398,5 +398,5 @@ Implementing the instructions that maintain the control-flow stack (\dup, \join,
 
 \end{enumerate}
 
-Only by implementing all of these techniques could  \JitFlow\ achieve the low-overhead performance measured in \autoref{sec:jitflow-evaluation}
+Only by implementing all of these techniques could  \JitFlow\ achieve the low-overhead performance measured in \autoref{ch:evaluation-sec:jitflow-performance}
 

@@ -42,7 +42,7 @@ none reported     & JS Interpreter (1~bit label)       & Vogt~et~al.~\cite{vogt.
 
 %------------------------------------------------------------------------------------------------------
 \subsection{Effect on Performance}
-\label{sec:jitflow-evaluation-performance}
+\label{ch:evaluation-sec:jitflow-performance}
 
 To demonstrate how JIT compilation of dynamic information flow tracking reduces the performance impact within an information-flow tracking VM, we execute three established JavaScript benchmark suites:
 SunSpider version 1.0~\cite{sunspider}, V8 version~6~\cite{v8}, and Kraken version 1.1~\cite{kraken}.
@@ -82,13 +82,13 @@ At the outset, we engineered and incorporated the information flow tracking logi
 This effort gave us a deep understanding of WebKit's JavaScript VM and allows a comparison between the relative performance impacts of implementing dynamic information flow tracking in the interpreter vs. the JIT compiler.
 Even when implementing information flow in a JIT compiler, the overhead measured as percentage relative to the baseline does not necessarily correspond to that seen when implementing the same framework within the JavaScript interpreter.
 For example, the SunSpider benchmark (\autoref{fig:sunspider-performance}) shows an overhead of 137\% in the interpreter, while the JIT compiler shows only 74\%.
-\autoref{app:jitflow-detailed-results} contains a full account of the performance on each individual benchmark (using the encoding and framework as described in \autoref{sec:jitflow-labelencoding}).
+\autoref{ch:benchmarks} contains a full account of the performance on each individual benchmark (using the encoding and framework as described in \autoref{sec:jitflow-labelencoding}).
 
 Many of the benchmarks, such as \code{regexp} in V8 and the \code{json} family of tests in Kraken, run with essentially the same speed as the unmodified JIT compiler.
 These tests perform fewer control-flow branches and make a higher percentage of native code calls compared to other tests.
 Meanwhile, the \code{controlflow-recursive} test in SunSpider introduces the most overhead, at 346\%, because it has a very large number of executed branches in recursive function calls and conditional tests.
 These control-flow constructs cause the dynamic information flow VM to perform additional work to maintain the control-flow stack.
-Each time the VM recursively calls a function, branches on a conditional, or iterates a loop, it executes the control-flow tracking instructions (\autoref{ch:instructions}), incurring an overhead relative to an unmodified VM.
+Each time the VM recursively calls a function, branches on a conditional, or iterates a loop, it executes the control-flow tracking instructions (\autoref{ch:implementation-sec:instructions}), incurring an overhead relative to an unmodified VM.
 
 Overall, the low impact for the JIT-compiled information flow tracking logic (73\% on average, on compute intensive benchmarks) highlights the practicality of dynamic information flow as a security enhancement for the outdated JavaScript security model.
 
@@ -135,7 +135,7 @@ reportCompare((labelof res), (labelof a).join(labelof b),
 \end{jscode}
 
 \autoref{list:jitflow-regressiontest} shows one of the crafted regression tests for confirming correct label propagation.
-In keeping with the other examples (\autoref{sec:implementation-tracking-data-flow}), this test focuses on the correct label propagation for integer addition.
+In keeping with the other examples (\autoref{ch:implementation-sec:jitflow-tracking-data-flow}), this test focuses on the correct label propagation for integer addition.
 
 The integer addition test begins by giving each of the input operands separate labels.
 \Codeline{1} assigns input variable \code{a} the value \code{24} with label \code{labelA} (internally mapped to \code{0001}) and \codeline{2} assigns input variable \code{b} the value \code{12} with label \code{labelB} (internally mapped to \code{0010}).
@@ -214,7 +214,7 @@ Under these circumstances, implementations of information flow tracking in the J
 
 \JitFlow\ directly addresses the performance overhead of information flow by implementing the tracking logic in JIT-compiled code.
 In spite of the prior work and analysis done to develop \FlowCore, \JitFlow\ does not ``just'' transplant interpretative tracking techniques to a JIT compiler.
-Rather, it uses a different encoding that inlines the label for more efficiency with respect to space and time.
+%Rather, it uses a different encoding that inlines the label for more efficiency with respect to space and time.
 To achieve even better performance it (i) optimizes the allocation of the control flow stack to track implicit flows, (ii) it caches the top label of the control flow stack to optimize frequent accesses, and (iii) it inlines the assembly code that maintains the control flow stack to avoiding costly trampoline jumps.
 Without these optimizations, a good part of the speedup from JIT compilation would have been lost.
 
