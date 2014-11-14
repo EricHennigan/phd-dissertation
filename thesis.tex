@@ -239,14 +239,14 @@
 \authorname{Eric Hennigan}
 
 % Use the full name of each committee member.
-\committeechair{Professor First Last}
+\committeechair{Professor Michael Franz}
 \othercommitteemembers
 {
-	Professor First Last\\
-	Professor First Last
+	Professor Athina Markopoulou\\
+	Professor Ian Harris
 }
 
-\degreeyear{2013}
+\degreeyear{2014}
 
 \copyrightdeclaration
 {
@@ -256,41 +256,49 @@
 % If you have previously published parts of your manuscript, you must list the
 % copyright holders; see Section 3.2 of the UCI Thesis and Dissertation Manual.
 % Otherwise, this section may be omitted.
-% \prepublishedcopyrightdeclaration
-% {
-% 	Chapter 4 {\copyright} 2003 Springer-Verlag \\
-% 	Portion of Chapter 5 {\copyright} 1999 John Wiley \& Sons, Inc. \\
-% 	All other materials {\copyright} {\Degreeyear} \Authorname
-% }
+\prepublishedcopyrightdeclaration
+{
+  Portions of Chapter \autoref{ch:defense} \copyright\ 2013 Springer-Verlag\\ % first-class
+  Portions of Chapter \autoref{ch:terminology} \copyright\ 2013 Springer-Verlag\\ % first-class labels
+  Portions of Chapter \autoref{ch:first-class-labels} \copyright\ 2013 Springer-Verlag\\ % first-class labels
+  All other materials \copyright\ \Degreeyear\ \Authorname
+}
 
 % The dedication page is optional.
-\dedications
-{
-	To my parents...
-}
+%\dedications
+%{
+%	To my parents...
+%}
 
 \acknowledgments
 {
-	I would like to thank...
+  I would like to extend gratitude and thanks to Prof. Michael Franz for his trust and patience in offering guidance to the often mistaken ways of young learners.
+  I appreciate his talents in recruiting intelligent students who became my coworkers and friends, providing a wonderful environment in which to advance my skills in programming and absorb insights about the data structures and algorithms used to model programs.
+  Without his talents in obtaining funding from the U.S. Government (DARPA contract No. D11Pc20024, NSF Grants CNS-0905684 and CCF-1117162) and from collaborators, namely Google and Mozilla, this research would not have been possible.
 
-	You must acknowledge grants and other funding assistance. 
+  I would also like to extend thanks to Prof. Ian Harris and Athina Markopoulou who agreed to serve on my committee, and suffer my public speaking efforts.
 
-	You may also acknowledge the contributions of professors and friends. 
-	
-	You also need to acknowledge any publishers of your previous work who have given you permission to incorporate that work into your dissertation. See Section 3.2 of the UCI Thesis and Dissertation Manual.
+  I am further indebted to my Postdoctoral counselors: Christian Wimmer, Stefan Brunthaler, and Per Larse, for arguments and discussion over implementation details, advice on writing and strategy, and insights on research directions. For moral support I must also express my gratitude to my fellow students and friends: Gregor Wagner, Michael Bebenita, Mason Chang, Andrei Homescu, Wei Zhang, Gulfem Yeniceri, Stephen Crane, and Codrut Stancu.
+
+  Finally, my partner on this project, Christoph Kerschbaumer, receives special mention for his patience and understanding when dealing with my stubbornness.
+  Without his support, I would not have finished my degree.
+
+  Lastly, I would like to thank my parents, Susan and Leroy, and my siblings, Ryan, Kurt, and Jayne, for their steady encouragement.
 }
 
 \include{cv}
 
 \thesisabstract
 {
-% state the problem
-% say why it's an interesting problem
-% say what your solution achieves
-% say what follows from your solution
-	The text of the abstract begins here. The text may contain a maximum of 350 words. Include a short statement of the 
-problem you studied, a brief exposition of the methods and procedures employed in gathering the data, and a summary of your 
-findings. No graphs, charts, or tables may be included.
+Today's web applications remain vulnerable to cross-site scripting attacks that enable data theft.
+Information flow tracking in the JavaScript VM of a web engine can track data flows through the web application and prevent the communication of sensitive data to unintended recipients, thereby stopping data theft.
+Existing solutions have focused on the incorporating information flow into the JS interpreter, rather than the just-in-time compiler, rendering the resulting performance non-competitive.
+
+This thesis presents an implementation of information flow tracking that works with the just-in-time compiler, outperforming all previous interpreter-based information flow tracking engines by more than a factor of two.
+The JIT-based engine (i) has the same coverage as previous implementations,
+(ii) requires comparatively light implementation effort,
+and (iii) introduces new optimizations to remain performant.
+When evaluated against three industry standard benchmark suites, the tracking engine retains an average slowdown of 73\% over engines that do not support information flow, remaining will within the range that many users will find an acceptable price for obtaining substantially increased security against data theft.
 }
 
 \preliminarypages
