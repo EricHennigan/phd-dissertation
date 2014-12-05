@@ -453,8 +453,8 @@ This multiplicity interferes with code routines that attempt to identify malicio
 To provide a clear demonstration of difficulties encountered by input filtering, Hasegawa~\cite{xssfilters} manufactured the following JavaScript snippet that calls \code{alert(1)}, yet contains no alphanumeric characters\footnote{This code may not execute on a modern browser. JavaScript remains a moving target as browser vendors continually update and modify the access rules to built-in objects in response to exploited vulnerabilities.}:
 
 \lstset{
-  label=list:obfuscated-alert},
-  caption={An obfuscated call to \code{alert(1)} provided by Hasegawa~\cite{xssfilters}.
+  label=list:obfuscated-alert,
+  caption={An obfuscated call to \code{alert(1)} provided by Hasegawa~\cite{xssfilters}.}
 }
 \begin{jscode}
 ($=[$=[]][(__=!$+$)[_=-~-~-~$]+(\{\}+$)[_/_]+($$=($_=!''+$)

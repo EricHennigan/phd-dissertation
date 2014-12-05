@@ -340,6 +340,8 @@ When the \FlowLabelObject\ functor receives a passed value, it unions that value
   label={list:apply-label},
 }
 \begin{jscode}
+> pwdLabel = new FlowLabel("pwd");
+  [FlowLabelObject pwd] [FlowLabel example.com]
 > pass = "24sk09nk12";
   24sk09nk12 [FlowLabel example.com]
 > pass = pwdLabel(pass);
@@ -391,7 +393,7 @@ In conformance with the lattice definition of subsumption, a label $A$ sumsumes 
   [FlowLabelObject label3] [FlowLabel example.com]
 
 > lab1.subsumes(lab1)
-  true [FlowLabel label1, example.com]
+  true [FlowLabel example.com]
 
 > (lab1.join(lab2)).subsumes(lab2)
   true [FlowLabel example.com]

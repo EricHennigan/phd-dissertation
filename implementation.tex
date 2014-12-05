@@ -18,7 +18,7 @@ The retrofitting of security into an established and mature VM occurs as four co
 (1) the labeling of the data types (\autoref{ch:label-propagation}),
 (2) the instrumentation of instructions for managing runtime data structures such as the control flow stack (\autoref{sec:control-flow-stack}) and program counter label,
 (3) the implementation of JIT-complied versions of existing and new virtual machine instructions,
-(4) and the introduction of memory layout modifications to stack frames that support caching of the \pclabel for fast retrieval and seamless switching between JIT-compiled code and the interpreter.
+(4) and the introduction of memory layout modifications to stack frames that support caching of the \pclabel\ for fast retrieval and seamless switching between JIT-compiled code and the interpreter.
 
 \newcommand{\popj}{\code{POPJ\_CFLABEL} }
 \newcommand{\dup}{\code{DUP\_CFLABEL} }
@@ -29,7 +29,7 @@ The retrofitting of security into an established and mature VM occurs as four co
 The introduction of new instructions for the maintenance of the control flow stack permits a far easier JIT implementation of information flow.
 These instructions serve to decouple the concerns of computation from information flow tracking.
 Principally, they ensure that the control flow stack keeps alignment with the control flow structures of the program under execution.
-Second, they cache the \pclabel in the stack frame, providing a fast and stable access point for all instructions, whether interpreted or JIT-compiled.
+Second, they cache the \pclabel\ in the stack frame, providing a fast and stable access point for all instructions, whether interpreted or JIT-compiled.
 Finally, other virtual machines, such as SpiderMonkey, can adopt the same technique.
 
 \subsection{The Necessity for New Instructions}
